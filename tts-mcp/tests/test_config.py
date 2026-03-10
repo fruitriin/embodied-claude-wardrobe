@@ -138,6 +138,32 @@ class TestPlaybackConfig:
         config = PlaybackConfig.from_env()
         assert config.go2rtc_camera_host == "override"
 
+    @patch.dict(
+        os.environ,
+        {"GO2RTC_CAMERA_CLOUD_PASSWORD": "cloud123"},
+        clear=False,
+    )
+    def test_cloud_password_from_go2rtc_env(self):
+        config = PlaybackConfig.from_env()
+        assert config.go2rtc_camera_cloud_password == "cloud123"
+
+    @patch.dict(
+        os.environ,
+        {"TAPO_CLOUD_PASSWORD": "tapo_cloud"},
+        clear=False,
+    )
+    def test_cloud_password_fallback_to_tapo_env(self):
+        os.environ.pop("GO2RTC_CAMERA_CLOUD_PASSWORD", None)
+        config = PlaybackConfig.from_env()
+        assert config.go2rtc_camera_cloud_password == "tapo_cloud"
+
+    @patch.dict(os.environ, {}, clear=False)
+    def test_cloud_password_defaults_to_none(self):
+        os.environ.pop("GO2RTC_CAMERA_CLOUD_PASSWORD", None)
+        os.environ.pop("TAPO_CLOUD_PASSWORD", None)
+        config = PlaybackConfig.from_env()
+        assert config.go2rtc_camera_cloud_password is None
+
 
 class TestTTSConfig:
     """Tests for top-level TTS config."""
