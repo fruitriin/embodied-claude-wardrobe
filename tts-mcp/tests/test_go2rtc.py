@@ -107,6 +107,35 @@ class TestGenerateConfig:
         )
         assert config_path.exists()
 
+    def test_cloud_password_used_for_tapo_backchannel(self, tmp_path):
+        config_path = tmp_path / "go2rtc.yaml"
+        generate_config(
+            config_path=config_path,
+            stream_name="tapo_cam",
+            camera_host="192.168.1.100",
+            username="admin",
+            password="local_pass",
+            cloud_password="cloud_pass",
+        )
+        content = config_path.read_text()
+        assert "rtsp://admin:local_pass@192.168.1.100:554/stream1" in content
+        assert "tapo://cloud_pass@192.168.1.100" in content
+        assert "tapo://local_pass@" not in content
+
+    def test_password_fallback_when_no_cloud_password(self, tmp_path):
+        config_path = tmp_path / "go2rtc.yaml"
+        generate_config(
+            config_path=config_path,
+            stream_name="tapo_cam",
+            camera_host="192.168.1.100",
+            username="admin",
+            password="only_pass",
+            cloud_password=None,
+        )
+        content = config_path.read_text()
+        assert "rtsp://admin:only_pass@192.168.1.100:554/stream1" in content
+        assert "tapo://only_pass@192.168.1.100" in content
+
     def test_overwrites_existing(self, tmp_path):
         config_path = tmp_path / "go2rtc.yaml"
         config_path.write_text("old content")

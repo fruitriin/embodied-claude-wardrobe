@@ -126,16 +126,28 @@ def generate_config(
     camera_host: str,
     username: str,
     password: str,
+    cloud_password: str | None = None,
     ffmpeg_bin: str | None = None,
 ) -> Path:
-    """Generate go2rtc.yaml config file."""
+    """Generate go2rtc.yaml config file.
+
+    Two stream entries are required:
+    - rtsp://: provides the video/audio stream using local camera account credentials
+    - tapo://: enables the backchannel audio using the TP-Link cloud account password
+
+    The ``cloud_password`` parameter accepts the TP-Link cloud account password used
+    for the ``tapo://`` backchannel.  This is distinct from the local RTSP/ONVIF
+    ``password``.  When ``cloud_password`` is not provided, ``password`` is used as a
+    fallback for backward compatibility.
+    """
     config_path.parent.mkdir(parents=True, exist_ok=True)
     resolved_ffmpeg = ffmpeg_bin or "ffmpeg"
+    tapo_password = cloud_password if cloud_password is not None else password
     content = (
         f"streams:\n"
         f"  {stream_name}:\n"
         f"    - rtsp://{username}:{password}@{camera_host}:554/stream1\n"
-        f"    - tapo://{password}@{camera_host}\n"
+        f"    - tapo://{tapo_password}@{camera_host}\n"
         f"\n"
         f"ffmpeg:\n"
         f"  bin: {resolved_ffmpeg}\n"
