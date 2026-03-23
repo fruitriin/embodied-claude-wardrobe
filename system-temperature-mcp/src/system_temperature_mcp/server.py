@@ -108,7 +108,6 @@ def interpret_temperature(temps: list[dict[str, Any]]) -> str:
     if not temps:
         return "温度を感じられへん...センサーが見つからんみたい。"
 
-    avg_temp = sum(t["temperature_celsius"] for t in temps) / len(temps)
     max_temp = max(t["temperature_celsius"] for t in temps)
 
     if max_temp >= 90:
