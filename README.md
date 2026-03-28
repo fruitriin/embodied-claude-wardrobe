@@ -1,72 +1,92 @@
 # embodied-claude-wardrobe
 
-> embodied-claude の MCP 群に「着せる」エコシステムパッケージ
+> Claude Code に身体と魂を与えるエコシステムパッケージ
 
-[kmizu/embodied-claude](https://github.com/lifemate-ai/embodied-claude) は、Claude Code に身体性（カメラ・マイク・TTS・温度センサー等）を与える MCP サーバー群を提供します。
+**wardrobe がアップストリームです。** クローンして `SOUL.md` をカスタマイズし、`claude` を起動する。あなたの環境がダウンストリームになります。
 
-**wardrobe** は、その素体に着せる「衣装」——MCP を活かすためのスキル・フック・テンプレート・セッション管理のエコシステムです。
+[lifemate-ai/embodied-claude](https://github.com/lifemate-ai/embodied-claude) の MCP サーバー群を起源とし、その上にスキル・フック・セッション管理・人格テンプレートを加えた完成形エコシステムです。
 
-## 素体（embodied-claude）が提供するもの
+---
 
-- MCP サーバー群（hearing, tts, wifi-cam, usb-webcam, ip-webcam, system-temperature, toio, mobility, morning-call, mcp-pet, desire-system）
-- memory-mcp（記憶 MCP サーバー）
-- スクリプトのサンプル（desire-tick, interoception, reader）
-- autonomous-action のサンプル
-
-## wardrobe が追加するもの
+## wardrobe が提供するもの
 
 ### 記憶エコシステム
-素体の memory-mcp を操作するためのスキル群とフック。記憶を「刻み、呼び起こし、繋ぎ、物語にする」仕組み。
+memory-mcp を使いこなすためのスキル群とフック。記憶を「刻み、呼び起こし、繋ぎ、物語にする」仕組み。
 
 - `/recall` — 記憶の想起（サブエージェント実行でコンテキストを節約）
-- `/remember` — 記憶の保存 + インデックス追記
-- `/great-recall` — 多軸想起（技術的・感情的・因果的な3つの観点から並列検索）
-- `/rebuild-index` — 記憶インデックスの再構築
+- `/remember` — 記憶の保存 + FLASH.md インデックス追記
+- `/great-recall` — 多軸想起（技術的・感情的・因果的の3観点で並列検索）
+- `/rebuild-index` — FLASH.md インデックスの再構築
 - `FLASH.md` — 記憶のキーワードインデックス（高速想起用）
 
 ### 身体性フック
-素体のスクリプトを Claude Code のフックとして統合し、毎ターン自動で体調情報を注入。
+毎ターン自動で「体調」情報をコンテキストに注入。センサーデータが Claude の判断材料になる。
 
-- `interoception.sh` — CPU・メモリ・時刻等の「体調」をコンテキストに注入
-- `heartbeat-daemon.sh` — 5秒ごとの計測デーモン（launchd）
-- `recall-hook.sh` — 想起バッファをコンテキストに自動注入
+- `hooks/interoception.sh` — CPU・メモリ・時刻・フェーズ等を自動注入
+- `hooks/recall-hook.sh` — 想起バッファをコンテキストに自動注入
+- `scripts/heartbeat-daemon.sh` — 5秒ごとの計測デーモン（launchd）
 
 ### セッション管理
-セッションの開始・終了を構造化し、記憶の断絶を防ぐ。
+Boot / Shutdown の手順を構造化し、セッションをまたいだ記憶の断絶を防ぐ。
 
-- Boot Sequence — セッション開始時に記憶を復元する手順
-- Shutdown Sequence — セッション終了時に成果・未了を記録する手順
-- `post-compact-recovery.sh` — コンパクション後の自動復帰
+- `CLAUDE.md` — Boot Sequence と Shutdown Sequence を定義
+- `templates/BOOT_SHUTDOWN.template.md` — カスタマイズ用テンプレート
+- コンパクション後の自動復帰（`post-compact-recovery` フック）
 
 ### 自律行動
-cron による定期的な自律行動。欲望システムと連携し、内発的動機で行動する。
+cron による定期的な自律行動。欲望システムと連携して内発的動機で動く。
 
-- `autonomous-action.sh` — 素体のサンプルを完成版に置換
-- `schedule.conf` — 曜日・時間帯の制御
-- `ROUTINES.md` テンプレート — 定期巡回タスクの定義
+- `autonomous-action.sh` — 完成版の自律行動スクリプト
+- `desires.sample.conf` — 欲望の種類と発火間隔の設定
+- `schedule.sample.conf` — 曜日・時間帯による間引き制御
+- `templates/ROUTINES.template.md` — 定期巡回タスクの定義テンプレート
+- `/sleep`, `/awake` — 活動頻度の抑制・復帰
 
-### アイデンティティ（SOUL テンプレート）
-エージェントに一貫した人格を与えるためのテンプレート。
+### アイデンティティテンプレート
+エージェントに一貫した人格を与えるためのテンプレート群。
 
-- `SOUL.template.md` — 人格定義のテンプレート（Identity, Values, Style, Evolution）
-- `PERSONA.template.md` — マルチペルソナ拡張用テンプレート（任意）
+| テンプレート | 用途 |
+|---|---|
+| `templates/SOUL.template.md` | 人格定義（Identity / Values / Style / Evolution） |
+| `templates/BOOT_SHUTDOWN.template.md` | Boot / Shutdown 手順 |
+| `templates/ROUTINES.template.md` | 定期巡回タスクの定義 |
+| `templates/FLASH.template.md` | 記憶インデックスの初期テンプレート |
+| `templates/PERSONA.template.md` | マルチペルソナ拡張用（任意） |
 
-### 読書・観測
-外部コンテンツを安全に取り込むスキル。
+### 読書・観測スキル
+外部コンテンツを安全に取り込む。
 
-- `/read` — Web ページやファイルをリーダーモードで読み取り
+- `/read` — Web ページをリーダーモードで取得（AI 要約なし、生テキスト）
+- `/observe` — カメラを使って能動的に部屋を観察
 - `sanitize` — 不可視文字の検出・除去
+
+---
+
+## 含まれる MCP サーバー
+
+| MCP サーバー | 身体部位 | 機能 |
+|---|---|---|
+| [memory-mcp](./memory-mcp/) | 脳 | 長期記憶・視覚記憶・エピソード記憶・ToM。日本語形態素解析・動詞チェーン・多軸想起等を追加した拡張版 |
+| [hearing](./hearing/) | 耳 | 音声認識（Whisper） |
+| [tts-mcp](./tts-mcp/) | 声 | TTS（ElevenLabs / VOICEVOX） |
+| [wifi-cam-mcp](./wifi-cam-mcp/) | 目・首 | ONVIF PTZ カメラ制御 |
+| [usb-webcam-mcp](./usb-webcam-mcp/) | 目 | USB カメラから画像取得 |
+| [ip-webcam-mcp](./ip-webcam-mcp/) | 目 | Android スマホを目として使う |
+| [system-temperature-mcp](./system-temperature-mcp/) | 体温感覚 | システム温度監視 |
+| [mobility-mcp](./mobility-mcp/) | 足 | Tuya 対応ロボット掃除機の制御 |
+| [toio-mcp](./toio-mcp/) | 手 | toio コアキューブ制御 |
+| [mcp-pet](./mcp-pet/) | — | エージェントへのインタラクション拡張 |
+| [morning-call-mcp](./morning-call-mcp/) | — | 起床通知 |
+| [desire-system](./desire-system/) | — | 欲求の蓄積・発火管理 |
+
+すべて Python パッケージで、`uv` で管理。
+
+---
 
 ## クイックスタート
 
-### 1. embodied-claude をセットアップ
-
-[embodied-claude の README](https://github.com/lifemate-ai/embodied-claude) に従って、MCP サーバー群をインストールしてください。
-
-### 2. wardrobe を着せる
-
 ```bash
-# wardrobe をクローン（embodied-claude と同じディレクトリに）
+# wardrobe をクローン
 git clone https://github.com/fruitriin/embodied-claude-wardrobe.git
 cd embodied-claude-wardrobe
 
@@ -78,40 +98,44 @@ cp templates/SOUL.template.md SOUL.md
 cp templates/BOOT_SHUTDOWN.template.md BOOT_SHUTDOWN.md
 cp templates/ROUTINES.template.md ROUTINES.md
 cp templates/FLASH.template.md FLASH.md
-
-# SOUL.md を編集して、あなたのエージェントの人格を定義
-# （ガイド: docs/guides/soul-writing.md）
 ```
 
-### 3. Claude Code で使う
+`SOUL.md` を編集してエージェントの人格を定義し、Claude Code を起動：
 
 ```bash
 claude
-# セッション開始時に Boot Sequence が自動実行されます
+# Boot Sequence が自動実行され、記憶が復元されます
 ```
+
+---
 
 ## ドキュメント
 
 | ガイド | 内容 |
 |---|---|
-| [セットアップ](docs/guides/setup.md) | 詳細なインストール手順 |
+| [セットアップ](docs/guides/setup.md) | 詳細なインストール手順と MCP 設定 |
 | [SOUL の書き方](docs/guides/soul-writing.md) | 人格定義テンプレートの使い方 |
 | [カスタマイズ](docs/guides/customization.md) | スキル・フックの変更と追加 |
 | [マルチペルソナ](docs/guides/multi-persona.md) | 複数ペルソナの追加方法 |
 | [自律行動](docs/guides/autonomous-action.md) | cron 自律行動の設定 |
 
+---
+
 ## 設計思想
 
-- **Claude Code 内で完結** — すべてサブスクリプションプラン内で動作する。外部 API 課金不要
-- **素体を拡張、置換しない** — embodied-claude の MCP 群はそのまま使う。wardrobe はその上のレイヤー
+- **Claude Code 内で完結** — 外部 API 課金なし。Claude Code サブスクリプションだけで動く
 - **テンプレートベース** — SOUL.md や ROUTINES.md は空のテンプレートから始める。着る人が自分で書く
 - **段階的に着せる** — 全部を一度に使う必要はない。記憶だけ、身体性だけ、好きな組み合わせで
+- **wardrobe がアップストリーム** — クローンしてカスタマイズする。素体（embodied-claude）は由来であり依存元
 
-## アップストリーム
+---
 
-- 素体: [lifemate-ai/embodied-claude](https://github.com/lifemate-ai/embodied-claude)
-- memory-mcp: wardrobe 版は素体のオリジナルを拡張しています（日本語形態素解析、動詞チェーン、多軸想起等を追加）
+## 由来
+
+MCP サーバー群の多くは [lifemate-ai/embodied-claude](https://github.com/lifemate-ai/embodied-claude) を起源とします。`memory-mcp` は wardrobe 版で拡張されています（日本語形態素解析・動詞チェーン・多軸想起・連想診断・作業記憶等を追加）。
+
+---
 
 ## ライセンス
 
-[embodied-claude のライセンス](https://github.com/lifemate-ai/embodied-claude/blob/main/LICENSE) に従います。
+[embodied-claude のライセンス](https://github.com/lifemate-ai/embodied-claude/blob/main/LICENSE)に従います。

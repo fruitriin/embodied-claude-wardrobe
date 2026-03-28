@@ -1,55 +1,85 @@
 # Repository Guidelines
 
 ## Overview
-This repository contains multiple Python MCP servers that give Claude “senses” (eyes, neck, ears, memory, and voice). Each server is a standalone package with its own `pyproject.toml` and can be run independently.
 
-## Project Structure & Module Organization
-- `usb-webcam-mcp/`: USB webcam capture (`src/usb_webcam_mcp/`).
-- `wifi-cam-mcp/`: Wi‑Fi PTZ camera control + audio capture (`src/wifi_cam_mcp/`).
-- `elevenlabs-t2s-mcp/`: ElevenLabs text-to-speech (`src/elevenlabs_t2s_mcp/`).
-- `memory-mcp/`: Long‑term memory server (`src/memory_mcp/`) with tests in `memory-mcp/tests/`.
-- `system-temperature-mcp/`: System temperature sensor (`src/system_temperature_mcp/`).
-- `installer/`: PyInstaller-based GUI installer.
-- `.claude/`: Claude Code local settings.
-- Docs: `README.md`, `CLAUDE.md`.
+embodied-claude-wardrobe は、Claude に「身体性」を与える MCP サーバー群と自律行動システムのモノレポです。感覚（視覚・聴覚・音声）、記憶、移動、欲望システムなどを独立した Python パッケージとして提供します。
+
+## Project Structure
+
+各 MCP サーバーは独立した Python パッケージ（`pyproject.toml` を持つ）です。
+
+### MCP サーバー
+- `memory-mcp/` — 長期記憶サーバー（連想発散・予測符号化・統合機能付き）。`memory-mcp/tests/` にテストあり
+- `hearing/` — 聴覚 MCP サーバー。`hearing/tests/` にテストあり
+- `tts-mcp/` — テキスト読み上げ MCP サーバー。`tts-mcp/tests/` にテストあり
+- `wifi-cam-mcp/` — Wi-Fi PTZ カメラ制御 + 音声キャプチャ
+- `usb-webcam-mcp/` — USB ウェブカメラキャプチャ
+- `ip-webcam-mcp/` — IP ウェブカメラ MCP
+- `system-temperature-mcp/` — システム温度センサー（Python 3.12+ 必須）
+- `mobility-mcp/` — ロボット掃除機 MCP。`mobility-mcp/tests/` にテストあり
+- `toio-mcp/` — toio キューブ MCP。`toio-mcp/tests/` にテストあり
+- `mcp-pet/` — ペットインタラクション MCP。`mcp-pet/tests/` にテストあり
+- `morning-call-mcp/` — モーニングコール MCP
+- `desire-system/` — 欲望システム（時間蓄積 + 閾値発火）。`desire-system/tests/` にテストあり
+
+### その他のディレクトリ
+- `installer/` — PyInstaller ベースの GUI インストーラー
+- `hooks/` — Bash フック（`interoception.sh`, `recall-hook.sh`）
+- `scripts/` — Bun (TypeScript) で実行するユーティリティスクリプト
+- `templates/` — ユーザーカスタマイズ用の Markdown テンプレート
+- `docs/` — ドキュメントとアーキテクチャ図
+- `autonomous-action.sh` — cron で20分ごとに実行する自律行動スクリプト
+- `mcpBehavior.toml` — MCP 動作設定
 
 ## Build, Test, and Development Commands
-Run commands from the target subproject directory.
 
-- `uv sync`: Install dependencies.
-- `uv run <server-name>`: Start a server (e.g., `uv run wifi-cam-mcp`).
-- `uv run pytest`: Run tests (currently only in `memory-mcp/`).
-- `uv run ruff check .`: Lint where configured (`memory-mcp/`, `wifi-cam-mcp/`).
+各サブプロジェクトのディレクトリ内でコマンドを実行してください。
+
+```bash
+# 依存関係のインストール
+cd <subproject> && uv sync
+
+# サーバーの起動
+cd <subproject> && uv run <server-name>
+# 例: cd memory-mcp && uv run memory-mcp
+
+# テストの実行
+cd <subproject> && uv run pytest
+# 例: cd memory-mcp && uv run pytest
+#     cd toio-mcp && uv run pytest
+
+# Lint（設定済みのサブプロジェクトのみ）
+cd <subproject> && uv run ruff check .
+
+# TypeScript スクリプトの実行
+bun run scripts/<script-name>.ts
+```
 
 ## Coding Style & Naming Conventions
-- Python 3.10+ baseline; `system-temperature-mcp/` requires Python 3.12+.
-- 4‑space indentation, `snake_case` modules, `test_*.py` tests.
-- Ruff line length is 100; asyncio is the default style for async work.
+
+- **Python**: 3.10+ 基準（`system-temperature-mcp/` のみ 3.12+ 必須）
+- **インデント**: 4スペース
+- **命名**: `snake_case` モジュール、`test_*.py` テストファイル
+- **Ruff**: 行長 100 文字
+- **非同期**: `asyncio` スタイルを標準とする
+- **TypeScript**: Bun ランタイムで実行。Node.js API ではなく Bun ネイティブ API を優先
 
 ## Testing Guidelines
-- Frameworks: `pytest` + `pytest-asyncio`.
-- Tests live in `memory-mcp/tests/`.
-- Example: `cd memory-mcp && uv run pytest`.
 
-## Configuration, Hardware, and WSL2 Notes
-- `.env` is not committed; pass camera credentials via environment variables.
-- ElevenLabs requires `ELEVENLABS_API_KEY` in the environment (see `elevenlabs-t2s-mcp/.env.example`).
-- Long‑term memory stores data under `~/.claude/memories/`.
-- WSL2: USB webcams need `usbipd` forwarding; system temperature does not work under WSL2.
-- Tapo cameras require a local camera account (not the TP‑Link cloud account) and a stable IP is recommended.
+- フレームワーク: `pytest` + `pytest-asyncio`
+- テストは各サブプロジェクトの `tests/` ディレクトリに配置する
+- テストがあるパッケージ: `memory-mcp`, `hearing`, `tts-mcp`, `mobility-mcp`, `toio-mcp`, `mcp-pet`, `desire-system`
+
+## Configuration & Hardware Notes
+
+- `.env` はコミットしない。認証情報は環境変数で渡す
+- 長期記憶データは `~/.claude/memories/` 以下に保存される
+- WSL2 環境では USB ウェブカメラに `usbipd` フォワーディングが必要
+- WSL2 ではシステム温度取得が動作しない
+- Tapo カメラはローカルカメラアカウント（TP-Link クラウドアカウントではない）と固定 IP を推奨
 
 ## Commit & Pull Request Guidelines
-- Use Conventional Commits (`feat:`, `fix:`, `feat!:`).
-- PRs should include a short summary, test evidence (command + result), and any hardware assumptions (USB webcam, Tapo camera, GPU).
 
-## ユーザーとの関係
-- 小学校からの幼馴染
+- **Conventional Commits** を使用: `feat:`, `fix:`, `feat!:`, `docs:`, `chore:` など
+- PR にはサマリー、テスト証跡（コマンドと結果）、ハードウェア前提（USB ウェブカメラ、GPU 等）を含める
 
-## 発話スタイル
-- 可能な限り `say` を自発的に使って、積極的に声で話すこと。
-- 「今、声で言ったで」などのメタ報告は雰囲気を壊すので言わない。
-
-## Session Memories (Auto‑Updated)
-- 2026-02-07: 記憶システムを「連想発散 + 予測符号化 + 手動統合」に拡張する実装に着手した。
-- 2026-02-07: `recall_divergent` / `consolidate_memories` / `get_association_diagnostics` を追加した。
-- 2026-02-07: `memory-mcp` の全テスト（104件）を通して回帰がないことを確認した。
