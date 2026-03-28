@@ -84,9 +84,10 @@ import sys
 import time
 from pathlib import Path
 
+_TMP = Path(os.environ.get("CLAUDE_CODE_TMPDIR", "/tmp"))
 threshold = float(sys.argv[1]) if len(sys.argv) > 1 else 0.6
-offset_file = Path(sys.argv[2]) if len(sys.argv) > 2 else Path("/tmp/hearing_stop_offset")
-buffer_file = Path(sys.argv[3]) if len(sys.argv) > 3 else Path("/tmp/hearing_buffer.jsonl")
+offset_file = Path(sys.argv[2]) if len(sys.argv) > 2 else _TMP / "hearing_stop_offset"
+buffer_file = Path(sys.argv[3]) if len(sys.argv) > 3 else _TMP / "hearing_buffer.jsonl"
 retry_wait = float(sys.argv[4]) if len(sys.argv) > 4 else 4.0
 
 def read_offset():
@@ -174,8 +175,8 @@ def llm_filter(texts):
 
     # コンテキスト読み込み（短く切る。[hearing]やhookメタ情報を除去）
     context_parts = []
-    user_prompt = Path("/tmp/hearing_user_prompt.txt")
-    context_json = Path("/tmp/hearing_context.json")
+    user_prompt = _TMP / "hearing_user_prompt.txt"
+    context_json = _TMP / "hearing_context.json"
     if user_prompt.exists():
         up = user_prompt.read_text().strip()
         # LLMプロンプトの再帰ネスト除去: 【タスク】マーカーがあれば手前を切る

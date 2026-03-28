@@ -18,7 +18,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SCRIPT="$SCRIPT_DIR/autonomous-action.sh"
 
 # テスト結果の保存先（一時ディレクトリ）
-# 例: /tmp/test_result/test_20260221_153000.log
+# 例: ${CLAUDE_CODE_TMPDIR:-./tmp}/test_result/test_20260221_153000.log
 RESULT_DIR="${CLAUDE_CODE_TMPDIR:-./tmp}/test_result"
 mkdir -p "$RESULT_DIR"
 
