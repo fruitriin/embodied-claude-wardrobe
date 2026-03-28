@@ -28,6 +28,7 @@
       }
     ]
   },
+  "autoMemoryEnabled": false,
   "permissions": {
     "allow": [
       "mcp__memory__*",
