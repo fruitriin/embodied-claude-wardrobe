@@ -17,6 +17,24 @@ class WorkspaceCandidate:
     novelty: float
     prediction_error: float
     emotion_boost: float
+    boundary_score: float = 0.0
+
+
+def calculate_boundary_score(memory: Memory) -> float:
+    """Lightweight boundary score using link diversity.
+
+    Composite infrastructure (Phase 4) will provide a richer boundary score.
+    Until then, we use link type diversity + link count as a proxy:
+    - More diverse link types (similar/caused_by/leads_to/related) = higher score
+    - More connections = more likely at a cluster boundary
+    """
+    if not memory.links:
+        return 0.0
+    link_types = set(link.link_type for link in memory.links)
+    # Max 4 types: similar, caused_by, leads_to, related
+    type_diversity = len(link_types) / 4.0
+    count_factor = min(1.0, len(memory.links) / 5.0)
+    return (type_diversity + count_factor) / 2.0
 
 
 def _candidate_utility(
@@ -25,11 +43,14 @@ def _candidate_utility(
     temperature: float,
 ) -> float:
     temp = max(0.1, min(2.0, temperature))
+    importance_factor = (candidate.memory.importance - 1) / 4.0  # [0.0, 1.0]
     utility = (
-        0.45 * candidate.relevance
-        + 0.2 * candidate.novelty
-        + 0.2 * candidate.prediction_error
-        + 0.15 * candidate.emotion_boost
+        0.40 * candidate.relevance
+        + 0.18 * candidate.novelty
+        + 0.18 * candidate.prediction_error
+        + 0.10 * candidate.emotion_boost
+        + 0.09 * candidate.boundary_score
+        + 0.05 * importance_factor
         - 0.25 * redundancy_penalty
     )
     return utility / temp

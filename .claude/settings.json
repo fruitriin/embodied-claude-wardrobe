@@ -2,12 +2,11 @@
   "hooks": {
     "SessionStart": [
       {
-        "matcher": "compact",
         "hooks": [
           {
             "type": "command",
             "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/post-compact-recovery.sh",
-            "timeout": 5
+            "trigger": "compact"
           }
         ]
       }
@@ -17,22 +16,31 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/interoception.sh",
+            "command": "/bin/bash \"$CLAUDE_PROJECT_DIR\"/hooks/interoception.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "/bin/bash \"$CLAUDE_PROJECT_DIR\"/hooks/recall-hook.sh",
             "timeout": 5
           }
         ]
       }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/continue-check.sh",
-            "timeout": 10
-          }
-        ]
-      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "mcp__memory__*",
+      "Bash(bun run:*)",
+      "Bash(bun:*)",
+      "Bash(git:*)",
+      "Read",
+      "Edit",
+      "Write",
+      "Glob",
+      "Grep",
+      "Skill(read)",
+      "Skill(great-recall)"
     ]
   }
 }

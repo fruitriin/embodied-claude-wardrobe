@@ -214,6 +214,8 @@ class Memory:
     tags: tuple[str, ...] = ()  # 自由形式タグ
     # Phase 5: 因果リンク
     links: tuple[MemoryLink, ...] = ()  # 構造化リンク
+    # Phase 4+: 心理的時間距離
+    freshness: float = 1.0  # 1.0=直近, 0.01=遠い過去
     # Phase 6: 発散想起・予測符号化
     novelty_score: float = 0.0
     prediction_error: float = 0.0
@@ -242,6 +244,8 @@ class Memory:
                 else ""
             ),
             "tags": ",".join(self.tags),
+            # Phase 4+: freshness
+            "freshness": self.freshness,
             # Phase 5: 因果リンク
             "links": json.dumps([link.to_dict() for link in self.links]),
             # Phase 6: 発散想起・予測符号化

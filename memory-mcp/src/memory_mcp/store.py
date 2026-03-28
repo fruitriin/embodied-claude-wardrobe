@@ -7,7 +7,7 @@ import json
 import math
 import sqlite3
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 import numpy as np
@@ -39,10 +39,12 @@ from .types import (
     ScoredMemory,
     SensoryData,
 )
+from .verb_chain import VerbChain, VerbChainStore, VerbStep
 from .vector import cosine_similarity, decode_vector, encode_vector
 from .working_memory import WorkingMemoryBuffer
 from .workspace import (
     WorkspaceCandidate,
+    calculate_boundary_score,
     diversity_score,
     select_workspace_candidates,
 )
@@ -73,15 +75,12 @@ CREATE TABLE IF NOT EXISTS memories (
     activation_count INTEGER NOT NULL DEFAULT 0,
     last_activated TEXT NOT NULL DEFAULT '',
     reading TEXT,
-    pan_angle REAL,
-    tilt_angle REAL
+    freshness REAL NOT NULL DEFAULT 1.0
 );
 CREATE INDEX IF NOT EXISTS idx_memories_emotion    ON memories(emotion);
 CREATE INDEX IF NOT EXISTS idx_memories_category   ON memories(category);
 CREATE INDEX IF NOT EXISTS idx_memories_timestamp  ON memories(timestamp);
 CREATE INDEX IF NOT EXISTS idx_memories_importance ON memories(importance);
-CREATE INDEX IF NOT EXISTS idx_memories_pan_angle  ON memories(pan_angle);
-CREATE INDEX IF NOT EXISTS idx_memories_tilt_angle ON memories(tilt_angle);
 
 CREATE TABLE IF NOT EXISTS embeddings (
     memory_id TEXT PRIMARY KEY REFERENCES memories(id) ON DELETE CASCADE,
@@ -110,22 +109,85 @@ CREATE TABLE IF NOT EXISTS episodes (
     importance INTEGER NOT NULL DEFAULT 3
 );
 
-CREATE TABLE IF NOT EXISTS episode_embeddings (
-    episode_id TEXT PRIMARY KEY REFERENCES episodes(id) ON DELETE CASCADE,
-    vector BLOB NOT NULL
+CREATE TABLE IF NOT EXISTS verb_chains (
+    id TEXT PRIMARY KEY,
+    document TEXT NOT NULL,
+    steps_json TEXT,
+    all_verbs TEXT,
+    all_nouns TEXT,
+    timestamp TEXT NOT NULL,
+    emotion TEXT DEFAULT 'neutral',
+    importance INTEGER DEFAULT 3,
+    source TEXT DEFAULT 'manual',
+    context TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_verb_chains_timestamp ON verb_chains(timestamp);
+
+CREATE TABLE IF NOT EXISTS verb_chain_embeddings (
+    chain_id TEXT PRIMARY KEY REFERENCES verb_chains(id) ON DELETE CASCADE,
+    vector BLOB,
+    flow_vector BLOB,
+    delta_vector BLOB
 );
 
-CREATE TABLE IF NOT EXISTS memory_links (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    source_id TEXT NOT NULL REFERENCES memories(id) ON DELETE CASCADE,
-    target_id TEXT NOT NULL REFERENCES memories(id) ON DELETE CASCADE,
-    link_type TEXT NOT NULL DEFAULT 'similar',
-    note TEXT,
-    created_at TEXT NOT NULL,
-    UNIQUE(source_id, target_id, link_type)
+CREATE TABLE IF NOT EXISTS composite_members (
+    composite_id TEXT NOT NULL,
+    member_id TEXT NOT NULL REFERENCES memories(id) ON DELETE CASCADE,
+    contribution_weight REAL DEFAULT 1.0,
+    PRIMARY KEY (composite_id, member_id)
 );
-CREATE INDEX IF NOT EXISTS idx_ml_source ON memory_links(source_id);
-CREATE INDEX IF NOT EXISTS idx_ml_target ON memory_links(target_id);
+CREATE INDEX IF NOT EXISTS idx_composite_members_member ON composite_members(member_id);
+
+CREATE TABLE IF NOT EXISTS composite_embeddings (
+    composite_id TEXT PRIMARY KEY,
+    vector BLOB NOT NULL,
+    level INTEGER DEFAULT 1,
+    emotion TEXT DEFAULT 'neutral',
+    importance INTEGER DEFAULT 3,
+    freshness REAL DEFAULT 1.0,
+    category TEXT DEFAULT 'daily'
+);
+
+CREATE TABLE IF NOT EXISTS composite_axes (
+    composite_id TEXT PRIMARY KEY,
+    axis_vector BLOB NOT NULL,
+    explained_variance_ratio REAL
+);
+
+CREATE TABLE IF NOT EXISTS boundary_layers (
+    composite_id TEXT NOT NULL,
+    member_id TEXT NOT NULL,
+    layer_index INTEGER NOT NULL,
+    is_edge INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (composite_id, member_id, layer_index)
+);
+
+CREATE TABLE IF NOT EXISTS template_biases (
+    chain_id TEXT PRIMARY KEY,
+    bias_weight REAL DEFAULT 0.0,
+    update_count INTEGER DEFAULT 0,
+    last_updated TEXT
+);
+
+CREATE TABLE IF NOT EXISTS composite_intersections (
+    composite_a TEXT NOT NULL,
+    composite_b TEXT NOT NULL,
+    intersection_type TEXT NOT NULL,
+    axis_cosine REAL,
+    shared_member_ids TEXT,
+    PRIMARY KEY (composite_a, composite_b)
+);
+
+CREATE TABLE IF NOT EXISTS daily_digest (
+    date TEXT PRIMARY KEY,
+    memory_count INTEGER NOT NULL,
+    summary TEXT NOT NULL,
+    categories TEXT NOT NULL,
+    emotions TEXT NOT NULL,
+    avg_importance REAL NOT NULL,
+    memory_ids TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
 """
 
 # ──────────────────────────────────────────────
@@ -260,6 +322,7 @@ def _row_to_memory(row: sqlite3.Row, coactivation: tuple[tuple[str, float], ...]
         activation_count=int(row["activation_count"] or 0),
         last_activated=row["last_activated"] or "",
         coactivation_weights=coactivation,
+        freshness=float(row["freshness"]) if "freshness" in row.keys() else 1.0,
     )
 
 
@@ -299,6 +362,8 @@ class MemoryStore:
         self._hopfield = ModernHopfieldNetwork(beta=4.0, n_iters=3)
         self._embedding_fn = E5EmbeddingFunction(config.embedding_model)
         self._bm25_index = BM25Index()
+        self._verb_chain_store: VerbChainStore | None = None
+        self._chive = None  # Lazy-loaded ChiVeEmbedding
 
     # ── Connection ──────────────────────────────
 
@@ -317,70 +382,26 @@ class MemoryStore:
                         stmt = stmt.strip()
                         if stmt:
                             conn.execute(stmt)
+                    # Migration: add freshness column to existing memories table
+                    try:
+                        conn.execute("ALTER TABLE memories ADD COLUMN freshness REAL NOT NULL DEFAULT 1.0")
+                    except sqlite3.OperationalError:
+                        pass  # Column already exists
                     conn.commit()
-                    # Migration: add pan_angle/tilt_angle if missing
-                    existing_cols = {row[1] for row in conn.execute("PRAGMA table_info(memories)").fetchall()}
-                    if "pan_angle" not in existing_cols:
-                        conn.execute("ALTER TABLE memories ADD COLUMN pan_angle REAL")
-                        conn.execute("ALTER TABLE memories ADD COLUMN tilt_angle REAL")
-                        rows = conn.execute(
-                            "SELECT id, camera_position FROM memories WHERE camera_position IS NOT NULL"
-                        ).fetchall()
-                        for row in rows:
-                            try:
-                                data = json.loads(row[1])
-                                conn.execute(
-                                    "UPDATE memories SET pan_angle=?, tilt_angle=? WHERE id=?",
-                                    (data.get("pan_angle"), data.get("tilt_angle"), row[0]),
-                                )
-                            except Exception:
-                                pass
-                        conn.commit()
-
-                    # Migration: populate memory_links from legacy linked_ids / links columns
-                    count = conn.execute("SELECT COUNT(*) FROM memory_links").fetchone()[0]
-                    if count == 0:
-                        now = datetime.now().isoformat()
-                        rows = conn.execute("SELECT id, linked_ids, links FROM memories").fetchall()
-                        for row in rows:
-                            mem_id = row["id"]
-                            # linked_ids (CSV) → type='similar', bidirectional
-                            linked_ids_str = row["linked_ids"] or ""
-                            if linked_ids_str:
-                                for lid in linked_ids_str.split(","):
-                                    lid = lid.strip()
-                                    if lid:
-                                        conn.execute(
-                                            """INSERT OR IGNORE INTO memory_links
-                                               (source_id, target_id, link_type, created_at)
-                                               VALUES (?, ?, 'similar', ?)""",
-                                            (mem_id, lid, now),
-                                        )
-                            # links (JSON) → structured links with type
-                            links_json = row["links"] or ""
-                            if links_json:
-                                try:
-                                    links_data = json.loads(links_json)
-                                    for link in links_data:
-                                        conn.execute(
-                                            """INSERT OR IGNORE INTO memory_links
-                                               (source_id, target_id, link_type, note, created_at)
-                                               VALUES (?, ?, ?, ?, ?)""",
-                                            (
-                                                mem_id,
-                                                link["target_id"],
-                                                link["link_type"],
-                                                link.get("note"),
-                                                link.get("created_at", now),
-                                            ),
-                                        )
-                                except (json.JSONDecodeError, KeyError):
-                                    pass
-                        conn.commit()
-
                     return conn
 
                 self._db = await asyncio.to_thread(_open)
+
+                # Initialize VerbChainStore (chiVe lazy-loads on first use)
+                try:
+                    from .chive import ChiVeEmbedding
+                    self._chive = ChiVeEmbedding()
+                    self._verb_chain_store = VerbChainStore(self._db, self._chive)
+                    await self._verb_chain_store.initialize()
+                except Exception as e:
+                    import logging
+                    logging.getLogger(__name__).warning("VerbChainStore init skipped: %s", e)
+                    self._verb_chain_store = None
 
     async def disconnect(self) -> None:
         """Close the SQLite connection."""
@@ -411,22 +432,6 @@ class MemoryStore:
         ).fetchall()
         return tuple((row["target_id"], float(row["weight"])) for row in rows)
 
-    def _fetch_coactivation_batch(
-        self, db: sqlite3.Connection, memory_ids: list[str]
-    ) -> dict[str, tuple[tuple[str, float], ...]]:
-        """Fetch coactivation for multiple memories in one query."""
-        if not memory_ids:
-            return {}
-        placeholders = ",".join("?" * len(memory_ids))
-        rows = db.execute(
-            f"SELECT source_id, target_id, weight FROM coactivation WHERE source_id IN ({placeholders})",
-            memory_ids,
-        ).fetchall()
-        result: dict[str, list[tuple[str, float]]] = {mid: [] for mid in memory_ids}
-        for row in rows:
-            result[row["source_id"]].append((row["target_id"], float(row["weight"])))
-        return {k: tuple(v) for k, v in result.items()}
-
     # ── Fetch helpers ───────────────────────────
 
     def _fetch_memory_by_id(self, db: sqlite3.Connection, memory_id: str) -> Memory | None:
@@ -443,11 +448,9 @@ class MemoryStore:
         rows = db.execute(
             f"SELECT * FROM memories WHERE id IN ({placeholders})", memory_ids
         ).fetchall()
-        # Batch fetch coactivation to avoid N+1
-        coactivation_map = self._fetch_coactivation_batch(db, memory_ids)
         memories: list[Memory] = []
         for row in rows:
-            coactivation = coactivation_map.get(row["id"], ())
+            coactivation = self._get_coactivation(db, row["id"])
             memories.append(_row_to_memory(row, coactivation))
         return memories
 
@@ -463,9 +466,6 @@ class MemoryStore:
         sensory_data: tuple[SensoryData, ...] = (),
         camera_position: CameraPosition | None = None,
         tags: tuple[str, ...] = (),
-        auto_link: bool = True,
-        link_threshold: float = 0.8,
-        max_links: int = 5,
     ) -> Memory:
         """Save a new memory."""
         db = self._ensure_connected()
@@ -492,9 +492,6 @@ class MemoryStore:
         embedding = await self._encode_document(normalized_content)
         vector_blob = encode_vector(embedding)
 
-        pan = camera_position.pan_angle if camera_position else None
-        tilt = camera_position.tilt_angle if camera_position else None
-
         def _insert() -> None:
             meta = memory.to_metadata()
             db.execute(
@@ -503,9 +500,8 @@ class MemoryStore:
                     emotion, importance, category, access_count, last_accessed,
                     linked_ids, episode_id, sensory_data, camera_position,
                     tags, links, novelty_score, prediction_error,
-                    activation_count, last_activated, reading,
-                    pan_angle, tilt_angle
-                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    activation_count, last_activated, reading
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (
                     memory_id, content, normalized_content, timestamp,
                     emotion, importance, category,
@@ -515,7 +511,6 @@ class MemoryStore:
                     meta.get("camera_position") or None,
                     meta.get("tags", ""), meta.get("links", ""),
                     0.0, 0.0, 0, "", reading,
-                    pan, tilt,
                 ),
             )
             db.execute(
@@ -527,19 +522,6 @@ class MemoryStore:
         await asyncio.to_thread(_insert)
         self._bm25_index.mark_dirty()
         await self._working_memory.add(memory)
-
-        # Auto-link to similar existing memories
-        if auto_link:
-            similar = await self.search(query=content, n_results=max_links)
-            for result in similar:
-                if result.distance <= link_threshold and result.memory.id != memory_id:
-                    await self.add_link(
-                        source_id=memory_id,
-                        target_id=result.memory.id,
-                        link_type="similar",
-                        bidirectional=True,
-                    )
-
         return memory
 
     # ── Vector search helpers ───────────────────
@@ -882,7 +864,7 @@ class MemoryStore:
             "access_count", "last_accessed", "linked_ids", "episode_id",
             "sensory_data", "camera_position", "tags", "links",
             "novelty_score", "prediction_error", "activation_count",
-            "last_activated", "reading",
+            "last_activated", "reading", "importance",
         }
         valid = {k: v for k, v in fields.items() if k in valid_cols}
         if not valid:
@@ -916,6 +898,102 @@ class MemoryStore:
             payload["prediction_error"] = max(0.0, min(1.0, prediction_error))
         return await self.update_memory_fields(memory_id, **payload)
 
+    # ── importance management ───────────────────
+
+    async def update_importance(
+        self,
+        memory_id: str,
+        new_importance: int,
+        reason: str | None = None,
+    ) -> bool:
+        """記憶の importance を更新し、理由をリンクとして記録する。"""
+        clamped = max(1, min(5, new_importance))
+        success = await self.update_memory_fields(memory_id, importance=clamped)
+        if not success:
+            return False
+
+        if reason:
+            now = datetime.now(timezone.utc).isoformat()
+            memory = await self.get_by_id(memory_id)
+            if memory:
+                from .types import MemoryLink
+                new_link = MemoryLink(
+                    target_id=memory_id,
+                    link_type="related",
+                    created_at=now,
+                    note=f"[importance変更: {memory.importance}→{clamped}] {reason}",
+                )
+                existing = list(memory.links)
+                existing.append(new_link)
+                import json
+                links_json = json.dumps([l.to_dict() for l in existing])
+                await self.update_memory_fields(memory_id, links=links_json)
+
+        # composite の importance を再計算
+        await self._recalc_composite_importance(memory_id)
+        return True
+
+    async def _recalc_composite_importance(self, memory_id: str) -> None:
+        """所属 composite の importance を再計算する。"""
+        db = self._ensure_connected()
+
+        def _recalc() -> None:
+            rows = db.execute(
+                "SELECT composite_id FROM composite_members WHERE member_id = ?",
+                (memory_id,),
+            ).fetchall()
+            for row in rows:
+                cid = row[0]
+                members = db.execute(
+                    "SELECT m.importance FROM memories m "
+                    "JOIN composite_members cm ON cm.member_id = m.id "
+                    "WHERE cm.composite_id = ?",
+                    (cid,),
+                ).fetchall()
+                if members:
+                    from math import ceil
+                    avg = sum(r[0] for r in members) / len(members)
+                    new_imp = min(5, ceil(avg))
+                    db.execute(
+                        "UPDATE composite_embeddings SET importance = ? WHERE composite_id = ?",
+                        (new_imp, cid),
+                    )
+            db.commit()
+
+        await asyncio.to_thread(_recalc)
+
+    async def get_link_count(self, memory_id: str) -> int:
+        """記憶のリンク数（outbound links + inbound linked_ids 参照）を取得。"""
+        memory = await self.get_by_id(memory_id)
+        if memory is None:
+            return 0
+        count = len(memory.links) + len(memory.linked_ids)
+        # inbound: 他の記憶から自分へのリンクも数える
+        db = self._ensure_connected()
+
+        def _count_inbound() -> int:
+            row = db.execute(
+                "SELECT COUNT(*) FROM memories WHERE links LIKE ?",
+                (f'%"{memory_id}"%',),
+            ).fetchone()
+            return row[0] if row else 0
+
+        inbound = await asyncio.to_thread(_count_inbound)
+        return count + inbound
+
+    async def get_composite_membership_count(self, memory_id: str) -> int:
+        """記憶が所属する composite の数を取得。"""
+        db = self._ensure_connected()
+
+        def _count() -> int:
+            row = db.execute(
+                "SELECT COUNT(*) FROM composite_members WHERE member_id = ?",
+                (memory_id,),
+            ).fetchone()
+            return row[0] if row else 0
+
+        return await asyncio.to_thread(_count)
+
     # ── bump_coactivation ───────────────────────
 
     async def bump_coactivation(
@@ -924,41 +1002,35 @@ class MemoryStore:
         target_id: str,
         delta: float = 0.1,
     ) -> bool:
-        """Increment coactivation weights symmetrically (no N+1 existence check)."""
+        """Increment coactivation weights symmetrically."""
         db = self._ensure_connected()
+
+        # Check both exist
+        source = await self.get_by_id(source_id)
+        target = await self.get_by_id(target_id)
+        if source is None or target is None:
+            return False
+
         delta = max(0.0, min(1.0, delta))
 
-        def _bump() -> bool:
-            # Lightweight existence check: one COUNT query instead of two get_by_id
-            count = db.execute(
-                "SELECT COUNT(*) FROM memories WHERE id IN (?, ?)", (source_id, target_id)
-            ).fetchone()[0]
-            if count < 2:
-                return False
+        def _bump() -> None:
             for s_id, t_id in [(source_id, target_id), (target_id, source_id)]:
+                row = db.execute(
+                    "SELECT weight FROM coactivation WHERE source_id = ? AND target_id = ?",
+                    (s_id, t_id),
+                ).fetchone()
+                current = float(row["weight"]) if row else 0.0
+                new_weight = max(0.0, min(1.0, current + delta))
                 db.execute(
                     """INSERT INTO coactivation (source_id, target_id, weight)
                        VALUES (?, ?, ?)
-                       ON CONFLICT(source_id, target_id)
-                       DO UPDATE SET weight = MIN(1.0, coactivation.weight + excluded.weight)""",
-                    (s_id, t_id, delta),
+                       ON CONFLICT(source_id, target_id) DO UPDATE SET weight = excluded.weight""",
+                    (s_id, t_id, new_weight),
                 )
             db.commit()
-            return True
 
-        return await asyncio.to_thread(_bump)
-
-    async def decay_coactivation(self, factor: float = 0.95) -> int:
-        """Multiply all coactivation weights by factor; prune near-zero entries."""
-        db = self._ensure_connected()
-
-        def _decay() -> int:
-            db.execute("UPDATE coactivation SET weight = weight * ?", (factor,))
-            result = db.execute("DELETE FROM coactivation WHERE weight < 0.01")
-            db.commit()
-            return result.rowcount
-
-        return await asyncio.to_thread(_decay)
+        await asyncio.to_thread(_bump)
+        return True
 
     # ── maybe_add_related_link ──────────────────
 
@@ -969,129 +1041,20 @@ class MemoryStore:
         threshold: float = 0.6,
     ) -> bool:
         db = self._ensure_connected()
-
-        def _check() -> float | None:
-            row = db.execute(
-                "SELECT weight FROM coactivation WHERE source_id = ? AND target_id = ?",
-                (source_id, target_id),
-            ).fetchone()
-            return float(row["weight"]) if row else None
-
-        weight = await asyncio.to_thread(_check)
-        if weight is None or weight < threshold:
+        row = await asyncio.to_thread(
+            db.execute,
+            "SELECT weight FROM coactivation WHERE source_id = ? AND target_id = ?",
+            (source_id, target_id),
+        )
+        r = row.fetchone()
+        if r is None or float(r["weight"]) < threshold:
             return False
-        await self.add_link(
+        await self.add_causal_link(
             source_id=source_id,
             target_id=target_id,
             link_type="related",
             note="auto-linked by consolidation replay",
         )
-        return True
-
-    # ── delete ──────────────────────────────────
-
-    async def delete(self, memory_id: str) -> bool:
-        """Delete a memory and clean up all references."""
-        db = self._ensure_connected()
-
-        def _delete() -> bool:
-            # Check existence
-            row = db.execute("SELECT id, linked_ids, episode_id FROM memories WHERE id = ?", (memory_id,)).fetchone()
-            if row is None:
-                return False
-
-            # Clean up legacy linked_ids CSV on related memories
-            linked_ids_str = row["linked_ids"] or ""
-            if linked_ids_str:
-                linked = [lid.strip() for lid in linked_ids_str.split(",") if lid.strip()]
-                for lid in linked:
-                    other = db.execute("SELECT id, linked_ids FROM memories WHERE id = ?", (lid,)).fetchone()
-                    if other:
-                        other_links = [x.strip() for x in (other["linked_ids"] or "").split(",") if x.strip()]
-                        other_links = [x for x in other_links if x != memory_id]
-                        db.execute(
-                            "UPDATE memories SET linked_ids = ? WHERE id = ?",
-                            (",".join(other_links), lid),
-                        )
-            # memory_links rows cascade via ON DELETE CASCADE (foreign key)
-
-            # Remove from episode memory_ids
-            episode_id = row["episode_id"]
-            if episode_id:
-                ep_row = db.execute("SELECT id, memory_ids FROM episodes WHERE id = ?", (episode_id,)).fetchone()
-                if ep_row:
-                    ep_mids = [m.strip() for m in (ep_row["memory_ids"] or "").split(",") if m.strip()]
-                    ep_mids = [m for m in ep_mids if m != memory_id]
-                    db.execute(
-                        "UPDATE episodes SET memory_ids = ? WHERE id = ?",
-                        (",".join(ep_mids), episode_id),
-                    )
-
-            # Delete memory (embeddings + coactivation cascade)
-            db.execute("DELETE FROM memories WHERE id = ?", (memory_id,))
-            db.commit()
-            return True
-
-        result = await asyncio.to_thread(_delete)
-        if result:
-            self._bm25_index.mark_dirty()
-            self._working_memory.remove(memory_id)
-        return result
-
-    # ── update ──────────────────────────────────
-
-    async def update(
-        self,
-        memory_id: str,
-        content: str | None = None,
-        emotion: str | None = None,
-        importance: int | None = None,
-        category: str | None = None,
-    ) -> bool:
-        """Update a memory's user-facing fields. Re-embeds if content changes."""
-        db = self._ensure_connected()
-
-        existing = await self.get_by_id(memory_id)
-        if existing is None:
-            return False
-
-        fields: dict[str, Any] = {}
-        if emotion is not None:
-            fields["emotion"] = emotion
-        if importance is not None:
-            fields["importance"] = max(1, min(5, importance))
-        if category is not None:
-            fields["category"] = category
-
-        new_embedding: list[float] | None = None
-
-        if content is not None and content != existing.content:
-            normalized = normalize_japanese(content)
-            reading = get_reading(content)
-            new_embedding = await self._encode_document(normalized)
-            fields["content"] = content
-            fields["normalized_content"] = normalized
-            fields["reading"] = reading
-
-        if not fields:
-            return True
-
-        set_clause = ", ".join(f"{k} = ?" for k in fields)
-        values = list(fields.values()) + [memory_id]
-
-        def _update() -> None:
-            db.execute(f"UPDATE memories SET {set_clause} WHERE id = ?", values)
-            if new_embedding is not None:
-                vector_blob = encode_vector(new_embedding)
-                db.execute(
-                    "INSERT OR REPLACE INTO embeddings (memory_id, vector) VALUES (?,?)",
-                    (memory_id, vector_blob),
-                )
-            db.commit()
-
-        await asyncio.to_thread(_update)
-        if content is not None:
-            self._bm25_index.mark_dirty()
         return True
 
     # ── save_with_auto_link ─────────────────────
@@ -1179,153 +1142,31 @@ class MemoryStore:
 
         await asyncio.to_thread(_link)
 
-    # ── memory_links table operations ───────────
-
-    async def add_link(
-        self,
-        source_id: str,
-        target_id: str,
-        link_type: str = "similar",
-        note: str | None = None,
-        bidirectional: bool = False,
-    ) -> None:
-        """Add a link to the memory_links table."""
-        db = self._ensure_connected()
-        now = datetime.now().isoformat()
-
-        def _insert() -> None:
-            db.execute(
-                """INSERT OR IGNORE INTO memory_links
-                   (source_id, target_id, link_type, note, created_at)
-                   VALUES (?, ?, ?, ?, ?)""",
-                (source_id, target_id, link_type, note, now),
-            )
-            if bidirectional:
-                db.execute(
-                    """INSERT OR IGNORE INTO memory_links
-                       (source_id, target_id, link_type, note, created_at)
-                       VALUES (?, ?, ?, ?, ?)""",
-                    (target_id, source_id, link_type, note, now),
-                )
-            db.commit()
-
-        await asyncio.to_thread(_insert)
-
-    async def remove_link(
-        self,
-        source_id: str,
-        target_id: str,
-        link_type: str | None = None,
-    ) -> bool:
-        """Remove link(s) between two memories. Returns True if any removed."""
-        db = self._ensure_connected()
-
-        def _delete() -> int:
-            if link_type is not None:
-                r = db.execute(
-                    "DELETE FROM memory_links WHERE source_id=? AND target_id=? AND link_type=?",
-                    (source_id, target_id, link_type),
-                )
-            else:
-                r = db.execute(
-                    "DELETE FROM memory_links WHERE source_id=? AND target_id=?",
-                    (source_id, target_id),
-                )
-            db.commit()
-            return r.rowcount
-
-        return await asyncio.to_thread(_delete) > 0
-
-    async def get_links_from(
-        self,
-        memory_id: str,
-        link_type: str | None = None,
-    ) -> list[dict]:
-        """Get all outgoing links from a memory."""
-        db = self._ensure_connected()
-
-        def _fetch() -> list[dict]:
-            if link_type is not None:
-                rows = db.execute(
-                    "SELECT * FROM memory_links WHERE source_id=? AND link_type=? ORDER BY created_at",
-                    (memory_id, link_type),
-                ).fetchall()
-            else:
-                rows = db.execute(
-                    "SELECT * FROM memory_links WHERE source_id=? ORDER BY created_at",
-                    (memory_id,),
-                ).fetchall()
-            return [dict(row) for row in rows]
-
-        return await asyncio.to_thread(_fetch)
-
-    async def get_links_to(
-        self,
-        memory_id: str,
-        link_type: str | None = None,
-    ) -> list[dict]:
-        """Get all incoming links to a memory (reverse query)."""
-        db = self._ensure_connected()
-
-        def _fetch() -> list[dict]:
-            if link_type is not None:
-                rows = db.execute(
-                    "SELECT * FROM memory_links WHERE target_id=? AND link_type=? ORDER BY created_at",
-                    (memory_id, link_type),
-                ).fetchall()
-            else:
-                rows = db.execute(
-                    "SELECT * FROM memory_links WHERE target_id=? ORDER BY created_at",
-                    (memory_id,),
-                ).fetchall()
-            return [dict(row) for row in rows]
-
-        return await asyncio.to_thread(_fetch)
-
-    async def _get_links_batch(self, memory_ids: list[str]) -> list[dict]:
-        """Fetch all links where any of memory_ids is source OR target (one query)."""
-        if not memory_ids:
-            return []
-        db = self._ensure_connected()
-        placeholders = ",".join("?" * len(memory_ids))
-
-        def _fetch() -> list[dict]:
-            rows = db.execute(
-                f"""SELECT * FROM memory_links
-                    WHERE source_id IN ({placeholders}) OR target_id IN ({placeholders})""",
-                memory_ids + memory_ids,
-            ).fetchall()
-            return [dict(row) for row in rows]
-
-        return await asyncio.to_thread(_fetch)
-
     # ── get_linked_memories ─────────────────────
 
     async def get_linked_memories(self, memory_id: str, depth: int = 1) -> list[Memory]:
-        """BFS over memory_links table (all link types, bidirectional)."""
         depth = max(1, min(5, depth))
-        visited: set[str] = {memory_id}
+        visited: set[str] = set()
         result: list[Memory] = []
         current_ids = [memory_id]
 
         for _ in range(depth):
+            next_ids: list[str] = []
+            for mem_id in current_ids:
+                if mem_id in visited:
+                    continue
+                visited.add(mem_id)
+                memory = await self.get_by_id(mem_id)
+                if memory is None:
+                    continue
+                if mem_id != memory_id:
+                    result.append(memory)
+                for linked_id in memory.linked_ids:
+                    if linked_id not in visited:
+                        next_ids.append(linked_id)
+            current_ids = next_ids
             if not current_ids:
                 break
-            # Batch fetch links for current level
-            links = await self._get_links_batch(current_ids)
-            next_ids: list[str] = []
-            for link in links:
-                # traverse both directions (bidirectional)
-                for tid in (link["target_id"], link["source_id"]):
-                    if tid not in visited and tid != memory_id:
-                        visited.add(tid)
-                        next_ids.append(tid)
-            if next_ids:
-                fetched = await asyncio.to_thread(
-                    self._fetch_memories_by_ids_sync, self._ensure_connected(), next_ids
-                )
-                result.extend(fetched)
-            current_ids = next_ids
 
         return result
 
@@ -1339,16 +1180,14 @@ class MemoryStore:
     ) -> list[MemorySearchResult]:
         main_results = await self.recall(context=context, n_results=n_results)
         seen_ids: set[str] = {r.memory.id for r in main_results}
-        linked_results: list[MemorySearchResult] = []
+        linked_memories: list[Memory] = []
         for result in main_results:
             linked = await self.get_linked_memories(memory_id=result.memory.id, depth=chain_depth)
             for mem in linked:
                 if mem.id not in seen_ids:
                     seen_ids.add(mem.id)
-                    # Use parent distance + small penalty instead of sentinel 999.0
-                    linked_results.append(
-                        MemorySearchResult(memory=mem, distance=result.distance + 0.1)
-                    )
+                    linked_memories.append(mem)
+        linked_results = [MemorySearchResult(memory=mem, distance=999.0) for mem in linked_memories]
         return main_results + linked_results
 
     # ── add_causal_link ─────────────────────────
@@ -1360,34 +1199,26 @@ class MemoryStore:
         link_type: str = "caused_by",
         note: str | None = None,
     ) -> None:
-        """Add a structured causal/related link via the memory_links table."""
-        # Validate both exist
-        db = self._ensure_connected()
-
-        def _exists(mid: str) -> bool:
-            return db.execute("SELECT 1 FROM memories WHERE id = ?", (mid,)).fetchone() is not None
-
-        if not await asyncio.to_thread(_exists, source_id):
+        source_memory = await self.get_by_id(source_id)
+        if source_memory is None:
             raise ValueError(f"Source memory not found: {source_id}")
-        if not await asyncio.to_thread(_exists, target_id):
+        target_memory = await self.get_by_id(target_id)
+        if target_memory is None:
             raise ValueError(f"Target memory not found: {target_id}")
 
-        # Also write to legacy JSON column for backward compatibility
-        source_memory = await self.get_by_id(source_id)
-        if source_memory is not None:
-            new_link = MemoryLink(
-                target_id=target_id,
-                link_type=link_type,
-                created_at=datetime.now().isoformat(),
-                note=note,
-            )
-            existing_links = list(source_memory.links)
-            if not any(lk.target_id == target_id and lk.link_type == link_type for lk in existing_links):
-                updated_links = tuple(existing_links + [new_link])
-                links_json = json.dumps([lk.to_dict() for lk in updated_links])
-                await self.update_memory_fields(source_id, links=links_json)
-
-        await self.add_link(source_id, target_id, link_type, note)
+        new_link = MemoryLink(
+            target_id=target_id,
+            link_type=link_type,
+            created_at=datetime.now().isoformat(),
+            note=note,
+        )
+        existing_links = list(source_memory.links)
+        for link in existing_links:
+            if link.target_id == target_id and link.link_type == link_type:
+                return
+        updated_links = tuple(existing_links + [new_link])
+        links_json = json.dumps([link.to_dict() for link in updated_links])
+        await self.update_memory_fields(source_id, links=links_json)
 
     # ── get_causal_chain ────────────────────────
 
@@ -1397,50 +1228,36 @@ class MemoryStore:
         direction: str = "backward",
         max_depth: int = 5,
     ) -> list[tuple[Memory, str]]:
-        """Follow causal links via memory_links table (batch queries, no N+1)."""
         max_depth = max(1, min(5, max_depth))
         if direction == "backward":
-            target_link_types = ("caused_by",)
+            target_link_types = {"caused_by"}
         elif direction == "forward":
-            target_link_types = ("leads_to",)
+            target_link_types = {"leads_to"}
         else:
             raise ValueError(f"Invalid direction: {direction}")
 
-        db = self._ensure_connected()
-        placeholders = ",".join("?" * len(target_link_types))
-
-        visited: set[str] = {memory_id}
+        visited: set[str] = set()
         result: list[tuple[Memory, str]] = []
         current_ids = [memory_id]
 
         for _ in range(max_depth):
+            next_ids: list[str] = []
+            for mem_id in current_ids:
+                if mem_id in visited:
+                    continue
+                visited.add(mem_id)
+                memory = await self.get_by_id(mem_id)
+                if memory is None:
+                    continue
+                for link in memory.links:
+                    if link.link_type in target_link_types:
+                        target = await self.get_by_id(link.target_id)
+                        if target and link.target_id not in visited:
+                            result.append((target, link.link_type))
+                            next_ids.append(link.target_id)
+            current_ids = next_ids
             if not current_ids:
                 break
-            src_ph = ",".join("?" * len(current_ids))
-
-            def _fetch_links(cur_ids: list[str] = current_ids) -> list[dict]:
-                rows = db.execute(
-                    f"""SELECT source_id, target_id, link_type FROM memory_links
-                        WHERE source_id IN ({src_ph}) AND link_type IN ({placeholders})""",
-                    cur_ids + list(target_link_types),
-                ).fetchall()
-                return [dict(row) for row in rows]
-
-            links = await asyncio.to_thread(_fetch_links)
-            next_ids = [lk["target_id"] for lk in links if lk["target_id"] not in visited]
-            visited.update(next_ids)
-
-            if next_ids:
-                fetched = await asyncio.to_thread(
-                    self._fetch_memories_by_ids_sync, db, next_ids
-                )
-                mem_map = {m.id: m for m in fetched}
-                for link in links:
-                    tid = link["target_id"]
-                    if tid in mem_map:
-                        result.append((mem_map[tid], link["link_type"]))
-
-            current_ids = next_ids
 
         return result
 
@@ -1477,36 +1294,6 @@ class MemoryStore:
 
         return await asyncio.to_thread(_fetch)
 
-    # ── get_memories_by_camera_position ─────────
-
-    async def get_memories_by_camera_position(
-        self,
-        pan_angle: float,
-        tilt_angle: float,
-        tolerance: float = 15.0,
-    ) -> list[Memory]:
-        """Return memories captured near the given camera angle (SQL-indexed)."""
-        db = self._ensure_connected()
-
-        def _fetch() -> list[Memory]:
-            rows = db.execute(
-                """SELECT * FROM memories
-                   WHERE pan_angle BETWEEN ? AND ?
-                     AND tilt_angle BETWEEN ? AND ?
-                   ORDER BY timestamp DESC""",
-                (
-                    pan_angle - tolerance, pan_angle + tolerance,
-                    tilt_angle - tolerance, tilt_angle + tolerance,
-                ),
-            ).fetchall()
-            memories: list[Memory] = []
-            for row in rows:
-                coactivation = self._get_coactivation(db, row["id"])
-                memories.append(_row_to_memory(row, coactivation))
-            return memories
-
-        return await asyncio.to_thread(_fetch)
-
     # ── get_working_memory ──────────────────────
 
     def get_working_memory(self) -> WorkingMemoryBuffer:
@@ -1515,7 +1302,7 @@ class MemoryStore:
     # ── Episode CRUD ────────────────────────────
 
     async def save_episode(self, episode: Episode) -> None:
-        """Persist an Episode to the episodes table and save its embedding."""
+        """Persist an Episode to the episodes table."""
         db = self._ensure_connected()
 
         def _insert() -> None:
@@ -1541,21 +1328,6 @@ class MemoryStore:
 
         await asyncio.to_thread(_insert)
 
-        # Save embedding for semantic search
-        embed_text = f"{episode.title} {episode.summary}".strip()
-        if embed_text:
-            embedding = await self._encode_document(embed_text)
-            vector_blob = encode_vector(embedding)
-
-            def _insert_embedding() -> None:
-                db.execute(
-                    "INSERT OR REPLACE INTO episode_embeddings (episode_id, vector) VALUES (?,?)",
-                    (episode.id, vector_blob),
-                )
-                db.commit()
-
-            await asyncio.to_thread(_insert_embedding)
-
     async def get_episode_by_id(self, episode_id: str) -> Episode | None:
         db = self._ensure_connected()
 
@@ -1568,46 +1340,11 @@ class MemoryStore:
         return await asyncio.to_thread(_fetch)
 
     async def search_episodes(self, query: str, n_results: int = 5) -> list[Episode]:
-        """Search episodes by semantic similarity, with LIKE fallback."""
+        """Search episodes by title/summary (LIKE search, good enough for few episodes)."""
         db = self._ensure_connected()
-
-        # Try semantic search first
-        def _fetch_with_embeddings() -> list[tuple[str, bytes]]:
-            rows = db.execute(
-                "SELECT ee.episode_id, ee.vector FROM episode_embeddings ee"
-            ).fetchall()
-            return [(row["episode_id"], row["vector"]) for row in rows]
-
-        ep_vectors = await asyncio.to_thread(_fetch_with_embeddings)
-
-        if ep_vectors:
-            query_emb = await self._encode_query(normalize_japanese(query))
-            query_vec = np.array(query_emb, dtype=np.float32)
-
-            ep_ids = [ep_id for ep_id, _ in ep_vectors]
-            vecs = np.stack([decode_vector(blob) for _, blob in ep_vectors])
-            scores = cosine_similarity(query_vec, vecs)  # shape (n,), higher = more similar
-            order = np.argsort(scores)[::-1]  # descending
-
-            top_ids = [ep_ids[i] for i in order[:n_results]]
-
-            def _fetch_by_ids() -> list[Episode]:
-                if not top_ids:
-                    return []
-                placeholders = ",".join("?" * len(top_ids))
-                rows = db.execute(
-                    f"SELECT * FROM episodes WHERE id IN ({placeholders})",
-                    top_ids,
-                ).fetchall()
-                id_to_ep = {_row_to_episode(row).id: _row_to_episode(row) for row in rows}
-                return [id_to_ep[eid] for eid in top_ids if eid in id_to_ep]
-
-            return await asyncio.to_thread(_fetch_by_ids)
-
-        # Fallback: LIKE search
         pattern = f"%{query}%"
 
-        def _fetch_like() -> list[Episode]:
+        def _fetch() -> list[Episode]:
             rows = db.execute(
                 """SELECT * FROM episodes
                    WHERE title LIKE ? OR summary LIKE ?
@@ -1616,7 +1353,7 @@ class MemoryStore:
             ).fetchall()
             return [_row_to_episode(row) for row in rows]
 
-        return await asyncio.to_thread(_fetch_like)
+        return await asyncio.to_thread(_fetch)
 
     async def list_all_episodes(self) -> list[Episode]:
         db = self._ensure_connected()
@@ -1690,6 +1427,8 @@ class MemoryStore:
             emotion_boost = calculate_emotion_boost(memory.emotion)
             normalized_emotion = max(0.0, min(1.0, emotion_boost / 0.4))
 
+            boundary = calculate_boundary_score(memory)
+
             prediction_errors.append(prediction_error)
             novelty_scores.append(novelty)
             workspace_candidates.append(
@@ -1699,6 +1438,7 @@ class MemoryStore:
                     novelty=novelty,
                     prediction_error=prediction_error,
                     emotion_boost=normalized_emotion,
+                    boundary_score=boundary,
                 )
             )
 
@@ -1757,12 +1497,50 @@ class MemoryStore:
         max_replay_events: int = 200,
         link_update_strength: float = 0.2,
     ) -> dict[str, int]:
+        # Phase 1: 基本リプレイ（常時ON）
         stats = await self._consolidation_engine.run(
             store=self,
             window_hours=window_hours,
             max_replay_events=max_replay_events,
             link_update_strength=link_update_strength,
         )
+
+        # Phase 2: freshness 減衰（常時ON）
+        await self.consolidate_freshness()
+        stats.freshness_decayed = True
+
+        # Phase 3: 合成記憶生成（常時ON）
+        synth_stats = await self._consolidation_engine.synthesize_composites(self)
+        stats.composites_created = synth_stats.get("composites_created", 0)
+        stats.composites_skipped = synth_stats.get("composites_skipped", 0)
+
+        # Phase 4-5: フィーチャーフラグ依存
+        if self._config.enable_composites:
+            bl = await self._consolidation_engine.compute_boundary_layers(self)
+            stats.boundary_layers_computed = bl.get("total_layers", 0)
+
+            ol = await self._consolidation_engine.detect_overlap(self)
+            stats.overlaps_detected = ol.get("dual_members_added", 0)
+
+            orph = await self._consolidation_engine.rescue_orphans(self)
+            stats.orphans_rescued = orph.get("orphans_rescued", 0)
+
+            ix = await self._consolidation_engine.detect_intersections(self)
+            stats.intersections_detected = ix.get("parallel_found", 0) + ix.get("transversal_found", 0)
+
+        # Phase 6: importance drift（常時ON）
+        drift = await self._consolidation_engine.drift_importance(self)
+        stats.importance_promoted = drift.get("promoted", 0)
+        stats.importance_demoted = drift.get("demoted", 0)
+
+        # Phase 7: disclosure detection（常時ON）
+        disc = await self._consolidation_engine.detect_disclosures(self, window_hours)
+        stats.disclosures_detected = disc.get("disclosures_detected", 0)
+        stats.importance_promoted += disc.get("promoted_count", 0)
+
+        # Phase 8: daily digest 生成（常時ON）
+        await self._consolidation_engine.generate_daily_digests(self)
+
         return stats.to_dict()
 
     # ── Hopfield ─────────────────────────────────
@@ -1846,4 +1624,463 @@ class MemoryStore:
             "diversity_score": diversity_score(selected),
             "avg_prediction_error": predictive.avg_prediction_error,
             "avg_novelty": predictive.avg_novelty,
+        }
+
+    # ── Composite / Consolidation API ─────────
+
+    # ── Daily Digest ─────────────────────────────
+
+    async def upsert_daily_digest(
+        self,
+        date: str,
+        memory_count: int,
+        summary: str,
+        categories: str,
+        emotions: str,
+        avg_importance: float,
+        memory_ids: str,
+    ) -> None:
+        """Insert or replace a daily digest entry."""
+        db = self._ensure_connected()
+        now = datetime.now(timezone.utc).isoformat()
+
+        def _upsert() -> None:
+            db.execute(
+                "INSERT OR REPLACE INTO daily_digest "
+                "(date, memory_count, summary, categories, emotions, avg_importance, memory_ids, updated_at) "
+                "VALUES (?,?,?,?,?,?,?,?)",
+                (date, memory_count, summary, categories, emotions, avg_importance, memory_ids, now),
+            )
+            db.commit()
+
+        await asyncio.to_thread(_upsert)
+
+    async def get_memory_calendar(
+        self,
+        date_from: str | None = None,
+        date_to: str | None = None,
+        limit: int = 30,
+    ) -> list[dict]:
+        """Get daily digest entries for a date range."""
+        db = self._ensure_connected()
+
+        def _query() -> list[dict]:
+            conditions = []
+            params: list = []
+            if date_from:
+                conditions.append("date >= ?")
+                params.append(date_from)
+            if date_to:
+                conditions.append("date <= ?")
+                params.append(date_to)
+            where = " WHERE " + " AND ".join(conditions) if conditions else ""
+            params.append(limit)
+            rows = db.execute(
+                f"SELECT * FROM daily_digest{where} ORDER BY date DESC LIMIT ?",
+                params,
+            ).fetchall()
+            return [
+                {
+                    "date": r["date"],
+                    "memory_count": r["memory_count"],
+                    "summary": r["summary"],
+                    "categories": r["categories"],
+                    "emotions": r["emotions"],
+                    "avg_importance": r["avg_importance"],
+                    "memory_ids": r["memory_ids"],
+                }
+                for r in rows
+            ]
+
+        return await asyncio.to_thread(_query)
+
+    async def consolidate_freshness(self, factor: float = 0.92) -> None:
+        """Decay freshness for all memories."""
+        db = self._ensure_connected()
+
+        def _decay() -> None:
+            db.execute(
+                "UPDATE memories SET freshness = MAX(0.01, freshness * ?)",
+                (factor,),
+            )
+            db.commit()
+
+        await asyncio.to_thread(_decay)
+
+    async def fetch_memories_with_vectors(
+        self, min_freshness: float = 0.1,
+    ) -> list[tuple[Memory, np.ndarray]]:
+        """Fetch memories with their embedding vectors, filtered by freshness."""
+        db = self._ensure_connected()
+
+        def _fetch() -> list[tuple[Memory, np.ndarray]]:
+            rows = db.execute(
+                """SELECT m.*, e.vector FROM memories m
+                   JOIN embeddings e ON m.id = e.memory_id
+                   WHERE m.freshness >= ?""",
+                (min_freshness,),
+            ).fetchall()
+            result = []
+            for row in rows:
+                vec_blob = row["vector"]
+                if vec_blob is None:
+                    continue
+                coactivation = self._get_coactivation(db, row["id"])
+                mem = _row_to_memory(row, coactivation)
+                vec = decode_vector(bytes(vec_blob))
+                result.append((mem, vec))
+            return result
+
+        return await asyncio.to_thread(_fetch)
+
+    async def save_composite(
+        self,
+        member_ids: list[str],
+        vector: np.ndarray,
+        emotion: str,
+        importance: int,
+        freshness: float,
+        category: str,
+        axis_vector: np.ndarray | None = None,
+        explained_variance_ratio: float | None = None,
+        level: int = 1,
+    ) -> str:
+        """Save a composite memory (group of similar memories)."""
+        db = self._ensure_connected()
+        composite_id = str(uuid.uuid4())
+
+        def _save() -> None:
+            # composite_embeddings
+            db.execute(
+                """INSERT INTO composite_embeddings
+                   (composite_id, vector, level, emotion, importance, freshness, category)
+                   VALUES (?,?,?,?,?,?,?)""",
+                (composite_id, encode_vector(vector), level, emotion, importance, freshness, category),
+            )
+            # composite_members
+            for mid in member_ids:
+                db.execute(
+                    "INSERT OR IGNORE INTO composite_members (composite_id, member_id, contribution_weight) VALUES (?,?,?)",
+                    (composite_id, mid, 1.0),
+                )
+            # composite_axes (optional)
+            if axis_vector is not None:
+                db.execute(
+                    "INSERT OR REPLACE INTO composite_axes (composite_id, axis_vector, explained_variance_ratio) VALUES (?,?,?)",
+                    (composite_id, encode_vector(axis_vector), explained_variance_ratio),
+                )
+            db.commit()
+
+        await asyncio.to_thread(_save)
+        return composite_id
+
+    async def get_existing_composite_members(self) -> set[frozenset[str]]:
+        """Get all existing composite member sets for dedup."""
+        db = self._ensure_connected()
+
+        def _fetch() -> set[frozenset[str]]:
+            rows = db.execute(
+                "SELECT composite_id, member_id FROM composite_members"
+            ).fetchall()
+            groups: dict[str, set[str]] = {}
+            for row in rows:
+                cid = row["composite_id"]
+                mid = row["member_id"]
+                groups.setdefault(cid, set()).add(mid)
+            return {frozenset(v) for v in groups.values()}
+
+        return await asyncio.to_thread(_fetch)
+
+    async def fetch_all_composite_ids(self) -> list[str]:
+        """Get all composite IDs."""
+        db = self._ensure_connected()
+
+        def _fetch() -> list[str]:
+            rows = db.execute("SELECT composite_id FROM composite_embeddings").fetchall()
+            return [row["composite_id"] for row in rows]
+
+        return await asyncio.to_thread(_fetch)
+
+    async def fetch_composite_centroid(self, composite_id: str) -> np.ndarray | None:
+        """Get the centroid vector of a composite."""
+        db = self._ensure_connected()
+
+        def _fetch() -> np.ndarray | None:
+            row = db.execute(
+                "SELECT vector FROM composite_embeddings WHERE composite_id = ?",
+                (composite_id,),
+            ).fetchone()
+            if row is None or row["vector"] is None:
+                return None
+            return decode_vector(bytes(row["vector"]))
+
+        return await asyncio.to_thread(_fetch)
+
+    async def fetch_composite_with_vectors(self, composite_id: str) -> list[tuple[str, np.ndarray]]:
+        """Get member IDs and their vectors for a composite."""
+        db = self._ensure_connected()
+
+        def _fetch() -> list[tuple[str, np.ndarray]]:
+            rows = db.execute(
+                """SELECT cm.member_id, e.vector FROM composite_members cm
+                   JOIN embeddings e ON cm.member_id = e.memory_id
+                   WHERE cm.composite_id = ?""",
+                (composite_id,),
+            ).fetchall()
+            result = []
+            for row in rows:
+                vec_blob = row["vector"]
+                if vec_blob is not None:
+                    result.append((row["member_id"], decode_vector(bytes(vec_blob))))
+            return result
+
+        return await asyncio.to_thread(_fetch)
+
+    # ── Composite: Feature-flag dependent methods ──
+
+    async def save_boundary_layers(
+        self, composite_id: str, layers: list[tuple[str, int, int]]
+    ) -> None:
+        """Save boundary layer classifications."""
+        db = self._ensure_connected()
+
+        def _save() -> None:
+            db.executemany(
+                """INSERT OR REPLACE INTO boundary_layers
+                   (composite_id, member_id, layer_index, is_edge) VALUES (?,?,?,?)""",
+                [(composite_id, mid, li, ie) for mid, li, ie in layers],
+            )
+            db.commit()
+
+        await asyncio.to_thread(_save)
+
+    async def clear_boundary_layers(self) -> None:
+        """Clear all boundary layer data."""
+        db = self._ensure_connected()
+        await asyncio.to_thread(lambda: (db.execute("DELETE FROM boundary_layers"), db.commit()))
+
+    async def fetch_all_composite_axes(self) -> dict[str, np.ndarray]:
+        """Get all composite principal axes."""
+        db = self._ensure_connected()
+
+        def _fetch() -> dict[str, np.ndarray]:
+            rows = db.execute("SELECT composite_id, axis_vector FROM composite_axes").fetchall()
+            return {
+                row["composite_id"]: decode_vector(bytes(row["axis_vector"]))
+                for row in rows if row["axis_vector"] is not None
+            }
+
+        return await asyncio.to_thread(_fetch)
+
+    async def fetch_all_composite_member_sets(self) -> dict[str, set[str]]:
+        """Get member sets for all composites."""
+        db = self._ensure_connected()
+
+        def _fetch() -> dict[str, set[str]]:
+            rows = db.execute("SELECT composite_id, member_id FROM composite_members").fetchall()
+            result: dict[str, set[str]] = {}
+            for row in rows:
+                result.setdefault(row["composite_id"], set()).add(row["member_id"])
+            return result
+
+        return await asyncio.to_thread(_fetch)
+
+    async def save_intersections(
+        self, intersections: list[tuple[str, str, str, float, list[str]]]
+    ) -> None:
+        """Save composite intersection data."""
+        db = self._ensure_connected()
+
+        def _save() -> None:
+            db.execute("DELETE FROM composite_intersections")
+            for ca, cb, itype, cos_angle, shared in intersections:
+                db.execute(
+                    """INSERT OR REPLACE INTO composite_intersections
+                       (composite_a, composite_b, intersection_type, axis_cosine, shared_member_ids)
+                       VALUES (?,?,?,?,?)""",
+                    (ca, cb, itype, cos_angle, ",".join(shared)),
+                )
+            db.commit()
+
+        await asyncio.to_thread(_save)
+
+    async def fetch_orphan_memories(self, min_freshness: float = 0.1) -> list[tuple[Memory, np.ndarray]]:
+        """Fetch memories not in any composite."""
+        db = self._ensure_connected()
+
+        def _fetch() -> list[tuple[Memory, np.ndarray]]:
+            rows = db.execute(
+                """SELECT m.*, e.vector FROM memories m
+                   JOIN embeddings e ON m.id = e.memory_id
+                   WHERE m.freshness >= ?
+                     AND m.id NOT IN (SELECT member_id FROM composite_members)""",
+                (min_freshness,),
+            ).fetchall()
+            result = []
+            for row in rows:
+                vec_blob = row["vector"]
+                if vec_blob is None:
+                    continue
+                coactivation = self._get_coactivation(db, row["id"])
+                mem = _row_to_memory(row, coactivation)
+                result.append((mem, decode_vector(bytes(vec_blob))))
+            return result
+
+        return await asyncio.to_thread(_fetch)
+
+    async def fetch_template_biases(self) -> dict[str, float]:
+        """Get all template biases."""
+        db = self._ensure_connected()
+
+        def _fetch() -> dict[str, float]:
+            rows = db.execute("SELECT chain_id, bias_weight FROM template_biases").fetchall()
+            return {row["chain_id"]: float(row["bias_weight"]) for row in rows}
+
+        return await asyncio.to_thread(_fetch)
+
+    async def save_template_biases(self, biases: list[tuple[str, float, int]]) -> None:
+        """Save template biases (chain_id, weight, update_count)."""
+        db = self._ensure_connected()
+        now = datetime.utcnow().isoformat()
+
+        def _save() -> None:
+            for chain_id, weight, count in biases:
+                db.execute(
+                    """INSERT OR REPLACE INTO template_biases
+                       (chain_id, bias_weight, update_count, last_updated) VALUES (?,?,?,?)""",
+                    (chain_id, weight, count, now),
+                )
+            db.commit()
+
+        await asyncio.to_thread(_save)
+
+    async def decay_template_biases(self, factor: float, prune_threshold: float) -> dict[str, int]:
+        """Decay and prune template biases."""
+        db = self._ensure_connected()
+
+        def _decay() -> dict[str, int]:
+            db.execute(
+                "UPDATE template_biases SET bias_weight = bias_weight * ?",
+                (factor,),
+            )
+            cursor = db.execute(
+                "DELETE FROM template_biases WHERE bias_weight < ?",
+                (prune_threshold,),
+            )
+            pruned = cursor.rowcount
+            decayed = db.execute("SELECT COUNT(*) FROM template_biases").fetchone()[0]
+            db.commit()
+            return {"biases_decayed": decayed, "biases_pruned": pruned}
+
+        return await asyncio.to_thread(_decay)
+
+    async def fetch_verb_chain_templates(self) -> list[tuple[str, np.ndarray, list[str], list[str]]]:
+        """Get verb chain templates for boundary layer noise."""
+        db = self._ensure_connected()
+
+        def _fetch() -> list[tuple[str, np.ndarray, list[str], list[str]]]:
+            rows = db.execute(
+                """SELECT vc.id, vce.flow_vector, vc.all_verbs, vc.all_nouns
+                   FROM verb_chains vc
+                   JOIN verb_chain_embeddings vce ON vc.id = vce.chain_id
+                   WHERE vce.flow_vector IS NOT NULL"""
+            ).fetchall()
+            result = []
+            for row in rows:
+                vec = decode_vector(bytes(row["flow_vector"]))
+                verbs = [v.strip() for v in (row["all_verbs"] or "").split(",") if v.strip()]
+                nouns = [n.strip() for n in (row["all_nouns"] or "").split(",") if n.strip()]
+                result.append((row["id"], vec, verbs, nouns))
+            return result
+
+        return await asyncio.to_thread(_fetch)
+
+    # ── Verb Chain API ─────────────────────────
+
+    async def save_verb_chain(
+        self,
+        document: str,
+        steps: list[dict[str, Any]],
+        emotion: str = "neutral",
+        importance: int = 3,
+        source: str = "manual",
+        context: str = "",
+    ) -> dict[str, Any]:
+        """Save a verb chain to the database."""
+        if self._verb_chain_store is None:
+            return {"error": "VerbChainStore not available (chiVe model not loaded)"}
+
+        chain = VerbChain(
+            id=str(uuid.uuid4()),
+            steps=tuple(VerbStep.from_dict(s) for s in steps),
+            timestamp=datetime.utcnow().isoformat(),
+            emotion=emotion,
+            importance=importance,
+            source=source,
+            context=context,
+        )
+        saved = await self._verb_chain_store.save(chain)
+        return {
+            "id": saved.id,
+            "document": saved.to_document(),
+            "steps": [s.to_dict() for s in saved.steps],
+        }
+
+    async def search_verb_chain(
+        self,
+        query: str,
+        n_results: int = 5,
+        flow_weight: float = 0.6,
+    ) -> list[dict[str, Any]]:
+        """Search verb chains by 2-axis cosine similarity."""
+        if self._verb_chain_store is None:
+            return []
+
+        results = await self._verb_chain_store.search(
+            query, n_results=n_results, flow_weight=flow_weight
+        )
+        return [
+            {
+                "id": chain.id,
+                "document": chain.to_document(),
+                "score": round(score, 4),
+                "steps": [s.to_dict() for s in chain.steps],
+                "emotion": chain.emotion,
+                "importance": chain.importance,
+                "timestamp": chain.timestamp,
+            }
+            for chain, score in results
+        ]
+
+    async def extract_and_save_verb_chain(
+        self,
+        text: str,
+        emotion: str = "neutral",
+        importance: int = 3,
+        context: str = "",
+    ) -> dict[str, Any] | None:
+        """Extract verbs/nouns from text and save as a verb chain automatically."""
+        if self._verb_chain_store is None or self._chive is None:
+            return None
+
+        verbs, nouns = self._chive.extract_words(text)
+        if len(verbs) < 2:
+            return None  # 動詞が2つ未満なら保存しない
+
+        steps = [VerbStep(verb=v, nouns=tuple(nouns)) for v in verbs]
+        chain = VerbChain(
+            id=str(uuid.uuid4()),
+            steps=tuple(steps),
+            timestamp=datetime.utcnow().isoformat(),
+            emotion=emotion,
+            importance=importance,
+            source="auto",
+            context=context,
+        )
+        saved = await self._verb_chain_store.save(chain)
+        return {
+            "id": saved.id,
+            "document": saved.to_document(),
+            "verbs": verbs,
+            "nouns": nouns,
         }

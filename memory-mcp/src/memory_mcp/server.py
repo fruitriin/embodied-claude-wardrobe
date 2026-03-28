@@ -589,54 +589,6 @@ class MemoryMCPServer:
                     },
                 ),
                 Tool(
-                    name="delete_memory",
-                    description="Delete a memory permanently. Also removes it from linked_ids of related memories and from episode memory lists.",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "memory_id": {
-                                "type": "string",
-                                "description": "ID of the memory to delete",
-                            },
-                        },
-                        "required": ["memory_id"],
-                    },
-                ),
-                Tool(
-                    name="update_memory",
-                    description="Update a memory's content, emotion, importance, or category. If content is changed, the embedding is regenerated.",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "memory_id": {
-                                "type": "string",
-                                "description": "ID of the memory to update",
-                            },
-                            "content": {
-                                "type": "string",
-                                "description": "New content text (optional)",
-                            },
-                            "emotion": {
-                                "type": "string",
-                                "description": "New emotion label (optional)",
-                                "enum": ["happy", "sad", "surprised", "moved", "excited", "nostalgic", "curious", "neutral"],
-                            },
-                            "importance": {
-                                "type": "integer",
-                                "description": "New importance (1-5, optional)",
-                                "minimum": 1,
-                                "maximum": 5,
-                            },
-                            "category": {
-                                "type": "string",
-                                "description": "New category (optional)",
-                                "enum": ["daily", "philosophical", "technical", "memory", "observation", "feeling", "conversation"],
-                            },
-                        },
-                        "required": ["memory_id"],
-                    },
-                ),
-                Tool(
                     name="tom",
                     description="Theory of Mind: perspective-taking tool. Call this BEFORE responding to understand what the other person is feeling and wanting. Projects your simulated emotions onto them, then swaps perspectives.",
                     inputSchema={
@@ -653,6 +605,69 @@ class MemoryMCPServer:
                             },
                         },
                         "required": ["situation"],
+                    },
+                ),
+                Tool(
+                    name="save_verb_chain",
+                    description="Save a verb chain (experience as verb flow) to the structural memory. Use this to record experiences as sequences of actions: e.g., '見る→気になる→調べる'. The verb chain is embedded using flow (verb pattern) and delta (noun context) vectors for structural similarity search.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "steps": {
+                                "type": "array",
+                                "description": "Array of verb steps. Each step has 'verb' (string) and optional 'nouns' (string array).",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "verb": {"type": "string", "description": "The verb (e.g., '見る', '調べる')"},
+                                        "nouns": {"type": "array", "items": {"type": "string"}, "description": "Related nouns (e.g., ['猫', '庭'])", "default": []},
+                                    },
+                                    "required": ["verb"],
+                                },
+                            },
+                            "emotion": {"type": "string", "default": "neutral", "enum": ["happy", "sad", "surprised", "moved", "excited", "nostalgic", "curious", "neutral"]},
+                            "importance": {"type": "integer", "default": 3, "minimum": 1, "maximum": 5},
+                            "context": {"type": "string", "description": "Free-text context for the experience", "default": ""},
+                        },
+                        "required": ["steps"],
+                    },
+                ),
+                Tool(
+                    name="search_verb_chain",
+                    description="Search verb chains by structural similarity. Uses 2-axis cosine similarity: flow (verb pattern, 60%) + delta (noun context, 40%). Find experiences with similar action patterns or similar contexts.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "query": {"type": "string", "description": "Search query (natural language text)"},
+                            "n_results": {"type": "integer", "default": 5, "minimum": 1, "maximum": 20},
+                            "flow_weight": {"type": "number", "description": "Weight for flow (verb pattern) axis. 0.0-1.0, default 0.6. Higher = prioritize similar actions over similar nouns.", "default": 0.6, "minimum": 0.0, "maximum": 1.0},
+                        },
+                        "required": ["query"],
+                    },
+                ),
+                Tool(
+                    name="get_memory_calendar",
+                    description="Get a calendar-style overview of memories by date. Returns daily digests showing what was remembered each day. Useful for browsing memory chronologically without semantic search.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "date_from": {"type": "string", "description": "Start date (YYYY-MM-DD). Optional."},
+                            "date_to": {"type": "string", "description": "End date (YYYY-MM-DD). Optional."},
+                            "limit": {"type": "integer", "default": 30, "minimum": 1, "maximum": 365, "description": "Maximum number of days to return"},
+                        },
+                    },
+                ),
+                Tool(
+                    name="reevaluate_importance",
+                    description="Re-evaluate and change a memory's importance level. Use this when you realize a memory is more or less important than initially assessed. Records the reason as a link for traceability. Importance 5 memories are protected from automatic demotion.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "memory_id": {"type": "string", "description": "The ID of the memory to re-evaluate"},
+                            "new_importance": {"type": "integer", "minimum": 1, "maximum": 5, "description": "New importance level (1-5)"},
+                            "reason": {"type": "string", "description": "Reason for the importance change"},
+                        },
+                        "required": ["memory_id", "new_importance", "reason"],
                     },
                 ),
             ]
@@ -815,10 +830,9 @@ Date Range:
                         if not results:
                             return [TextContent(type="text", text="No relevant memories found.")]
 
-                        # メイン結果と関連結果を分ける（sentinel廃止: n_resultsで区切る）
-                        n_main = arguments.get("n_results", 3)
-                        main_results = results[:n_main]
-                        linked_results = results[n_main:]
+                        # メイン結果と関連結果を分ける
+                        main_results = [r for r in results if r.distance < 900]
+                        linked_results = [r for r in results if r.distance >= 900]
 
                         output_lines = [f"Recalled {len(main_results)} memories with {len(linked_results)} linked associations:\n"]
 
@@ -1327,29 +1341,65 @@ Date Range:
 
                         return [TextContent(type="text", text=output)]
 
-                    case "delete_memory":
-                        memory_id = arguments.get("memory_id", "")
-                        if not memory_id:
-                            return [TextContent(type="text", text="Error: memory_id is required")]
-                        deleted = await self._memory_store.delete(memory_id)
-                        if deleted:
-                            return [TextContent(type="text", text=f"Memory {memory_id} deleted.")]
-                        return [TextContent(type="text", text=f"Error: Memory {memory_id} not found.")]
-
-                    case "update_memory":
-                        memory_id = arguments.get("memory_id", "")
-                        if not memory_id:
-                            return [TextContent(type="text", text="Error: memory_id is required")]
-                        updated = await self._memory_store.update(
-                            memory_id=memory_id,
-                            content=arguments.get("content"),
-                            emotion=arguments.get("emotion"),
-                            importance=arguments.get("importance"),
-                            category=arguments.get("category"),
+                    case "save_verb_chain":
+                        steps = arguments.get("steps", [])
+                        if not steps:
+                            return [TextContent(type="text", text="Error: steps is required")]
+                        result = await self._memory_store.save_verb_chain(
+                            document="",
+                            steps=steps,
+                            emotion=arguments.get("emotion", "neutral"),
+                            importance=arguments.get("importance", 3),
+                            source="manual",
+                            context=arguments.get("context", ""),
                         )
-                        if updated:
-                            return [TextContent(type="text", text=f"Memory {memory_id} updated.")]
-                        return [TextContent(type="text", text=f"Error: Memory {memory_id} not found.")]
+                        return [TextContent(type="text", text=json.dumps(result, ensure_ascii=False, indent=2))]
+
+                    case "search_verb_chain":
+                        query = arguments.get("query", "")
+                        if not query:
+                            return [TextContent(type="text", text="Error: query is required")]
+                        results = await self._memory_store.search_verb_chain(
+                            query=query,
+                            n_results=arguments.get("n_results", 5),
+                            flow_weight=arguments.get("flow_weight", 0.6),
+                        )
+                        return [TextContent(type="text", text=json.dumps(results, ensure_ascii=False, indent=2))]
+
+                    case "get_memory_calendar":
+                        results = await self._memory_store.get_memory_calendar(
+                            date_from=arguments.get("date_from"),
+                            date_to=arguments.get("date_to"),
+                            limit=arguments.get("limit", 30),
+                        )
+                        if not results:
+                            return [TextContent(type="text", text="No daily digests found. Run consolidate_memories first to generate them.")]
+                        lines = []
+                        for r in results:
+                            lines.append(f"📅 {r['date']} ({r['memory_count']} memories, avg importance: {r['avg_importance']:.1f})")
+                            lines.append(f"  {r['summary']}")
+                            lines.append(f"  categories: {r['categories']} | emotions: {r['emotions']}")
+                            lines.append("")
+                        return [TextContent(type="text", text="\n".join(lines))]
+
+                    case "reevaluate_importance":
+                        memory_id = arguments.get("memory_id", "")
+                        new_importance = arguments.get("new_importance")
+                        reason = arguments.get("reason", "")
+                        if not memory_id or new_importance is None:
+                            return [TextContent(type="text", text="Error: memory_id and new_importance are required")]
+                        old_memory = await self._memory_store.get_by_id(memory_id)
+                        if old_memory is None:
+                            return [TextContent(type="text", text=f"Error: Memory {memory_id} not found")]
+                        old_imp = old_memory.importance
+                        success = await self._memory_store.update_importance(
+                            memory_id=memory_id,
+                            new_importance=int(new_importance),
+                            reason=reason,
+                        )
+                        if success:
+                            return [TextContent(type="text", text=f"Importance updated: {old_imp} → {new_importance}. Reason: {reason}")]
+                        return [TextContent(type="text", text="Error: Failed to update importance")]
 
                     case _:
                         return [TextContent(type="text", text=f"Unknown tool: {name}")]
@@ -1402,11 +1452,6 @@ Date Range:
 
 def main() -> None:
     """Entry point for the MCP server."""
-    try:
-        import jurigged
-        jurigged.watch(pattern="src/**/*.py", logger=None)
-    except ImportError:
-        pass
     server = MemoryMCPServer()
     asyncio.run(server.run())
 

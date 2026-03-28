@@ -60,9 +60,9 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
-# Autonomous action (contains credentials and user-specific settings)
+# Autonomous action MCP config (contains credentials)
 autonomous-mcp.json
-autonomous-action.sh
+# Note: autonomous-action.sh is tracked in wardrobe (not ignored)
 
 # Autonomous action logs and session
 .autonomous-logs/

@@ -20,9 +20,9 @@ def cosine_similarity(query: np.ndarray, corpus: np.ndarray) -> np.ndarray:
     return c_norm @ q_norm
 
 
-def encode_vector(vec: list[float]) -> bytes:
-    """Encode a float list as numpy float32 bytes (for SQLite BLOB)."""
-    return np.array(vec, dtype=np.float32).tobytes()
+def encode_vector(vec: np.ndarray | list[float]) -> bytes:
+    """Encode a float array as numpy float32 bytes (for SQLite BLOB)."""
+    return np.asarray(vec, dtype=np.float32).tobytes()
 
 
 def decode_vector(blob: bytes) -> np.ndarray:
