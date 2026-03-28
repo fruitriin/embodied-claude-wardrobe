@@ -1,5 +1,7 @@
 # Embodied Claude Installer
 
+> **⚠️ Experimental**: このインストーラーは実験的な機能です。メンテナンスが必要な場合があります。
+
 GUI installer for Embodied Claude MCP servers.
 
 ## Features

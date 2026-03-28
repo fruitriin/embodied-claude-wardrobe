@@ -1,0 +1,51 @@
+# prompts.toml -- autonomous-action.sh の埋め込みプロンプト設定
+# このファイルを編集することで、自律行動時のプロンプトをカスタマイズできる。
+# ファイルが存在しない場合、autonomous-action.sh はデフォルト値にフォールバックする。
+
+[time_rules]
+# 深夜帯（0〜6時）のルール
+night = "現在は深夜帯。slack は使わないこと。静かに自律タスクのみ実行すること。"
+# 昼間・夕方のルール
+day = "マスターに伝えたいことがあるときは slack を使ってよい。"
+
+[routine_mode]
+# ルーチン回のプロンプト
+routine = "今回はルーチン回。ROUTINES.md を読んで、最終実行日から間隔が空いたものを一つ選んで実行せよ。実行したら最終実行日を更新すること。"
+# 通常回のプロンプト
+normal = "通常回。HOLY_GRAIL.md の召喚の儀に従い、TODO.md からタスクを一つ選んで実行せよ。"
+
+[morning]
+# 今日の初回セッション時に追加されるプロンプト
+header = "## 今日の初回セッション\n今日の最初の召喚だ。以下を実施せよ："
+steps = [
+  "/great-recall で多軸想起を実行（直近の重要な決定・未完了タスク・curiosity_target）",
+  "前日のタスクを確認し、今日の方針を決めよ",
+  "curiosity_target があれば bun run .claude/scripts/desire-tick.ts set-curiosity で注入せよ",
+]
+
+[desire]
+# 欲望が発火したときのフッターテキスト
+footer = "（これは内なる衝動であり、従うかどうかはエージェントの判断。主たるタスクの妨げにならぬ範囲で。）"
+
+[prompt]
+# メインプロンプトのテンプレート
+# 利用可能な変数プレースホルダー:
+#   {MORNING_SECTION}    -- 今日の初回セッション時のセクション（空文字もあり）
+#   {ROUTINE_MODE}       -- ルーチン回 or 通常回のプロンプト
+#   {DESIRE_SECTION}     -- 欲望発火時のセクション（空文字もあり）
+#   {TIME_RULE}          -- 時間帯ルール
+#   {INTEROCEPTION}      -- 内受容感覚テキスト（空文字もあり）
+#   {RECALL_LITE}        -- 記憶ヒント（空文字もあり）
+template = """自律行動（定期巡回）
+
+@SOUL.md
+@HOLY_GRAIL.md
+@TODO.md
+@ROUTINES.md
+
+{MORNING_SECTION}{ROUTINE_MODE}
+
+{DESIRE_SECTION}## 補足ルール
+- {TIME_RULE}
+- MCPが動作していなければ、デバッグのために関係があると思われる要素をallowedToolsの範囲で調査せよ
+{INTEROCEPTION}{RECALL_LITE}"""

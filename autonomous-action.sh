@@ -271,11 +271,18 @@ if [ "$SKIP_SCHEDULE" = false ]; then
   fi
 fi
 
+# --- プロンプト設定を prompts.toml から読み込む（フォールバック付き）---
+LOAD_PROMPT() {
+  bun run "$SCRIPT_DIR/.claude/scripts/load-prompts.ts" "$1" 2>/dev/null
+}
+
 # --- 時間帯ルール ---
 if [ "$HOUR" -lt 7 ]; then
-  TIME_RULE="現在は深夜帯。slack は使わないこと。静かに自律タスクのみ実行すること。"
+  TIME_RULE=$(LOAD_PROMPT time_rule_night)
+  TIME_RULE="${TIME_RULE:-現在は深夜帯。slack は使わないこと。静かに自律タスクのみ実行すること。}"
 else
-  TIME_RULE="マスターに伝えたいことがあるときは slack を使ってよい。"
+  TIME_RULE=$(LOAD_PROMPT time_rule_day)
+  TIME_RULE="${TIME_RULE:-マスターに伝えたいことがあるときは slack を使ってよい。}"
 fi
 
 # --- ルーチン判定（通常20%、休暇時60%の確率でルーチン回） ---
@@ -294,10 +301,12 @@ else
 fi
 
 if [ "$ROUTINE_RAND" -lt "$ROUTINE_THRESHOLD" ]; then
-  ROUTINE_MODE="今回はルーチン回。ROUTINES.md を読んで、最終実行日から間隔が空いたものを一つ選んで実行せよ。実行したら最終実行日を更新すること。"
+  ROUTINE_MODE=$(LOAD_PROMPT routine_routine)
+  ROUTINE_MODE="${ROUTINE_MODE:-今回はルーチン回。ROUTINES.md を読んで、最終実行日から間隔が空いたものを一つ選んで実行せよ。実行したら最終実行日を更新すること。}"
   echo "ルーチン回 (RAND=$ROUTINE_RAND < $ROUTINE_THRESHOLD)" >> "$LOG_FILE"
 else
-  ROUTINE_MODE="通常回。HOLY_GRAIL.md の召喚の儀に従い、TODO.md からタスクを一つ選んで実行せよ。"
+  ROUTINE_MODE=$(LOAD_PROMPT routine_normal)
+  ROUTINE_MODE="${ROUTINE_MODE:-通常回。HOLY_GRAIL.md の召喚の儀に従い、TODO.md からタスクを一つ選んで実行せよ。}"
   echo "通常回 (RAND=$ROUTINE_RAND >= $ROUTINE_THRESHOLD)" >> "$LOG_FILE"
 fi
 
@@ -353,10 +362,12 @@ fi
 # --- プロンプト組み立て ---
 DESIRE_SECTION=""
 if [ -n "$DESIRE_PROMPT" ]; then
+  DESIRE_FOOTER=$(LOAD_PROMPT desire_footer)
+  DESIRE_FOOTER="${DESIRE_FOOTER:-（これは内なる衝動であり、従うかどうかはエージェントの判断。主たるタスクの妨げにならぬ範囲で。）}"
   DESIRE_SECTION="
 ## 内部衝動
 ${DESIRE_PROMPT}
-（これは内なる衝動であり、従うかどうかはエージェントの判断。主たるタスクの妨げにならぬ範囲で。）
+${DESIRE_FOOTER}
 "
 fi
 
@@ -374,16 +385,48 @@ fi
 
 MORNING_SECTION=""
 if [ "$IS_FIRST_SESSION_TODAY" = true ]; then
-  MORNING_SECTION="
+  _MORNING=$(LOAD_PROMPT morning_section)
+  if [ -n "$_MORNING" ]; then
+    MORNING_SECTION="
+${_MORNING}"
+  else
+    MORNING_SECTION="
 ## 今日の初回セッション
 今日の最初の召喚だ。以下を実施せよ：
 1. /great-recall で多軸想起を実行（直近の重要な決定・未完了タスク・curiosity_target）
 2. 前日のタスクを確認し、今日の方針を決めよ
 3. curiosity_target があれば bun run .claude/scripts/desire-tick.ts set-curiosity で注入せよ
 "
+  fi
 fi
 
-PROMPT="自律行動（定期巡回）
+# --- プロンプト組み立て（prompts.toml のテンプレートを使用） ---
+_PROMPT_TEMPLATE=$(LOAD_PROMPT prompt_template)
+if [ -n "$_PROMPT_TEMPLATE" ]; then
+  # プレースホルダを実際の値で置換（bun -e を使って安全に展開）
+  PROMPT=$(TMPL="$_PROMPT_TEMPLATE" \
+    MORNING_SECTION="$MORNING_SECTION" \
+    ROUTINE_MODE="$ROUTINE_MODE" \
+    DESIRE_SECTION="$DESIRE_SECTION" \
+    TIME_RULE="$TIME_RULE" \
+    INTEROCEPTION_SECTION="$INTEROCEPTION_SECTION" \
+    RECALL_LITE_SECTION="$RECALL_LITE_SECTION" \
+    bun -e "
+const tmpl = process.env.TMPL;
+const result = tmpl
+  .replace('{MORNING_SECTION}', process.env.MORNING_SECTION ?? '')
+  .replace('{ROUTINE_MODE}', process.env.ROUTINE_MODE ?? '')
+  .replace('{DESIRE_SECTION}', process.env.DESIRE_SECTION ?? '')
+  .replace('{TIME_RULE}', process.env.TIME_RULE ?? '')
+  .replace('{INTEROCEPTION}', process.env.INTEROCEPTION_SECTION ?? '')
+  .replace('{RECALL_LITE}', process.env.RECALL_LITE_SECTION ?? '');
+process.stdout.write(result);
+" 2>/dev/null)
+fi
+
+# フォールバック（bun が失敗した場合、または PROMPT が空の場合）
+if [ -z "$PROMPT" ]; then
+  PROMPT="自律行動（定期巡回）
 
 @SOUL.md
 @HOLY_GRAIL.md
@@ -397,6 +440,7 @@ ${DESIRE_SECTION}
 - ${TIME_RULE}
 - MCPが動作していなければ、デバッグのために関係があると思われる要素をallowedToolsの範囲で調査せよ
 ${INTEROCEPTION_SECTION}${RECALL_LITE_SECTION}"
+fi
 
 cd "$SCRIPT_DIR"
 
