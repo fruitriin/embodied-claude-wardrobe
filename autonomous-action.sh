@@ -213,7 +213,7 @@ fi
 if [ "$SKIP_SCHEDULE" = false ] && { [ "$HOUR" -eq 22 ] || [ "$HOUR" -eq 23 ]; }; then
   BEDTIME_TS=$(date +%Y-%m-%d_%H:%M:%S)
   echo "[$BEDTIME_TS] BEDTIME_HEALTH: 就寝前ヘルスチェック実行" >> "$LOG_FILE"
-  bun run "$SCRIPT_DIR/scripts/system-health.ts" --notify >> "$LOG_FILE" 2>&1 || \
+  bun run "$SCRIPT_DIR/.claude/scripts/system-health.ts" --notify >> "$LOG_FILE" 2>&1 || \
     echo "[$BEDTIME_TS] BEDTIME_HEALTH: 通知失敗" >> "$LOG_FILE"
 fi
 
@@ -305,7 +305,7 @@ fi
 DESIRE_PROMPT=""
 if [ "$SKIP_SCHEDULE" = false ]; then
   DESIRE_STDERR=$(mktemp)
-  DESIRE_PROMPT=$(bun run "$SCRIPT_DIR/scripts/desire-tick.ts" tick 2>"$DESIRE_STDERR")
+  DESIRE_PROMPT=$(bun run "$SCRIPT_DIR/.claude/scripts/desire-tick.ts" tick 2>"$DESIRE_STDERR")
   if [ -s "$DESIRE_STDERR" ]; then
     echo "[欲望エラー] $(cat "$DESIRE_STDERR")" >> "$LOG_FILE"
   fi
@@ -320,7 +320,7 @@ fi
 # --- 身体感覚（内的感覚） ---
 INTEROCEPTION_TEXT=""
 if [ "$SKIP_SCHEDULE" = false ]; then
-  INTEROCEPTION_TEXT=$(bun run "$SCRIPT_DIR/scripts/interoception.ts" 2>/dev/null)
+  INTEROCEPTION_TEXT=$(bun run "$SCRIPT_DIR/.claude/scripts/interoception.ts" 2>/dev/null)
   if [ -n "$INTEROCEPTION_TEXT" ]; then
     echo "[感覚] $(echo "$INTEROCEPTION_TEXT" | head -n1)" >> "$LOG_FILE"
   fi
@@ -329,7 +329,7 @@ fi
 # --- 記憶ヒント（recall-lite） ---
 RECALL_LITE_TEXT=""
 if [ "$SKIP_SCHEDULE" = false ]; then
-  RECALL_LITE_TEXT=$(bun run "$SCRIPT_DIR/scripts/recall-lite.ts" 2>/dev/null)
+  RECALL_LITE_TEXT=$(bun run "$SCRIPT_DIR/.claude/scripts/recall-lite.ts" 2>/dev/null)
   if [ -n "$RECALL_LITE_TEXT" ]; then
     echo "[recall-lite] $(echo "$RECALL_LITE_TEXT" | head -n1)" >> "$LOG_FILE"
   fi
@@ -379,7 +379,7 @@ if [ "$IS_FIRST_SESSION_TODAY" = true ]; then
 今日の最初の召喚だ。以下を実施せよ：
 1. /great-recall で多軸想起を実行（直近の重要な決定・未完了タスク・curiosity_target）
 2. 前日のタスクを確認し、今日の方針を決めよ
-3. curiosity_target があれば bun run scripts/desire-tick.ts set-curiosity で注入せよ
+3. curiosity_target があれば bun run .claude/scripts/desire-tick.ts set-curiosity で注入せよ
 "
 fi
 

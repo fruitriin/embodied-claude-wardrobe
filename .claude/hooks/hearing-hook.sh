@@ -1,25 +1,26 @@
 #!/bin/bash
 # hearing-hook.sh - 聴覚バッファを Claude のコンテキストに注入する UserPromptSubmit フック
 #
-# hearing-daemon.py が /tmp/hearing_buffer.jsonl に蓄積した文字起こし結果を
+# hearing-daemon.py が hearing_buffer.jsonl に蓄積した文字起こし結果を
 # UserPromptSubmit のたびに読み取り、[hearing] プレフィックス付きで stdout に出力する。
 # 読み取り後はバッファをアトミックに空にする。
 #
 # デーモンが未稼働の場合は何も出力せず静かに終了する。
 
-BUFFER_FILE="/tmp/hearing_buffer.jsonl"
-PID_FILE="/tmp/hearing-daemon.pid"
-TIMING_LOG="/tmp/hearing_timing.log"
-USER_PROMPT_FILE="/tmp/hearing_user_prompt.txt"
+_HEARING_TMP="${CLAUDE_CODE_TMPDIR:-/tmp}"
+BUFFER_FILE="${_HEARING_TMP}/hearing_buffer.jsonl"
+PID_FILE="${_HEARING_TMP}/hearing-daemon.pid"
+TIMING_LOG="${_HEARING_TMP}/hearing_timing.log"
+USER_PROMPT_FILE="${_HEARING_TMP}/hearing_user_prompt.txt"
 
 # stdinからユーザーのプロンプトを保存
 jq -r '.prompt // empty' > "$USER_PROMPT_FILE"
 
 # タイミング記録
 NOW=$(python3 -c "import time; print(f'{time.time():.3f}')")
-PREV=$(cat /tmp/hearing_hook_last_ts 2>/dev/null || echo "$NOW")
+PREV=$(cat "${_HEARING_TMP}/hearing_hook_last_ts" 2>/dev/null || echo "$NOW")
 DELTA=$(python3 -c "print(f'{$NOW - $PREV:.1f}')")
-echo "$NOW" > /tmp/hearing_hook_last_ts
+echo "$NOW" > "${_HEARING_TMP}/hearing_hook_last_ts"
 echo "[$(date +%H:%M:%S)] submit-hook  delta=${DELTA}s" >> "$TIMING_LOG"
 
 # ── デーモン稼働確認 ──────────────────────────────────────────────────────────
@@ -45,8 +46,9 @@ import os
 import sys
 from pathlib import Path
 
-BUFFER = Path("/tmp/hearing_buffer.jsonl")
-DRAIN_TMP = Path("/tmp/hearing_buffer_drain.jsonl")
+_TMP = Path(os.environ.get("CLAUDE_CODE_TMPDIR", "/tmp"))
+BUFFER = _TMP / "hearing_buffer.jsonl"
+DRAIN_TMP = _TMP / "hearing_buffer_drain.jsonl"
 
 # バッファが空なら何もしない
 if not BUFFER.exists() or BUFFER.stat().st_size == 0:
@@ -76,7 +78,7 @@ finally:
     DRAIN_TMP.unlink(missing_ok=True)
 
 # Stopフックのoffsetをリセット（バッファがdrainされたので）
-Path("/tmp/hearing_stop_offset").unlink(missing_ok=True)
+(_TMP / "hearing_stop_offset").unlink(missing_ok=True)
 
 if not entries:
     sys.exit(0)
@@ -94,7 +96,7 @@ texts    = [e["text"] for e in entries]
 combined = " / ".join(texts)
 
 # チェーン保証フラグ: stop hookが最低1回は待つようにする
-Path("/tmp/hearing_had_speech").write_text(str(n))
+(_TMP / "hearing_had_speech").write_text(str(n))
 
 # interoception.sh に合わせた key=value 形式で出力
 print(f"[hearing] chunks={n} span={first_ts}~{last_ts} text={combined}")

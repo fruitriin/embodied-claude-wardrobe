@@ -16,12 +16,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/bin/bash \"$CLAUDE_PROJECT_DIR\"/hooks/interoception.sh",
+            "command": "/bin/bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/interoception.sh",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "/bin/bash \"$CLAUDE_PROJECT_DIR\"/hooks/recall-hook.sh",
+            "command": "/bin/bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/recall-hook.sh",
             "timeout": 5
           }
         ]

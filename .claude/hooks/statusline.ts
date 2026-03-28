@@ -2,11 +2,11 @@
  * statusline.ts — ステータスライン + コンテキスト残量の永続化
  *
  * Claude Code の statusLine から stdin で受け取った context_window 情報を
- * /tmp/context_usage.json に書き出し、interoception.sh から読めるようにする。
+ * context_usage.json に書き出し、interoception.sh から読めるようにする。
  * 同時にステータスラインのテキストを stdout に返す。
  */
 
-const CONTEXT_USAGE_PATH = "/tmp/context_usage.json";
+const CONTEXT_USAGE_PATH = `${process.env.CLAUDE_CODE_TMPDIR ?? "/tmp"}/context_usage.json`;
 
 interface StatusLineInput {
   session_id?: string;
@@ -42,7 +42,7 @@ try {
   process.exit(0);
 }
 
-// --- /tmp/context_usage.json に書き出し ---
+// --- context_usage.json に書き出し ---
 const ctx = data.context_window;
 if (ctx) {
   const usage = {

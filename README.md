@@ -22,24 +22,24 @@ memory-mcp を使いこなすためのスキル群とフック。記憶を「刻
 ### 身体性フック
 毎ターン自動で「体調」情報をコンテキストに注入。センサーデータが Claude の判断材料になる。
 
-- `hooks/interoception.sh` — CPU・メモリ・時刻・フェーズ等を自動注入
-- `hooks/recall-hook.sh` — 想起バッファをコンテキストに自動注入
-- `scripts/heartbeat-daemon.sh` — 5秒ごとの計測デーモン（launchd）
+- `.claude/hooks/interoception.sh` — CPU・メモリ・時刻・フェーズ等を自動注入
+- `.claude/hooks/recall-hook.sh` — 想起バッファをコンテキストに自動注入
+- `.claude/scripts/heartbeat-daemon.sh` — 5秒ごとの計測デーモン（launchd）
 
 ### セッション管理
 Boot / Shutdown の手順を構造化し、セッションをまたいだ記憶の断絶を防ぐ。
 
 - `CLAUDE.md` — Boot Sequence と Shutdown Sequence を定義
-- `templates/BOOT_SHUTDOWN.template.md` — カスタマイズ用テンプレート
+- `.claude/templates/BOOT_SHUTDOWN.template.md` — カスタマイズ用テンプレート
 - コンパクション後の自動復帰（`post-compact-recovery` フック）
 
 ### 自律行動
 cron による定期的な自律行動。欲望システムと連携して内発的動機で動く。
 
 - `autonomous-action.sh` — 完成版の自律行動スクリプト
-- `desires.sample.conf` — 欲望の種類と発火間隔の設定
-- `schedule.sample.conf` — 曜日・時間帯による間引き制御
-- `templates/ROUTINES.template.md` — 定期巡回タスクの定義テンプレート
+- `.claude/templates/desires.template.conf` — 欲望の種類と発火間隔の設定
+- `.claude/templates/schedule.template.conf` — 曜日・時間帯による間引き制御
+- `.claude/templates/ROUTINES.template.md` — 定期巡回タスクの定義テンプレート
 - `/sleep`, `/awake` — 活動頻度の抑制・復帰
 
 ### アイデンティティテンプレート
@@ -47,11 +47,11 @@ cron による定期的な自律行動。欲望システムと連携して内発
 
 | テンプレート | 用途 |
 |---|---|
-| `templates/SOUL.template.md` | 人格定義（Identity / Values / Style / Evolution） |
-| `templates/BOOT_SHUTDOWN.template.md` | Boot / Shutdown 手順 |
-| `templates/ROUTINES.template.md` | 定期巡回タスクの定義 |
-| `templates/FLASH.template.md` | 記憶インデックスの初期テンプレート |
-| `templates/PERSONA.template.md` | マルチペルソナ拡張用（任意） |
+| `.claude/templates/SOUL.template.md` | 人格定義（Identity / Values / Style / Evolution） |
+| `.claude/templates/BOOT_SHUTDOWN.template.md` | Boot / Shutdown 手順 |
+| `.claude/templates/ROUTINES.template.md` | 定期巡回タスクの定義 |
+| `.claude/templates/FLASH.template.md` | 記憶インデックスの初期テンプレート |
+| `.claude/templates/PERSONA.template.md` | マルチペルソナ拡張用（任意） |
 
 ### 読書・観測スキル
 外部コンテンツを安全に取り込む。
@@ -94,10 +94,10 @@ cd embodied-claude-wardrobe
 cd memory-mcp && uv sync && cd ..
 
 # テンプレートをコピーしてカスタマイズ
-cp templates/SOUL.template.md SOUL.md
-cp templates/BOOT_SHUTDOWN.template.md BOOT_SHUTDOWN.md
-cp templates/ROUTINES.template.md ROUTINES.md
-cp templates/FLASH.template.md FLASH.md
+cp .claude/templates/SOUL.template.md SOUL.md
+cp .claude/templates/BOOT_SHUTDOWN.template.md BOOT_SHUTDOWN.md
+cp .claude/templates/ROUTINES.template.md ROUTINES.md
+cp .claude/templates/FLASH.template.md FLASH.md
 ```
 
 `SOUL.md` を編集してエージェントの人格を定義し、Claude Code を起動：

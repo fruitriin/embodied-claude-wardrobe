@@ -4,7 +4,7 @@
 # heartbeat-daemon.sh が書き出した state file を読んでコンテキストに注入する
 # 自前で計測せず、読み取り→整形→出力するだけの軽量版
 
-STATE_FILE="/tmp/interoception_state.json"
+STATE_FILE="${CLAUDE_CODE_TMPDIR:-/tmp}/interoception_state.json"
 
 # state file がなければフォールバック（デーモン未起動時）
 if [ ! -f "$STATE_FILE" ]; then

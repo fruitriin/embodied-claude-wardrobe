@@ -51,7 +51,7 @@ brew install ffmpeg
 
 ### 2. MCP サーバーの登録
 
-`.mcp.json` に hearing MCP サーバーを追加する（`.mcp.example.json` を参照）:
+`.mcp.json` に hearing MCP サーバーを追加する（`.claude/templates/mcp.json.template` を参照）:
 
 ```json
 {
@@ -69,7 +69,7 @@ brew install ffmpeg
 
 ### 3. Claude Code hooks の登録
 
-`.claude/settings.json` に 2 つのフックを追加する（`.claude/settings.example.json` を参照）:
+`.claude/settings.json` に 2 つのフックを追加する（`.claude/templates/settings.json.template` を参照）:
 
 - **`hearing-hook.sh`** → `UserPromptSubmit` イベント
 - **`hearing-stop-hook.sh`** → `Stop` イベント（timeout は 20 秒以上を推奨）

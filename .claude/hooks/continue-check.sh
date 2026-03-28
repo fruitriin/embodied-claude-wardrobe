@@ -10,9 +10,9 @@
 # --- 対話セッション除外 ---
 [ "$HEARTBEAT" != "1" ] && exit 0
 
-COUNTER_FILE="/tmp/heartbeat-continue-counter"
+COUNTER_FILE="${CLAUDE_CODE_TMPDIR:-/tmp}/heartbeat-continue-counter"
 MAX_CONTINUES=${MAX_CONTINUES:-3}
-LOG_FILE="/tmp/heartbeat-continue.log"
+LOG_FILE="${CLAUDE_CODE_TMPDIR:-/tmp}/heartbeat-continue.log"
 
 # stdin から JSON を読む
 INPUT=$(cat)

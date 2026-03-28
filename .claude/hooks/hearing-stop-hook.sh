@@ -7,24 +7,25 @@
 #   - 有効 → offset更新 & 処理済み行を削除 & block
 #   - 無効 → offset据え置き → 短いsleep後に即リトライ（新データが溜まるのを待つ）
 
-BUFFER_FILE="/tmp/hearing_buffer.jsonl"
-PID_FILE="/tmp/hearing-daemon.pid"
-OFFSET_FILE="/tmp/hearing_stop_offset"
-TIMING_LOG="/tmp/hearing_timing.log"
-GUARANTEED_COUNTER="/tmp/hearing-guaranteed-counter"
-CONTEXT_FILE="/tmp/hearing_context.json"
+_HEARING_TMP="${CLAUDE_CODE_TMPDIR:-/tmp}"
+BUFFER_FILE="${_HEARING_TMP}/hearing_buffer.jsonl"
+PID_FILE="${_HEARING_TMP}/hearing-daemon.pid"
+OFFSET_FILE="${_HEARING_TMP}/hearing_stop_offset"
+TIMING_LOG="${_HEARING_TMP}/hearing_timing.log"
+GUARANTEED_COUNTER="${_HEARING_TMP}/hearing-guaranteed-counter"
+CONTEXT_FILE="${_HEARING_TMP}/hearing_context.json"
 
 # stdinからコンテキストを保存（1回だけ読める）
 cat > "$CONTEXT_FILE"
 
 # タイミング記録
 NOW=$(python3 -c "import time; print(f'{time.time():.3f}')")
-PREV=$(cat /tmp/hearing_stop_last_ts 2>/dev/null || echo "$NOW")
+PREV=$(cat "${_HEARING_TMP}/hearing_stop_last_ts" 2>/dev/null || echo "$NOW")
 DELTA=$(python3 -c "print(f'{$NOW - $PREV:.1f}')")
-echo "$NOW" > /tmp/hearing_stop_last_ts
+echo "$NOW" > "${_HEARING_TMP}/hearing_stop_last_ts"
 echo "[$(date +%H:%M:%S)] stop-hook-start delta=${DELTA}s count=${COUNT:-?}" >> "$TIMING_LOG"
 MAX_HEARING_CONTINUES=${MAX_HEARING_CONTINUES:-20}
-COUNTER_FILE="/tmp/hearing-stop-counter"
+COUNTER_FILE="${_HEARING_TMP}/hearing-stop-counter"
 WAIT_SECONDS=${HEARING_WAIT_SECONDS:-5}
 RETRY_WAIT=${HEARING_RETRY_WAIT:-3}
 NO_SPEECH_THRESHOLD=${HEARING_NO_SPEECH_THRESHOLD:-0.6}
@@ -76,7 +77,7 @@ fi
 sleep "$WAIT_SECONDS"
 
 # ── バッファを行番号ベースで読み取り・判定 ─────────────────────
-RESULT=$(python3 - "$NO_SPEECH_THRESHOLD" "$OFFSET_FILE" "$BUFFER_FILE" "$RETRY_WAIT" "$COUNT" <<'PYEOF' 2>>/tmp/hearing_timing.log
+RESULT=$(python3 - "$NO_SPEECH_THRESHOLD" "$OFFSET_FILE" "$BUFFER_FILE" "$RETRY_WAIT" "$COUNT" <<'PYEOF' 2>>"${_HEARING_TMP}/hearing_timing.log"
 import json
 import os
 import sys

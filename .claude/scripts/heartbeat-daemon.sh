@@ -1,9 +1,9 @@
 #!/bin/bash
 # heartbeat-daemon.sh - 心拍デーモン
-# 5秒ごとにlaunchdで実行され、体の状態を /tmp/interoception_state.json に書き出す
+# 5秒ごとにlaunchdで実行され、体の状態を interoception_state.json に書き出す
 # interoception.sh (UserPromptSubmitフック) がこのファイルを読んでコンテキストに注入する
 
-STATE_FILE="/tmp/interoception_state.json"
+STATE_FILE="${CLAUDE_CODE_TMPDIR:-/tmp}/interoception_state.json"
 WINDOW_SIZE=12  # 直近12エントリ（5秒×12=1分間）
 
 # --- 時刻 ---

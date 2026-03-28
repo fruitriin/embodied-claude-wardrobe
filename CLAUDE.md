@@ -63,7 +63,7 @@ BOOT_SHUTDOWN.md の「シャットダウン手順」に従う。最低限:
 ## ランタイム
 
 - **memory-mcp**: Python (uv) — `cd memory-mcp && uv run memory-mcp`
-- **スクリプト**: Bun (TypeScript) — `bun run scripts/xxx.ts`
+- **スクリプト**: Bun (TypeScript) — `bun run .claude/scripts/xxx.ts`
 - **フック**: Bash
 
 ## カスタマイズ

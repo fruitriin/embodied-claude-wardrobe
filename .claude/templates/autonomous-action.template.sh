@@ -248,7 +248,7 @@ fi
 DESIRE_PROMPT=""
 if [ "$SKIP_SCHEDULE" = false ]; then
   DESIRE_STDERR=$(mktemp)
-  DESIRE_PROMPT=$(bun run "$SCRIPT_DIR/scripts/desire-tick.ts" tick 2>"$DESIRE_STDERR")
+  DESIRE_PROMPT=$(bun run "$SCRIPT_DIR/.claude/scripts/desire-tick.ts" tick 2>"$DESIRE_STDERR")
   if [ -s "$DESIRE_STDERR" ]; then
     echo "[欲望エラー] $(cat "$DESIRE_STDERR")" >> "$LOG_FILE"
   fi
@@ -263,7 +263,7 @@ fi
 # --- 身体感覚（内的感覚） ---
 INTEROCEPTION_TEXT=""
 if [ "$SKIP_SCHEDULE" = false ]; then
-  INTEROCEPTION_TEXT=$(bun run "$SCRIPT_DIR/scripts/interoception.ts" 2>/dev/null)
+  INTEROCEPTION_TEXT=$(bun run "$SCRIPT_DIR/.claude/scripts/interoception.ts" 2>/dev/null)
   if [ -n "$INTEROCEPTION_TEXT" ]; then
     echo "[感覚] $(echo "$INTEROCEPTION_TEXT" | head -n1)" >> "$LOG_FILE"
   fi
