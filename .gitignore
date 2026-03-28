@@ -87,3 +87,7 @@ devices.json
 
 # Reference implementations (cloned repos for study)
 references/
+
+# Skill experience files (downstream-specific, not tracked)
+# Template (ExperienceTemplate.md) is tracked; individual .exp.md files are not
+.claude/commands/*.exp.md

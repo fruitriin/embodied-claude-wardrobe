@@ -5,6 +5,8 @@ argument-hint: "<記録内容>"
 user_invocable: true
 ---
 
+@${CLAUDE_SKILL_DIR}/remember.exp.md
+
 # /remember — 記録して索引する
 
 memory MCP に保存した後、FLASH.md にもキーワードを追記する。記録しても思い出せなければないのと同じ。索引まで含めて「記録」。
@@ -68,7 +70,7 @@ NG: ReACTでinteroceptionスクリプトを実装した
 不満や失敗があったら、このセクションか関連スキル（/recall, /rebuild-index）に経験則を書き足す。
 
 ## 経験の活用
-- 実行前に remember.exp.md が存在すれば読み、過去の経験を考慮する
-- 実行後、新たな教訓があれば remember.exp.md に追記する
+- 実行前に ${CLAUDE_SKILL_DIR}/remember.exp.md が存在すれば読み、過去の経験を考慮する
+- 実行後、新たな教訓があれば ${CLAUDE_SKILL_DIR}/remember.exp.md に追記する
 
 入力: $ARGUMENTS

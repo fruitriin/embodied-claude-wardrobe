@@ -40,7 +40,7 @@ cron による定期的な自律行動。欲望システムと連携して内発
 - `.claude/templates/desires.template.conf` — 欲望の種類と発火間隔の設定
 - `.claude/templates/schedule.template.conf` — 曜日・時間帯による間引き制御
 - `.claude/templates/ROUTINES.template.md` — 定期巡回タスクの定義テンプレート
-- `/sleep`, `/awake` — 活動頻度の抑制・復帰
+- `/sleep`, `/awake` — 活動頻度の抑制・復帰（オプショナル: `.claude/wardrobeOptions/skills/` 参照）
 
 ### アイデンティティテンプレート
 エージェントに一貫した人格を与えるためのテンプレート群。
