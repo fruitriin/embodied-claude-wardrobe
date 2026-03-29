@@ -104,6 +104,9 @@ workingLogs/*.log
 tmp/*
 !tmp/.keep
 
+# Turn counter (session-specific)
+.claude/.turn-count
+
 # Working directories (.keep is tracked)
 .claude/workingDirs/*
 !.claude/workingDirs/.keep
