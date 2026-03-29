@@ -4,18 +4,23 @@
       "command": "uv",
       "args": ["run", "--directory", "ip-webcam-mcp", "ip-webcam-mcp"],
       "env": {
+        "CLAUDE_PROJECT_DIR": "${PWD}",
         "IP_WEBCAM_HOST": "192.168.1.xxx",
         "IP_WEBCAM_PORT": "8080"
       }
     },
     "usb-webcam": {
       "command": "uv",
-      "args": ["run", "--directory", "usb-webcam-mcp", "usb-webcam-mcp"]
+      "args": ["run", "--directory", "usb-webcam-mcp", "usb-webcam-mcp"],
+      "env": {
+        "CLAUDE_PROJECT_DIR": "${PWD}"
+      }
     },
     "wifi-cam": {
       "command": "uv",
       "args": ["run", "--directory", "wifi-cam-mcp", "wifi-cam-mcp"],
       "env": {
+        "CLAUDE_PROJECT_DIR": "${PWD}",
         "TAPO_CAMERA_HOST": "192.168.1.xxx",
         "TAPO_USERNAME": "your-username",
         "TAPO_PASSWORD": "your-password"
@@ -23,16 +28,23 @@
     },
     "hearing": {
       "command": "uv",
-      "args": ["run", "--directory", "hearing", "hearing-mcp"]
+      "args": ["run", "--directory", "hearing", "hearing-mcp"],
+      "env": {
+        "CLAUDE_PROJECT_DIR": "${PWD}"
+      }
     },
     "memory": {
       "command": "uv",
-      "args": ["run", "--directory", "memory-mcp", "memory-mcp"]
+      "args": ["run", "--directory", "memory-mcp", "memory-mcp"],
+      "env": {
+        "CLAUDE_PROJECT_DIR": "${PWD}"
+      }
     },
     "morning-call": {
       "command": "uv",
       "args": ["run", "--directory", "morning-call-mcp", "morning-call-mcp"],
       "env": {
+        "CLAUDE_PROJECT_DIR": "${PWD}",
         "TWILIO_ACCOUNT_SID": "your-account-sid",
         "TWILIO_AUTH_TOKEN": "your-auth-token",
         "ELEVENLABS_API_KEY": "your-api-key"
@@ -40,12 +52,16 @@
     },
     "system-temperature": {
       "command": "uv",
-      "args": ["run", "--directory", "system-temperature-mcp", "system-temperature-mcp"]
+      "args": ["run", "--directory", "system-temperature-mcp", "system-temperature-mcp"],
+      "env": {
+        "CLAUDE_PROJECT_DIR": "${PWD}"
+      }
     },
     "tts": {
       "command": "uv",
       "args": ["run", "--directory", "tts-mcp", "tts-mcp"],
       "env": {
+        "CLAUDE_PROJECT_DIR": "${PWD}",
         "ELEVENLABS_API_KEY": "your-api-key",
         "VOICEVOX_URL": "http://localhost:50021",
         "VOICEVOX_SPEAKER": "3",
@@ -58,6 +74,7 @@
       "command": "uv",
       "args": ["run", "--directory", "toio-mcp", "toio-mcp"],
       "env": {
+        "CLAUDE_PROJECT_DIR": "${PWD}",
         "TOIO_CUBE_NAME": "123"
       }
     }
