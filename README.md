@@ -77,7 +77,6 @@ cron による定期的な自律行動。欲望システムと連携して内発
 | [toio-mcp](./.claude/mcps/toio-mcp/) | 手 | toio コアキューブ制御 |
 | [mcp-pet](./.claude/mcps/mcp-pet/) | — | エージェントへのインタラクション拡張 |
 | [morning-call-mcp](./.claude/mcps/morning-call-mcp/) | — | 起床通知 |
-| [desire-system](./desire-system/) | — | 欲求の蓄積・発火管理 |
 
 すべて Python パッケージで、`uv` で管理。
 
@@ -105,7 +104,6 @@ cron による定期的な自律行動。欲望システムと連携して内発
 | toio-mcp | >=3.10 | toio.py | toio コアキューブが必要 |
 | mcp-pet | >=3.10 | opencv-python | |
 | morning-call-mcp | >=3.11 | twilio, elevenlabs | |
-| desire-system | >=3.10 | chromadb | |
 
 > **Python 3.12 を推奨。** すべてのモジュールが動作する安全な選択肢。
 >
