@@ -1,11 +1,11 @@
 ---
-name: wardrobe-migrate
+name: wd-migrate
 description: "アップストリーム（embodied-claude-wardrobe）の最新版をダウンストリーム環境に安全に取り込む。保護対象ファイルを除いた差分を確認・適用する。"
 argument-hint: "[--dry-run] [--yes]"
 user_invocable: true
 ---
 
-# /wardrobe-migrate — アップストリーム更新の取り込み
+# /wd-migrate — アップストリーム更新の取り込み
 
 アップストリーム（embodied-claude-wardrobe）の最新版をダウンストリーム（現在の環境）に安全にマイグレーションする。
 
@@ -67,6 +67,7 @@ lock の commit と一致する場合:
 | パス | 備考 |
 |------|------|
 | `.claude/commands/*.md` | `*.exp.md` を除く |
+| `.claude/agents/wd-*.md` | `wd-` プレフィックスのみ |
 | `.claude/hooks/` | 全ファイル |
 | `.claude/scripts/` | 全ファイル |
 | `.claude/templates/` | 全ファイル |

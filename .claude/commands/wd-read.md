@@ -4,7 +4,7 @@ argument-hint: "<URL>"
 allowed-tools: Bash(bun run ${CLAUDE_SKILL_DIR}/../scripts/reader.ts:*)
 ---
 
-@${CLAUDE_SKILL_DIR}/read.exp.md
+@${CLAUDE_SKILL_DIR}/wd-read.exp.md
 
 Web ページの本文をリーダーモードで読み取る。WebFetch と違い、AI による要約を挟まず生テキストを返す。物語や記事をじっくり読むときに使う。
 

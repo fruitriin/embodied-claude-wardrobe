@@ -1,10 +1,10 @@
 ---
-name: great-recall
+name: wd-great-recall
 description: "多軸想起。同じ記憶群に3つの異なる観点（技術的・感情的・因果的）を当て、並列に意味を引き出す。"
 argument-hint: "<想起したい文脈>"
 ---
 
-@${CLAUDE_SKILL_DIR}/great-recall.exp.md
+@${CLAUDE_SKILL_DIR}/wd-great-recall.exp.md
 
 # /great-recall — 多軸想起
 

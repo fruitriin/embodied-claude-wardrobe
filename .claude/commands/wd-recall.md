@@ -1,5 +1,5 @@
 ---
-name: recall
+name: wd-recall
 description: "FLASH.mdを地図にして記憶を掘り起こす。サブエージェントで動くので会話コンテキストを汚さない。"
 argument-hint: "<思い出したいこと>"
 user_invocable: true

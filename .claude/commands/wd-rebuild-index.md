@@ -1,5 +1,5 @@
 ---
-name: rebuild-index
+name: wd-rebuild-index
 description: "FLASH.mdを記憶DBから再構築する。コンテキスト圧縮による抜け漏れを防ぐ。"
 argument-hint: "[対象期間（省略可、例: 先週）]"
 user_invocable: true

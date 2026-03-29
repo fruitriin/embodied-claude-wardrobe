@@ -23,6 +23,22 @@
             "type": "command",
             "command": "/bin/bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/recall-hook.sh",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "/bin/bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/hearing-hook.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/hearing-stop-hook.sh",
+            "timeout": 20
           }
         ]
       }
@@ -32,6 +48,8 @@
   "permissions": {
     "allow": [
       "mcp__memory__*",
+      "mcp__hearing__*",
+      "mcp__wifi-cam__*",
       "Bash(bun run:*)",
       "Bash(bun:*)",
       "Bash(git:*)",
@@ -40,8 +58,8 @@
       "Write",
       "Glob",
       "Grep",
-      "Skill(read)",
-      "Skill(great-recall)"
+      "Skill(wd-read)",
+      "Skill(wd-great-recall)"
     ]
   }
 }

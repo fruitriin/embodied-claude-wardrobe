@@ -1,13 +1,13 @@
 ---
-name: remember
+name: wd-remember
 description: "記憶を保存し、FLASH.mdにインデックスを追記する。記録と索引を一発で。"
 argument-hint: "<記録内容>"
 user_invocable: true
 ---
 
-@${CLAUDE_SKILL_DIR}/remember.exp.md
+@${CLAUDE_SKILL_DIR}/wd-remember.exp.md
 
-# /remember — 記録して索引する
+# /wd-remember — 記録して索引する
 
 memory MCP に保存した後、FLASH.md にもキーワードを追記する。記録しても思い出せなければないのと同じ。索引まで含めて「記録」。
 
@@ -54,7 +54,7 @@ NG: ReACTでinteroceptionスクリプトを実装した
 
 ## 週替わり処理
 
-月曜の最初の /remember で、先週のセクションを圧縮する:
+月曜の最初の /wd-remember で、先週のセクションを圧縮する:
 - 直近1週間: 曜日単位
 - 2週前: まとめて数行
 - 3週前以前: さらに圧縮（月単位）
@@ -67,10 +67,10 @@ NG: ReACTでinteroceptionスクリプトを実装した
 - **recall で意図しない記憶が大量に引っかかった** → キーワードが汎用的すぎる。技術用語・数字を入れる
 - **FLASH ファイルが肥大化して見通しが悪い** → rebuild-index の圧縮基準を見直す
 
-不満や失敗があったら、このセクションか関連スキル（/recall, /rebuild-index）に経験則を書き足す。
+不満や失敗があったら、このセクションか関連スキル（/wd-recall, /wd-rebuild-index）に経験則を書き足す。
 
 ## 経験の活用
-- 実行前に ${CLAUDE_SKILL_DIR}/remember.exp.md が存在すれば読み、過去の経験を考慮する
-- 実行後、新たな教訓があれば ${CLAUDE_SKILL_DIR}/remember.exp.md に追記する
+- 実行前に ${CLAUDE_SKILL_DIR}/wd-remember.exp.md が存在すれば読み、過去の経験を考慮する
+- 実行後、新たな教訓があれば ${CLAUDE_SKILL_DIR}/wd-remember.exp.md に追記する
 
 入力: $ARGUMENTS
