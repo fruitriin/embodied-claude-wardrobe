@@ -91,3 +91,6 @@ references/
 # Skill experience files (downstream-specific, not tracked)
 # Template (ExperienceTemplate.md) is tracked; individual .exp.md files are not
 .claude/commands/*.exp.md
+
+
+workingLogs/*.log
