@@ -100,6 +100,10 @@ references/
 
 workingLogs/*.log
 
+# Temporary files (tmp/.keep is tracked)
+tmp/*
+!tmp/.keep
+
 # 魂、メモリはアップストリームにはpushしない
 ROUTINES.md
 SOUL.md
