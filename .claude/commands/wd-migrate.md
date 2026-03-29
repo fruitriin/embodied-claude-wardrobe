@@ -88,11 +88,11 @@ lock の commit と一致する場合:
 以下のパスはユーザーカスタマイズ済みとして保護される:
 
 - `SOUL.md` — ユーザー定義の人格
-- `BOOT_SHUTDOWN.md` — カスタマイズ済み身支度・日記手順
 - `ROUTINES.md` — ユーザー定義のルーチン
 - `FLASH.md`, `FLASH-*.md` — 記憶インデックス
-- `STATE.md` — 現在状態
-- `.claude/commands/*.exp.md` — ローカル経験ファイル
+- `state.md` — 現在状態
+- `TODO.md` — タスク管理
+- `*.exp.md` — ローカル経験ファイル（ルート直下含む）
 - `.claude/wardrobe-lock.json` — 自身（最後に更新）
 - `memories/` — 記憶データ
 - `desires.conf`, `schedule.conf` — ユーザー設定
