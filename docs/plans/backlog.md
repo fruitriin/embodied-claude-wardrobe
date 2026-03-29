@@ -20,7 +20,7 @@
 - [ ] S5: .claudeignore にワードローブ固有パターン追加（*.db, hearing_buffer.jsonl 等）
 
 ### リンクチェック Broken の修正
-- [ ] autonomous-action.sh 内の `@HOLY_GRAIL.md`, `@TODO.md` 参照（ファイル不在）
+- [x] autonomous-action.sh 内の `@HOLY_GRAIL.md`, `@TODO.md` 参照（ファイル不在）→ HOLY_GRAIL→BOOT_SHUTDOWN に修正、TODO テンプレート追加
 - [ ] desire-tick.ts の desires.conf パス不一致（`.claude/desires.conf` vs プロジェクトルート）
 
 ## 計画済み・未着手
@@ -53,6 +53,21 @@
 - [ ] wd- プレフィックス統一（破壊的変更、migrate 対応含む）
 - [ ] .gitignore ダウンストリーム保護パターン
 - [ ] README.md Requirements セクション
+
+### 自律行動プロンプトの具体化
+- 参考: `/Users/riin/workspace/assistant/CLAUDE.md` の Heartbeat Protocol
+- [ ] prompts.toml の `routine_mode.normal` を具体的な行動手順に書き換え（TODO確認→選択→実行→記録）
+- [ ] `/dice` スキルをマシングローバルから持ってくる
+- [ ] CLAUDE.md に Capabilities セクション追加（記憶・感覚・発話。カメラ周りはオプション）
+
+### メモリプロトコルのドキュメント化
+- 参考: `/Users/riin/workspace/assistant/howtoMemory.md`, `/Users/riin/workspace/riin-service/HOLY_GRAIL.md`
+- [ ] memory MCP の全ツールガイドを docs/ に追加（テンプレート化）
+- [ ] CLAUDE.md に Memory Protocol セクション追加（記録すべきもの・タイミング・FLASH.md の使い方）
+
+### SessionStart フックでブートシーケンス自動化
+- [ ] SessionStart hook（trigger: always）で SOUL.md + state.md をコンテキスト注入
+- [ ] 現在の CLAUDE.md ベースの「読んで従う」方式からフック駆動に移行
 
 ## 将来の検討事項
 

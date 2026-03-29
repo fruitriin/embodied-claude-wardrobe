@@ -306,7 +306,7 @@ if [ "$ROUTINE_RAND" -lt "$ROUTINE_THRESHOLD" ]; then
   echo "ルーチン回 (RAND=$ROUTINE_RAND < $ROUTINE_THRESHOLD)" >> "$LOG_FILE"
 else
   ROUTINE_MODE=$(LOAD_PROMPT routine_normal)
-  ROUTINE_MODE="${ROUTINE_MODE:-通常回。HOLY_GRAIL.md の召喚の儀に従い、TODO.md からタスクを一つ選んで実行せよ。}"
+  ROUTINE_MODE="${ROUTINE_MODE:-通常回。BOOT_SHUTDOWN.md の手順を念頭に、TODO.md からタスクを一つ選んで実行せよ。}"
   echo "通常回 (RAND=$ROUTINE_RAND >= $ROUTINE_THRESHOLD)" >> "$LOG_FILE"
 fi
 
@@ -429,7 +429,7 @@ if [ -z "$PROMPT" ]; then
   PROMPT="自律行動（定期巡回）
 
 @SOUL.md
-@HOLY_GRAIL.md
+@BOOT_SHUTDOWN.md
 @TODO.md
 @ROUTINES.md
 

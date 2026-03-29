@@ -71,7 +71,7 @@ allowedTools の動作チェック。以下のツールを順番に1つずつ試
 13. mcp__system-temperature__get_current_time — 現在時刻取得
 
 ### スキル
-14. Skill(read) — /read https://example.com をテスト（--info のみ）
+14. Skill(wd-read) — /wd-read https://example.com をテスト（--info のみ）
 
 ### Bash
 15. Bash(bun run) — bun --version を実行

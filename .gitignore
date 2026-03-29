@@ -53,15 +53,17 @@ ENV/
 .coverage
 htmlcov/
 
-# Memory database (per-project, contains personal data)
-.claude/memories/
-
 # ChromaDB test data
 :memory:/
 
 # OS
 .DS_Store
 Thumbs.db
+
+#-----------------------------------------
+
+# Memory database (per-project, contains personal data)
+.claude/memories/
 
 # Autonomous action MCP config (contains credentials)
 autonomous-mcp.json
@@ -104,3 +106,4 @@ SOUL.md
 state.md
 FLASH.md
 BOOT_SHUTDOWN.md
+TODO.md

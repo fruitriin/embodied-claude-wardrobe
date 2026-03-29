@@ -95,6 +95,66 @@
 - [ ] `/sleep` で活動頻度が下がる
 - [ ] `/awake` で活動頻度が戻る
 
+### 1-5. 自律行動シナリオ走破テスト（test-autonomous.sh）
+
+`test-autonomous.sh` を使った autonomous-action.sh のシナリオ走破テスト。
+MCP 非依存（`--dry-run` モード）で実行可能。
+
+#### 前提条件
+- `test-autonomous.sh` が存在し実行権限あり
+- `autonomous-action.sh` が存在し実行権限あり
+- `.env` が存在（`source` される）
+- `prompts.toml`、`desires.conf`、`schedule.conf` が存在
+
+#### dry-run シナリオ走破
+
+**プロンプト組み立て**
+- [ ] `./test-autonomous.sh --dry-run` — 通常回のプロンプトが正しく組み立てられる
+- [ ] `./test-autonomous.sh --dry-run --force-routine` — ルーチン回のプロンプトが生成される（ROUTINES.md 参照あり）
+- [ ] `./test-autonomous.sh --dry-run --force-normal` — 通常回が強制される
+
+**時間帯切り替え**
+- [ ] `./test-autonomous.sh --dry-run --date "YYYY-MM-DD 03:00"` — 深夜帯ルール（TIME_RULE が夜用に切り替わる）
+- [ ] `./test-autonomous.sh --dry-run --date "YYYY-MM-DD 14:30"` — 昼間帯ルール（TIME_RULE が昼用になる）
+- [ ] 深夜帯で interoception テキストが「夜」系のフレーズを含む
+
+**朝の初回セッション**
+- [ ] 日付が前回と異なるとき、`morning_section`（prompts.toml の `[morning]`）がプロンプトに合体する
+- [ ] `/wd-great-recall` が朝の初回プロンプト内で正しく参照されている
+
+**allowedTools 動的生成**
+- [ ] allowedTools が `.claude/settings.json` の `permissions.allow` から動的に生成される
+- [ ] スキル参照が `Skill(wd-read)`, `Skill(wd-great-recall)` 等の wd- プレフィックス付きになっている
+
+#### 環境変数チェック
+
+cron は最小限の環境変数しか持たない。autonomous-action.sh が環境差を吸収できるか確認する。
+
+**PATH の復元**
+- [ ] `env -i bash -c "./autonomous-action.sh --dry-run"` — PATH なしの空環境で正常動作する
+- [ ] `bun`, `jq`, `claude` が PATH 復元後に見つかる（autonomous-action.sh 内で `$HOME/.asdf/shims:/opt/homebrew/bin` を設定）
+
+**カレントディレクトリの違い**
+- [ ] `env -i bash -c "cd /tmp && /path/to/autonomous-action.sh --dry-run"` — 別ディレクトリから呼んでも `SCRIPT_DIR` で正しいパスに解決される
+- [ ] `cd "$SCRIPT_DIR"` でスクリプト実行前にプロジェクトルートに移動している
+
+**シェルの違い**
+- [ ] `env -i bash -c "..."` で bash から起動できる（shebang は `#!/bin/bash`）
+- [ ] fish / zsh の対話環境から `./test-autonomous.sh` を起動しても問題ない
+
+**CLAUDE_ 系環境変数**
+- [ ] `CLAUDECODE` が `unset` される（claude CLI の再帰呼び出し防止）
+- [ ] `.env` で定義された環境変数（API キー等）が正しく `source` される
+- [ ] `CLAUDE_PROJECT_DIR` は autonomous-action.sh 自体では設定しない（claude CLI が自動設定する）
+
+#### --check-tools（MCP 依存）
+
+MCP が全て接続された状態でのみ実行可能。
+
+- [ ] `./test-autonomous.sh --check-tools` — 全ツールの動作チェックが実行される
+- [ ] チェック結果に `Skill(wd-read)` が含まれる（旧名称 `Skill(read)` ではない）
+- [ ] 結果レポートが `=== 合計: X/15 OK ===` 形式で出力される
+
 ---
 
 ## 2. 発話と聴覚

@@ -148,21 +148,21 @@ function parseToml(text: string): TomlDoc {
 // --- デフォルト値 ---
 const DEFAULTS: Record<string, string> = {
   time_rule_night:
-    "現在は深夜帯。slack は使わないこと。静かに自律タスクのみ実行すること。",
+    "現在は深夜帯。tts は使わないこと。静かに自律タスクのみ実行すること。",
   time_rule_day:
-    "マスターに伝えたいことがあるときは slack を使ってよい。",
+    "マスターに伝えたいことがあるときは tts を使ってよい。",
   routine_routine:
     "今回はルーチン回。ROUTINES.md を読んで、最終実行日から間隔が空いたものを一つ選んで実行せよ。実行したら最終実行日を更新すること。",
   routine_normal:
-    "通常回。HOLY_GRAIL.md の召喚の儀に従い、TODO.md からタスクを一つ選んで実行せよ。",
+    "通常回。BOOT_SHUTDOWN.md の手順を念頭に、TODO.md からタスクを一つ選んで実行せよ。",
   morning_section:
-    "## 今日の初回セッション\n今日の最初の召喚だ。以下を実施せよ：\n1. /great-recall で多軸想起を実行（直近の重要な決定・未完了タスク・curiosity_target）\n2. 前日のタスクを確認し、今日の方針を決めよ\n3. curiosity_target があれば bun run .claude/scripts/desire-tick.ts set-curiosity で注入せよ\n",
+    "## 今日の初回セッション\n今日の最初の召喚だ。以下を実施せよ：\n1. /wd-great-recall で多軸想起を実行（直近の重要な決定・未完了タスク・curiosity_target）\n2. 前日のタスクを確認し、今日の方針を決めよ\n3. curiosity_target があれば bun run .claude/scripts/desire-tick.ts set-curiosity で注入せよ\n",
   desire_footer:
     "（これは内なる衝動であり、従うかどうかはエージェントの判断。主たるタスクの妨げにならぬ範囲で。）",
   prompt_template: `自律行動（定期巡回）
 
 @SOUL.md
-@HOLY_GRAIL.md
+@BOOT_SHUTDOWN.md
 @TODO.md
 @ROUTINES.md
 
@@ -226,7 +226,7 @@ async function main() {
         "## 今日の初回セッション\n今日の最初の召喚だ。以下を実施せよ：";
       const steps =
         (doc["morning"]?.["steps"] as string[] | undefined) ?? [
-          "/great-recall で多軸想起を実行（直近の重要な決定・未完了タスク・curiosity_target）",
+          "/wd-great-recall で多軸想起を実行（直近の重要な決定・未完了タスク・curiosity_target）",
           "前日のタスクを確認し、今日の方針を決めよ",
           "curiosity_target があれば bun run .claude/scripts/desire-tick.ts set-curiosity で注入せよ",
         ];
