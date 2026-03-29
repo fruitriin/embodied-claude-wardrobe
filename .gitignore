@@ -111,10 +111,12 @@ tmp/*
 .claude/workingDirs/*
 !.claude/workingDirs/.keep
 
-# 魂、メモリはアップストリームにはpushしない
+# ダウンストリーム固有ファイル（アップストリームにはpushしない）
 ROUTINES.md
 SOUL.md
 state.md
 FLASH.md
-BOOT_SHUTDOWN.md
 TODO.md
+
+# 経験ファイル（ダウンストリーム固有）
+*.exp.md
