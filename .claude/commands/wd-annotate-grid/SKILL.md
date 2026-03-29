@@ -56,7 +56,7 @@ annotate-grid <input> <output> --every N     # N px ごとに線
 
 3. **コマンドを実行する**
    ```bash
-   .claude/tools/annotate-grid tmp/<input>.png tmp/<output>.png <options>
+   ${CLAUDE_SKILL_DIR}/tools/annotate-grid tmp/<input>.png tmp/<output>.png <options>
    ```
 
 4. **結果を報告する**
@@ -79,7 +79,7 @@ annotate-grid <input> <output> --every N     # N px ごとに線
 ```
 
 ## 注意事項
-- ツール実体は `.claude/tools/annotate-grid`（Mach-O ARM64 バイナリ、ソース: annotate-grid.swift）
+- ツール実体は `${CLAUDE_SKILL_DIR}/tools/annotate-grid`（Mach-O ARM64 バイナリ、ソース: annotate-grid.swift）
 - 入出力は `tmp/` 配下を使う
 - 大きな画像（Retina @2x 等）では `--font-size 20` に調整する
 - `--divide 0` / `--every 0` はエラー

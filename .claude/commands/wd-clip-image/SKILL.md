@@ -42,7 +42,7 @@ clip-image <input> <output> --grid-range col1 row1 col2 row2 N
 
 3. **コマンドを実行する**
    ```bash
-   .claude/tools/clip-image tmp/<input>.png tmp/<output>.png <options>
+   ${CLAUDE_SKILL_DIR}/tools/clip-image tmp/<input>.png tmp/<output>.png <options>
    ```
 
 4. **結果を報告する**
@@ -61,7 +61,7 @@ clip-image <input> <output> --grid-range col1 row1 col2 row2 N
 ```
 
 ## 注意事項
-- ツール実体は `.claude/tools/clip-image`（Mach-O ARM64 バイナリ、ソース: clip-image.swift）
+- ツール実体は `${CLAUDE_SKILL_DIR}/tools/clip-image`（Mach-O ARM64 バイナリ、ソース: clip-image.swift）
 - 入出力は `tmp/` 配下を使う
 - `--grid-cell` の col/row は 0-origin かつ N 未満
 - `--rect` の座標は左上原点（y は下向き増加）

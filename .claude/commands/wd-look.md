@@ -59,7 +59,7 @@ sips -s format png tmp/photo.jpg --out tmp/photo.png
 ### 3. グリッド描画モード
 
 ```bash
-.claude/tools/annotate-grid tmp/<input>.png tmp/grid-<input>.png --divide N --font-size 16
+.claude/commands/wd-annotate-grid/tools/annotate-grid tmp/<input>.png tmp/grid-<input>.png --divide N --font-size 16
 ```
 
 - 結果を Read ツールで表示する
@@ -69,12 +69,12 @@ sips -s format png tmp/photo.jpg --out tmp/photo.png
 
 **1セル:**
 ```bash
-.claude/tools/clip-image tmp/<input>.png tmp/look-<input>.png --grid-cell col row N
+.claude/commands/wd-clip-image/tools/clip-image tmp/<input>.png tmp/look-<input>.png --grid-cell col row N
 ```
 
 **範囲:**
 ```bash
-.claude/tools/clip-image tmp/<input>.png tmp/look-<input>.png --grid-range col1 row1 col2 row2 N
+.claude/commands/wd-clip-image/tools/clip-image tmp/<input>.png tmp/look-<input>.png --grid-range col1 row1 col2 row2 N
 ```
 
 - 結果を Read ツールで表示する
