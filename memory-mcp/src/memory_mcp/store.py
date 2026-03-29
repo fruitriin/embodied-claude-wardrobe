@@ -391,6 +391,7 @@ class MemoryStore:
                     return conn
 
                 self._db = await asyncio.to_thread(_open)
+                self._dim_checked = False
 
                 # Check embedding dimension consistency
                 await self._check_embedding_dimension()

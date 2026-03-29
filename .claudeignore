@@ -42,3 +42,13 @@ ENV/
 # OS
 .DS_Store
 Thumbs.db
+
+# Wardrobe — バイナリ・大容量ファイル
+*.db
+*.db-wal
+*.db-shm
+*.db.bak
+hearing_buffer.jsonl
+recall_buffer.jsonl
+.autonomous-logs/
+workingLogs/

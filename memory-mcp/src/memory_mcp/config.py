@@ -28,10 +28,13 @@ class MemoryConfig:
         if project_dir:
             default_path = str(Path(project_dir) / ".claude" / "memories" / "memory.db")
         else:
-            # uv run --directory memory-mcp で起動された場合、cwd は memory-mcp/
+            # CLAUDE_PROJECT_DIR がない場合、CLAUDE.md マーカーで親ディレクトリを探す
             cwd = Path.cwd()
-            if cwd.name == "memory-mcp" and (cwd.parent / ".claude").exists():
+            # memory-mcp/ から起動された場合、親に CLAUDE.md があればプロジェクトルート
+            if (cwd.parent / "CLAUDE.md").exists():
                 default_path = str(cwd.parent / ".claude" / "memories" / "memory.db")
+            elif (cwd / "CLAUDE.md").exists():
+                default_path = str(cwd / ".claude" / "memories" / "memory.db")
             else:
                 default_path = str(Path.home() / ".claude" / "memories" / "memory.db")
 

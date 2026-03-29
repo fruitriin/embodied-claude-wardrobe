@@ -134,14 +134,17 @@ def filter_entries(lines):
     return entries
 
 def truncate_buffer(up_to_line):
-    """処理済み行をバッファから削除（up_to_line行目まで削除、それ以降を残す）"""
+    """処理済み行をバッファから削除（up_to_line行目まで削除、それ以降を残す）
+    一時ファイルに書いてからrenameすることでアトミックに更新する"""
     if not buffer_file.exists():
         return
     with open(buffer_file, encoding="utf-8") as f:
         all_lines = f.readlines()
     remaining = all_lines[up_to_line:]
-    with open(buffer_file, "w", encoding="utf-8") as f:
+    tmp_file = buffer_file.with_suffix(".tmp")
+    with open(tmp_file, "w", encoding="utf-8") as f:
         f.writelines(remaining)
+    tmp_file.rename(buffer_file)
     # offset をリセット（バッファが切り詰められたので）
     write_offset(0)
 

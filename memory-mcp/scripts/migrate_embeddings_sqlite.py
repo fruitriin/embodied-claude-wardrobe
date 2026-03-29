@@ -32,6 +32,12 @@ def migrate(config: MemoryConfig) -> None:
     print(f"DB パス: {db_path}")
     print(f"埋め込みモデル: {config.embedding_model}")
 
+    # 自動バックアップ
+    import shutil
+    backup_path = db_path + ".bak"
+    shutil.copy2(db_path, backup_path)
+    print(f"バックアップ作成: {backup_path}")
+
     conn = sqlite3.connect(db_path)
 
     # 現在の次元数を確認

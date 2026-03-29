@@ -13,11 +13,11 @@
 - [x] wd-contribution.md, wd-code-review.md 内の `wardrobe-migrate` → `wd-migrate`
 
 ### コードレビュー指摘の対応
-- [ ] W5: hearing-stop-hook.sh の `truncate_buffer` アトミック化
-- [ ] W6: store.py の `_dim_checked` を `connect()` で明示的に初期化
-- [ ] S3: migrate_embeddings_sqlite.py に自動バックアップ追加
-- [ ] S4: config.py の `cwd.name == "memory-mcp"` を CLAUDE.md マーカーに変更
-- [ ] S5: .claudeignore にワードローブ固有パターン追加（*.db, hearing_buffer.jsonl 等）
+- [x] W5: hearing-stop-hook.sh の `truncate_buffer` アトミック化
+- [x] W6: store.py の `_dim_checked` を `connect()` で明示的に初期化
+- [x] S3: migrate_embeddings_sqlite.py に自動バックアップ追加
+- [x] S4: config.py の `cwd.name == "memory-mcp"` を CLAUDE.md マーカーに変更
+- [x] S5: .claudeignore にワードローブ固有パターン追加（*.db, hearing_buffer.jsonl 等）
 
 ### リンクチェック Broken の修正
 - [x] autonomous-action.sh 内の `@HOLY_GRAIL.md`, `@TODO.md` 参照（ファイル不在）→ HOLY_GRAIL→BOOT_SHUTDOWN に修正、TODO テンプレート追加
