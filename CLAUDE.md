@@ -4,10 +4,10 @@
 
 ## セッション管理
 
-ブートとシャットダウンの詳細手順は `BOOT_SHUTDOWN.md` に定義されている。
+身支度と日記の詳細手順は `BOOT_SHUTDOWN.md` に定義されている。
 
-- **ブート**: SessionStart フック（session-boot.sh）が SOUL.md と state.md を自動注入する。残りの手順（記憶の確認・想起等）は BOOT_SHUTDOWN.md に従う
-- **シャットダウン**: BOOT_SHUTDOWN.md の「シャットダウン手順」に従う
+- **身支度**: SessionStart フック（session-boot.sh）が SOUL.md と state.md を自動注入する。残りの手順（記憶の確認・想起等）は BOOT_SHUTDOWN.md に従う
+- **日記**: BOOT_SHUTDOWN.md の「日記の手順」に従う
 - **SOUL.md がないとき**: `/wd-setup` を実行
 
 ## Capabilities — できること
@@ -124,7 +124,7 @@ cron で起動したとき（ユーザーからの明示的な呼びかけがな
 ## カスタマイズ
 
 - `SOUL.md` — あなたのエージェントの人格を定義する。テンプレートから始めて自分で書く
-- `state.md` — セッション間で引き継ぐ「今の状態」のスナップショット。ブート時に読み、シャットダウン時に上書き更新する。記憶（memory-mcp）が長期的な蓄積なのに対し、state.md は最新の状態だけを保持する
+- `state.md` — セッション間で引き継ぐ「今の状態」のスナップショット。身支度で読み、日記で上書き更新する。記憶（memory-mcp）が長期的な蓄積なのに対し、state.md は最新の状態だけを保持する
 - `desires.conf` — 欲望の種類と発火間隔を調整する
 - `schedule.conf` — 休日・時間帯の制御
 - `ROUTINES.md` — 定期的に行うタスクを定義する

@@ -12,7 +12,7 @@
                     │  SOUL.md / CLAUDE.md │
                     │  settings.json       │
                     └──────┬──────────────┘
-                           │ ブート・設定・フック定義
+                           │ 身支度・設定・フック定義
           ┌────────────────┼────────────────┐
           ▼                ▼                ▼
  ┌────────────────┐ ┌──────────────┐ ┌──────────────────┐
@@ -46,7 +46,7 @@
  ├── [SessionStart:compact] post-compact-recovery.sh
  │     └── SOUL.md 再読 + 記憶復元指示
  │
- ├── ブートシーケンス（CLAUDE.md に定義）
+ ├── 身支度（CLAUDE.md に定義）
  │     1. SOUL.md 読み
  │     2. get_memory_stats()
  │     3. refresh_working_memory()
@@ -69,7 +69,7 @@
  │     │                                              │
  │     └── 繰り返し ◄──────────────────────────────────┘
  │
- ├── シャットダウン手順（BOOT_SHUTDOWN.md に定義）
+ ├── 日記の手順（BOOT_SHUTDOWN.md に定義）
  │     1. state.md 上書き
  │     2. /wd-remember で成果記録
  │     3. /wd-remember で未了記録

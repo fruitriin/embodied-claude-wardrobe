@@ -16,7 +16,7 @@
 | フック | recall-hook.sh | UserPromptSubmit で recall_buffer.jsonl をコンテキストに注入 |
 | フック | post-compact-recovery.sh | コンパクション後に SOUL.md 再読 + 記憶復元を指示 |
 | スクリプト | recall-watcher.ts | ユーザー発言をリアルタイム監視し、関連記憶を recall_buffer.jsonl に書き出し |
-| スクリプト | recall-lite.ts | ブート時に記憶 DB から3軸で軽量想起 |
+| スクリプト | recall-lite.ts | 身支度で記憶 DB から3軸で軽量想起 |
 
 ## 設計思想
 
@@ -50,4 +50,4 @@ recall-watcher.ts → ユーザー発言監視 → memory-mcp.recall() → recal
 
 - **身体性**: desire-tick の「記憶を刻む」欲望が発火すると記憶保存が促される
 - **自律行動**: autonomous-action.sh から記憶の振り返り・整理が実行される
-- **魂・ハーネス**: ブートシーケンスで get_memory_stats → refresh_working_memory → wd-great-recall
+- **魂・ハーネス**: 身支度で get_memory_stats → refresh_working_memory → wd-great-recall

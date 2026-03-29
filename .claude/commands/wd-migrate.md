@@ -88,7 +88,7 @@ lock の commit と一致する場合:
 以下のパスはユーザーカスタマイズ済みとして保護される:
 
 - `SOUL.md` — ユーザー定義の人格
-- `BOOT_SHUTDOWN.md` — カスタマイズ済みブート手順
+- `BOOT_SHUTDOWN.md` — カスタマイズ済み身支度・日記手順
 - `ROUTINES.md` — ユーザー定義のルーチン
 - `FLASH.md`, `FLASH-*.md` — 記憶インデックス
 - `STATE.md` — 現在状態

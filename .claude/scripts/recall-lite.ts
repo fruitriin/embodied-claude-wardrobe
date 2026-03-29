@@ -1,7 +1,7 @@
 /**
  * recall-lite — 軽量自動想起フック
  *
- * memory DB から直接検索し、ブート時のコンテキストヒントを生成する。
+ * memory DB から直接検索し、身支度時のコンテキストヒントを生成する。
  * autonomous-action.sh からプロンプトにサイレントに注入される。
  *
  * embedding は使わない（bun:sqlite で直接クエリ）。
