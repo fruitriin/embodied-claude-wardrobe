@@ -8,6 +8,11 @@
             "type": "command",
             "command": "/bin/bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-boot.sh",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "/bin/bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/reset-turn-count.sh",
+            "timeout": 5
           }
         ]
       },
