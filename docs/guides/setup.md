@@ -31,7 +31,8 @@ cd .claude/mcps/memory-mcp && uv sync && cd ../../..
 
 ```bash
 cp .claude/templates/SOUL.template.md SOUL.md
-cp .claude/templates/BOOT_SHUTDOWN.template.md BOOT_SHUTDOWN.md
+# BOOT_SHUTDOWN.md はアップストリーム追跡済み。コピー不要
+# カスタマイズが必要なら BOOT_SHUTDOWN.exp.md に書く
 cp .claude/templates/ROUTINES.template.md ROUTINES.md
 cp .claude/templates/FLASH.template.md FLASH.md
 ```

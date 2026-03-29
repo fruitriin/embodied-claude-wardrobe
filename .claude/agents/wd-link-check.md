@@ -68,7 +68,7 @@ CLAUDE.md を全文読み、以下を抽出・検証する:
 |---|---|
 | `SOUL.template.md` | `SOUL.md` |
 | `STATE.template.md` | `state.md` |
-| `BOOT_SHUTDOWN.template.md` | `BOOT_SHUTDOWN.md` |
+| — | `BOOT_SHUTDOWN.md`（アップストリーム追跡、テンプレートなし） |
 | `ROUTINES.template.md` | `ROUTINES.md` |
 | `FLASH.template.md` | `FLASH.md` |
 | `desires.template.conf` | `desires.conf` |

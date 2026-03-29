@@ -30,7 +30,7 @@ memory-mcp を使いこなすためのスキル群とフック。記憶を「刻
 身支度と日記の手順を構造化し、セッションをまたいだ記憶の断絶を防ぐ。
 
 - `CLAUDE.md` — 身支度（セッション開始）と日記（セッション終了）の手順を定義
-- `.claude/templates/BOOT_SHUTDOWN.template.md` — カスタマイズ用テンプレート
+- `BOOT_SHUTDOWN.md` — セッション開始・終了の詳細手順（アップストリーム追跡）
 - コンパクション後の自動復帰（`post-compact-recovery` フック）
 
 ### 自律行動
@@ -48,7 +48,7 @@ cron による定期的な自律行動。欲望システムと連携して内発
 | テンプレート | 用途 |
 |---|---|
 | `.claude/templates/SOUL.template.md` | 人格定義（Identity / Values / Style / Evolution） |
-| `.claude/templates/BOOT_SHUTDOWN.template.md` | Boot / Shutdown 手順 |
+| `BOOT_SHUTDOWN.md` | 身支度 / 日記の手順 |
 | `.claude/templates/ROUTINES.template.md` | 定期巡回タスクの定義 |
 | `.claude/templates/FLASH.template.md` | 記憶インデックスの初期テンプレート |
 | `.claude/templates/PERSONA.template.md` | マルチペルソナ拡張用（任意） |
@@ -123,7 +123,7 @@ cd .claude/mcps/memory-mcp && uv sync && cd ../../..
 
 # テンプレートをコピーしてカスタマイズ
 cp .claude/templates/SOUL.template.md SOUL.md
-cp .claude/templates/BOOT_SHUTDOWN.template.md BOOT_SHUTDOWN.md
+# BOOT_SHUTDOWN.md はアップストリーム追跡。カスタマイズは BOOT_SHUTDOWN.exp.md に書く
 cp .claude/templates/ROUTINES.template.md ROUTINES.md
 cp .claude/templates/FLASH.template.md FLASH.md
 ```
