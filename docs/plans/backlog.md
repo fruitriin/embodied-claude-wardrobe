@@ -41,10 +41,9 @@
 - [ ] state.md 自動更新
 
 ### cc-tracker（Claude Code 機能トラッカー）
-- [ ] CHANGELOG ベースの最小実装
-- [ ] Xpoz MCP 連携（オプショナル、MCP 未インストール時はスキップ）
-- [ ] knowhow への自動反映
-- 知見: `docs/knowhow/wardrobe/x-data-access.md`
+- [x] 初回 knowhow 作成: hooks, subagents, skills, mcp, agent-teams（5ファイル）
+- [ ] CHANGELOG ベースの定期更新スキル
+- [ ] knowhow への差分反映の自動化
 
 ### アップストリームへの還元（PR / Issue 候補）
 - [ ] memory-mcp: 埋め込み次元数チェック + マイグレーションスクリプト（最優先）
