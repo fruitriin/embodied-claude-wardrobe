@@ -104,6 +104,10 @@ workingLogs/*.log
 tmp/*
 !tmp/.keep
 
+# Working directories (.keep is tracked)
+.claude/workingDirs/*
+!.claude/workingDirs/.keep
+
 # 魂、メモリはアップストリームにはpushしない
 ROUTINES.md
 SOUL.md

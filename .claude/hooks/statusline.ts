@@ -48,7 +48,7 @@ if (ctx) {
   const usage = {
     used_percentage: ctx.used_percentage ?? 0,
     remaining_percentage: ctx.remaining_percentage ?? 100,
-    context_window_size: ctx.context_window_size ?? 200000,
+    context_window_size: ctx.context_window_size ?? 1000000,
     input_tokens: ctx.current_usage?.input_tokens ?? 0,
     ts: new Date().toISOString(),
     session_id: data.session_id ?? "unknown",
