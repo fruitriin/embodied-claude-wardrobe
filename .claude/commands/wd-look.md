@@ -1,4 +1,5 @@
 ---
+name: wd-look
 description: "画像にグリッドを引いて区切り、気になるところを切り出して見る。注目も、あえて周辺を見ることも、どちらもこれで。"
 argument-hint: "<画像パス> [col1 row1 [col2 row2]] [--divide N]"
 ---
@@ -23,7 +24,7 @@ argument-hint: "<画像パス> [col1 row1 [col2 row2]] [--divide N]"
 /wd-look tmp/photo.png 3 2
 ```
 - `--divide N` で引いたグリッドの (col, row) セルを切り出す
-- N は直前の /look で使った値を引き継ぐ（デフォルト 8）
+- N は直前の /wd-look で使った値を引き継ぐ（デフォルト 8）
 
 ### 範囲を切り出す
 ```
@@ -62,7 +63,7 @@ sips -s format png tmp/photo.jpg --out tmp/photo.png
 ```
 
 - 結果を Read ツールで表示する
-- 「気になるセルがあったら `/look <path> col row` で寄れるよ」と案内
+- 「気になるセルがあったら `/wd-look <path> col row` で寄れるよ」と案内
 
 ### 4. 切り出しモード
 

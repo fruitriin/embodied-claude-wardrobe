@@ -1,4 +1,5 @@
 ---
+name: wd-clip-image
 description: "画像の一部を切り出す。全体から注目したい場所だけを取り出して、そこに集中するための道具。"
 argument-hint: "<画像パス> [--grid-cell col row N | --rect x y w h]"
 ---
@@ -9,8 +10,8 @@ argument-hint: "<画像パス> [--grid-cell col row N | --rect x y w h]"
 
 ## 引数
 - `$ARGUMENTS`: `<画像パス> [出力パス] [options]`
-  - 例: `/clip-image tmp/photo.png --grid-cell 3 2 8`
-  - 例: `/clip-image tmp/photo.png tmp/clip.png --rect 100 200 400 300`
+  - 例: `/wd-clip-image tmp/photo.png --grid-cell 3 2 8`
+  - 例: `/wd-clip-image tmp/photo.png tmp/clip.png --rect 100 200 400 300`
   - 省略時: 使い方を表示する
 
 ## 手順

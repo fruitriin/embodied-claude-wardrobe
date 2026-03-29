@@ -1,4 +1,5 @@
 ---
+name: wd-annotate-grid
 description: "画像にグリッド線と座標ラベルを描く。画像全体だと気が散るとき、注目して見るための道具。"
 argument-hint: "<画像パス> [--divide N | --every N]"
 ---

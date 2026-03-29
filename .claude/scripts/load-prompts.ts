@@ -150,7 +150,7 @@ const DEFAULTS: Record<string, string> = {
   time_rule_night:
     "現在は深夜帯。tts は使わないこと。静かに自律タスクのみ実行すること。",
   time_rule_day:
-    "マスターに伝えたいことがあるときは tts を使ってよい。",
+    "ユーザーに伝えたいことがあるときは tts を使ってよい。",
   routine_routine:
     "今回はルーチン回。ROUTINES.md を読んで、最終実行日から間隔が空いたものを一つ選んで実行せよ。実行したら最終実行日を更新すること。",
   routine_normal:

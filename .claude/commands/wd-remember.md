@@ -65,7 +65,7 @@ NG: ReACTでinteroceptionスクリプトを実装した
 
 - **recall で引けなかった** → remember のキーワード粒度が足りない。OK/NG 例を更新する
 - **recall で意図しない記憶が大量に引っかかった** → キーワードが汎用的すぎる。技術用語・数字を入れる
-- **FLASH ファイルが肥大化して見通しが悪い** → rebuild-index の圧縮基準を見直す
+- **FLASH ファイルが肥大化して見通しが悪い** → /wd-rebuild-index の圧縮基準を見直す
 
 不満や失敗があったら、このセクションか関連スキル（/wd-recall, /wd-rebuild-index）に経験則を書き足す。
 

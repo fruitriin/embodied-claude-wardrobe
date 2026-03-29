@@ -1,4 +1,5 @@
 ---
+name: wd-slide-watch
 description: "スライドを聴衆として観る。先の展開を知らない状態で、1ページずつ体験する。"
 argument-hint: "<PDFファイルパス>"
 allowed-tools: Bash(bun run ${CLAUDE_SKILL_DIR}/../scripts/reader.ts:*)

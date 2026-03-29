@@ -1,4 +1,5 @@
 ---
+name: wd-read
 description: "Web ページの本文をリーダーモードで読み取る。WebFetch と違い、AI による要約を挟まず生テキストを返す。物語や記事をじっくり読むときに使う。"
 argument-hint: "<URL>"
 allowed-tools: Bash(bun run ${CLAUDE_SKILL_DIR}/../scripts/reader.ts:*)

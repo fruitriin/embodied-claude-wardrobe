@@ -279,10 +279,10 @@ LOAD_PROMPT() {
 # --- 時間帯ルール ---
 if [ "$HOUR" -lt 7 ]; then
   TIME_RULE=$(LOAD_PROMPT time_rule_night)
-  TIME_RULE="${TIME_RULE:-現在は深夜帯。slack は使わないこと。静かに自律タスクのみ実行すること。}"
+  TIME_RULE="${TIME_RULE:-現在は深夜帯。tts は使わないこと。静かに自律タスクのみ実行すること。}"
 else
   TIME_RULE=$(LOAD_PROMPT time_rule_day)
-  TIME_RULE="${TIME_RULE:-マスターに伝えたいことがあるときは slack を使ってよい。}"
+  TIME_RULE="${TIME_RULE:-ユーザーに伝えたいことがあるときは tts を使ってよい。}"
 fi
 
 # --- ルーチン判定（通常20%、休暇時60%の確率でルーチン回） ---
@@ -393,7 +393,7 @@ ${_MORNING}"
     MORNING_SECTION="
 ## 今日の初回セッション
 今日の最初の召喚だ。以下を実施せよ：
-1. /great-recall で多軸想起を実行（直近の重要な決定・未完了タスク・curiosity_target）
+1. /wd-great-recall で多軸想起を実行（直近の重要な決定・未完了タスク・curiosity_target）
 2. 前日のタスクを確認し、今日の方針を決めよ
 3. curiosity_target があれば bun run .claude/scripts/desire-tick.ts set-curiosity で注入せよ
 "
