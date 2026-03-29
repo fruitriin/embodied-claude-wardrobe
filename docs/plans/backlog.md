@@ -21,7 +21,7 @@
 
 ### リンクチェック Broken の修正
 - [x] autonomous-action.sh 内の `@HOLY_GRAIL.md`, `@TODO.md` 参照（ファイル不在）→ HOLY_GRAIL→BOOT_SHUTDOWN に修正、TODO テンプレート追加
-- [ ] desire-tick.ts の desires.conf パス不一致（`.claude/desires.conf` vs プロジェクトルート）
+- [x] desire-tick.ts の desires.conf パス不一致（`.claude/desires.conf` vs プロジェクトルート）
 
 ## 計画済み・未着手
 

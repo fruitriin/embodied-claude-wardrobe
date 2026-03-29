@@ -2,8 +2,9 @@ const THRESHOLD = 0.6;
 const DEFAULT_LEVEL = 0.0;
 
 const SCRIPT_DIR = import.meta.dir;
-const CONFIG_PATH = `${SCRIPT_DIR}/../desires.conf`;
-const STATE_PATH = `${SCRIPT_DIR}/../desires.json`;
+const PROJECT_ROOT = `${SCRIPT_DIR}/../..`;
+const CONFIG_PATH = `${PROJECT_ROOT}/desires.conf`;
+const STATE_PATH = `${PROJECT_ROOT}/desires.json`;
 
 interface DesireConfig {
   name: string;
