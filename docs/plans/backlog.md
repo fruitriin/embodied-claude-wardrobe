@@ -58,7 +58,7 @@
 ### 自律行動プロンプトの具体化
 - 参考: `/Users/riin/workspace/assistant/CLAUDE.md` の Heartbeat Protocol
 - [x] prompts.toml の `routine_mode.normal` を具体的な行動手順に書き換え（TODO確認→選択→実行→記録）
-- [x] `/dice` スキルはグローバル（~/.claude/commands/dice/）に既に存在。追加不要
+- [x] `/wd-dice` スキルをプロジェクトに追加（グローバルからコピー + wd- プレフィックス化）
 - [x] CLAUDE.md に Capabilities セクション追加（記憶・感覚・発話。カメラ周りはオプション）
 - [x] CLAUDE.md に Heartbeat Protocol セクション追加
 
@@ -66,6 +66,11 @@
 - 参考: `/Users/riin/workspace/assistant/howtoMemory.md`, `/Users/riin/workspace/riin-service/HOLY_GRAIL.md`
 - [x] memory MCP の全ツールガイドをテンプレート化（howtoMemory.template.md）
 - [x] CLAUDE.md に Memory Protocol セクション追加（記録すべきもの・タイミング・FLASH.md の使い方）
+
+### 表記ゆれ統一
+- [x] wd-doc-review エージェント作成
+- [x] 初回実行: 呼称（オーナー/マスター→ユーザー）、wd-プレフィックス、frontmatter name、トーン
+- [x] 呼称の分離方針を wd-contribution.md に追記（アップストリーム=ユーザー、ダウンストリーム=自由）
 
 ### SessionStart フックでブートシーケンス自動化
 - [ ] SessionStart hook（trigger: always）で SOUL.md + state.md をコンテキスト注入
@@ -75,6 +80,6 @@
 
 - knowhow システムとアップストリームの knowhow 共有（wardrobe/ 配下の同期）
 - PreToolUse フックで /tmp 使用をブロック（SOUL.md Boundaries に対応）
-- statusline.ts の settings.json 登録（Orphaned 状態の解消）
+- statusline.ts の settings.json 登録（Orphaned 状態の解消）※ context_window_size フォールバックは 1M に修正済み
 - continue-check.sh の settings.json 登録検討
 - コンテキストウィンドウ残量を interoception に追加
