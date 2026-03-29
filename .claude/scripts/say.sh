@@ -12,7 +12,7 @@ else
   WARDROBE_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 fi
 
-TTS_DIR="${WARDROBE_ROOT}/tts-mcp"
+TTS_DIR="${WARDROBE_ROOT}/.claude/mcps/tts-mcp"
 export MCP_BEHAVIOR_TOML="${WARDROBE_ROOT}/mcpBehavior.toml"
 
 exec uv run --directory "$TTS_DIR" python -m tts_mcp.cli "$@"

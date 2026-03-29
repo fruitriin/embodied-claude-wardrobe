@@ -27,4 +27,4 @@ description: "非同期で声を出す。テキストを音声合成してスピ
 - テキストが空の場合はエラーメッセージを返す
 - `--speaker local` でPC側のみ、`--speaker camera` でカメラ側のみに切り替え可能
 - デフォルトは `--speaker both`（PC + カメラ両方）
-- 環境変数は tts-mcp/.env と mcpBehavior.toml から読み込まれる
+- 環境変数は .claude/mcps/tts-mcp/.env と mcpBehavior.toml から読み込まれる

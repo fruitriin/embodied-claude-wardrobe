@@ -44,8 +44,7 @@ if [ -z "$MCP_BEHAVIOR_TOML" ]; then
     [ -f "$_PROJECT_ROOT/mcpBehavior.toml" ] && MCP_BEHAVIOR_TOML="$_PROJECT_ROOT/mcpBehavior.toml"
 fi
 if [ -n "$MCP_BEHAVIOR_TOML" ] && [ -f "$MCP_BEHAVIOR_TOML" ]; then
-    HEARING_DIR="$(cd "$(dirname "$0")/../.." && pwd)/embodied-claude/hearing"
-    [ ! -d "$HEARING_DIR" ] && HEARING_DIR="$(cd "$(dirname "$0")/../.." && pwd)/hearing"
+    HEARING_DIR="$(cd "$(dirname "$0")/../.." && pwd)/.claude/mcps/hearing"
     eval "$(uv run --directory "$HEARING_DIR" python3 -c "
 import tomllib
 try:

@@ -54,12 +54,12 @@ model: sonnet
 | フック | `.claude/hooks/` |
 | スクリプト | `.claude/scripts/` |
 | テンプレート | `.claude/templates/` |
-| ツール | `.claude/tools/` |
+| ツール | `.claude/commands/*/tools/` |
 | オプション | `.claude/wardrobeOptions/` |
 | 設計書 | `CLAUDE.md`, `AGENTS.md` |
 | 設定 | `autonomous-action.sh`, `prompts.toml`, `mcpBehavior.toml` |
 | ドキュメント | `docs/` |
-| MCP モジュール | `memory-mcp/`, `hearing/`, `tts-mcp/` 等 |
+| MCP モジュール | `.claude/mcps/memory-mcp/`, `.claude/mcps/hearing/`, `.claude/mcps/tts-mcp/` 等 |
 
 ## 分離パターン違反の検出
 

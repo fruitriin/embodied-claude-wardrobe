@@ -71,7 +71,7 @@ lock の commit と一致する場合:
 | `.claude/hooks/` | 全ファイル |
 | `.claude/scripts/` | 全ファイル |
 | `.claude/templates/` | 全ファイル |
-| `.claude/tools/` | 全ファイル |
+| `.claude/commands/*/tools/` | 画像処理ツール実体（annotate-grid, clip-image） |
 | `.claude/wardrobeOptions/` | 全ファイル |
 | `CLAUDE.md` | マージ注意（後述） |
 | `AGENTS.md` | 上書き |
@@ -81,7 +81,7 @@ lock の commit と一致する場合:
 | `docs/` | 全ファイル |
 | `.claude/mcps/memory-mcp/` | diff 表示して手動確認推奨 |
 | `.claude/mcps/hearing/` | diff 表示して手動確認推奨 |
-| `tts-mcp/` | diff 表示して手動確認推奨 |
+| `.claude/mcps/tts-mcp/` | diff 表示して手動確認推奨 |
 
 ### 保護対象（ダウンストリーム固有、マイグレーション対象外）
 
