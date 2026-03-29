@@ -42,8 +42,10 @@
 
 ### cc-tracker（Claude Code 機能トラッカー）
 - [x] 初回 knowhow 作成: hooks, subagents, skills, mcp, agent-teams（5ファイル）
-- [ ] CHANGELOG ベースの定期更新スキル
-- [ ] knowhow への差分反映の自動化
+- [x] changelog 1.0.0〜2.1.87 の時系列情報を全5領域に反映
+- [x] /wd-cc-tracker スキル作成（changelog + ドキュメント突き合わせ）
+- [ ] CHANGELOG ベースの定期更新（ROUTINES.md に追加検討）
+- [ ] X 検索 MCP の再検討（streamable-http が CLI でサポートされ次第）
 
 ### アップストリームへの還元（PR / Issue 候補）
 - [ ] memory-mcp: 埋め込み次元数チェック + マイグレーションスクリプト（最優先）
