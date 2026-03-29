@@ -76,6 +76,16 @@
 - [x] SessionStart hook（matcher: startup|resume）で SOUL.md + state.md をコンテキスト注入（session-boot.sh）
 - [ ] 現在の CLAUDE.md ベースの「読んで従う」方式からフック駆動に完全移行（ブートシーケンスの Step 1,5 が自動化済み。残りは memory 系）
 
+### persona_id 対応（マルチペルソナ記憶）
+- 参考: `/Users/riin/workspace/merchant-guild/` の以下を調査
+  - 記憶スキル周り（remember/recall のペルソナ対応）
+  - ペルソナエージェント（.claude/agents/ のペルソナ関連）
+  - ペルソナエージェントの追加スキル
+- [ ] memory-mcp の remember/recall スキーマに persona_id フィールド追加
+- [ ] tom ツールの person デフォルト「コウタ」をハードコードから設定可能に
+- [ ] FLASH-{persona}.md のマルチペルソナ対応（wd-recall.md に既に言及あり）
+- 注: server.py は商会版と同一。store.py/config.py はワードローブ側が先行
+
 ## 将来の検討事項
 
 - knowhow システムとアップストリームの knowhow 共有（wardrobe/ 配下の同期）
