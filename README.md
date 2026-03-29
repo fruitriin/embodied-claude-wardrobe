@@ -27,9 +27,9 @@ memory-mcp を使いこなすためのスキル群とフック。記憶を「刻
 - `.claude/scripts/heartbeat-daemon.sh` — 5秒ごとの計測デーモン（launchd）
 
 ### セッション管理
-Boot / Shutdown の手順を構造化し、セッションをまたいだ記憶の断絶を防ぐ。
+身支度と日記の手順を構造化し、セッションをまたいだ記憶の断絶を防ぐ。
 
-- `CLAUDE.md` — Boot Sequence と Shutdown Sequence を定義
+- `CLAUDE.md` — 身支度（セッション開始）と日記（セッション終了）の手順を定義
 - `.claude/templates/BOOT_SHUTDOWN.template.md` — カスタマイズ用テンプレート
 - コンパクション後の自動復帰（`post-compact-recovery` フック）
 
@@ -66,17 +66,17 @@ cron による定期的な自律行動。欲望システムと連携して内発
 
 | MCP サーバー | 身体部位 | 機能 |
 |---|---|---|
-| [memory-mcp](./memory-mcp/) | 脳 | 長期記憶・視覚記憶・エピソード記憶・ToM。日本語形態素解析・動詞チェーン・多軸想起等を追加した拡張版 |
-| [hearing](./hearing/) | 耳 | 音声認識（Whisper） |
-| [tts-mcp](./tts-mcp/) | 声 | TTS（ElevenLabs / VOICEVOX） |
-| [wifi-cam-mcp](./wifi-cam-mcp/) | 目・首 | ONVIF PTZ カメラ制御 |
-| [usb-webcam-mcp](./usb-webcam-mcp/) | 目 | USB カメラから画像取得 |
-| [ip-webcam-mcp](./ip-webcam-mcp/) | 目 | Android スマホを目として使う |
-| [system-temperature-mcp](./system-temperature-mcp/) | 体温感覚 | システム温度監視 |
-| [mobility-mcp](./mobility-mcp/) | 足 | Tuya 対応ロボット掃除機の制御 |
-| [toio-mcp](./toio-mcp/) | 手 | toio コアキューブ制御 |
-| [mcp-pet](./mcp-pet/) | — | エージェントへのインタラクション拡張 |
-| [morning-call-mcp](./morning-call-mcp/) | — | 起床通知 |
+| [memory-mcp](./.claude/mcps/memory-mcp/) | 脳 | 長期記憶・視覚記憶・エピソード記憶・ToM。日本語形態素解析・動詞チェーン・多軸想起等を追加した拡張版 |
+| [hearing](./.claude/mcps/hearing/) | 耳 | 音声認識（Whisper） |
+| [tts-mcp](./.claude/mcps/tts-mcp/) | 声 | TTS（ElevenLabs / VOICEVOX） |
+| [wifi-cam-mcp](./.claude/mcps/wifi-cam-mcp/) | 目・首 | ONVIF PTZ カメラ制御 |
+| [usb-webcam-mcp](./.claude/mcps/usb-webcam-mcp/) | 目 | USB カメラから画像取得 |
+| [ip-webcam-mcp](./.claude/mcps/ip-webcam-mcp/) | 目 | Android スマホを目として使う |
+| [system-temperature-mcp](./.claude/mcps/system-temperature-mcp/) | 体温感覚 | システム温度監視 |
+| [mobility-mcp](./.claude/mcps/mobility-mcp/) | 足 | Tuya 対応ロボット掃除機の制御 |
+| [toio-mcp](./.claude/mcps/toio-mcp/) | 手 | toio コアキューブ制御 |
+| [mcp-pet](./.claude/mcps/mcp-pet/) | — | エージェントへのインタラクション拡張 |
+| [morning-call-mcp](./.claude/mcps/morning-call-mcp/) | — | 起床通知 |
 | [desire-system](./desire-system/) | — | 欲求の蓄積・発火管理 |
 
 すべて Python パッケージで、`uv` で管理。
@@ -121,7 +121,7 @@ git clone https://github.com/fruitriin/embodied-claude-wardrobe.git
 cd embodied-claude-wardrobe
 
 # memory-mcp の依存をインストール
-cd memory-mcp && uv sync && cd ..
+cd .claude/mcps/memory-mcp && uv sync && cd ../../..
 
 # テンプレートをコピーしてカスタマイズ
 cp .claude/templates/SOUL.template.md SOUL.md

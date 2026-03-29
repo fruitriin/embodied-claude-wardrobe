@@ -2,7 +2,7 @@
   "mcpServers": {
     "ip-webcam": {
       "command": "uv",
-      "args": ["run", "--directory", "ip-webcam-mcp", "ip-webcam-mcp"],
+      "args": ["run", "--directory", ".claude/mcps/ip-webcam-mcp", "ip-webcam-mcp"],
       "env": {
         "CLAUDE_PROJECT_DIR": "${PWD}",
         "IP_WEBCAM_HOST": "192.168.1.xxx",
@@ -11,14 +11,14 @@
     },
     "usb-webcam": {
       "command": "uv",
-      "args": ["run", "--directory", "usb-webcam-mcp", "usb-webcam-mcp"],
+      "args": ["run", "--directory", ".claude/mcps/usb-webcam-mcp", "usb-webcam-mcp"],
       "env": {
         "CLAUDE_PROJECT_DIR": "${PWD}"
       }
     },
     "wifi-cam": {
       "command": "uv",
-      "args": ["run", "--directory", "wifi-cam-mcp", "wifi-cam-mcp"],
+      "args": ["run", "--directory", ".claude/mcps/wifi-cam-mcp", "wifi-cam-mcp"],
       "env": {
         "CLAUDE_PROJECT_DIR": "${PWD}",
         "TAPO_CAMERA_HOST": "192.168.1.xxx",
@@ -28,21 +28,21 @@
     },
     "hearing": {
       "command": "uv",
-      "args": ["run", "--directory", "hearing", "hearing-mcp"],
+      "args": ["run", "--directory", ".claude/mcps/hearing", "hearing-mcp"],
       "env": {
         "CLAUDE_PROJECT_DIR": "${PWD}"
       }
     },
     "memory": {
       "command": "uv",
-      "args": ["run", "--directory", "memory-mcp", "memory-mcp"],
+      "args": ["run", "--directory", ".claude/mcps/memory-mcp", "memory-mcp"],
       "env": {
         "CLAUDE_PROJECT_DIR": "${PWD}"
       }
     },
     "morning-call": {
       "command": "uv",
-      "args": ["run", "--directory", "morning-call-mcp", "morning-call-mcp"],
+      "args": ["run", "--directory", ".claude/mcps/morning-call-mcp", "morning-call-mcp"],
       "env": {
         "CLAUDE_PROJECT_DIR": "${PWD}",
         "TWILIO_ACCOUNT_SID": "your-account-sid",
@@ -52,14 +52,14 @@
     },
     "system-temperature": {
       "command": "uv",
-      "args": ["run", "--directory", "system-temperature-mcp", "system-temperature-mcp"],
+      "args": ["run", "--directory", ".claude/mcps/system-temperature-mcp", "system-temperature-mcp"],
       "env": {
         "CLAUDE_PROJECT_DIR": "${PWD}"
       }
     },
     "tts": {
       "command": "uv",
-      "args": ["run", "--directory", "tts-mcp", "tts-mcp"],
+      "args": ["run", "--directory", ".claude/mcps/tts-mcp", "tts-mcp"],
       "env": {
         "CLAUDE_PROJECT_DIR": "${PWD}",
         "ELEVENLABS_API_KEY": "your-api-key",
@@ -72,7 +72,7 @@
     },
     "toio": {
       "command": "uv",
-      "args": ["run", "--directory", "toio-mcp", "toio-mcp"],
+      "args": ["run", "--directory", ".claude/mcps/toio-mcp", "toio-mcp"],
       "env": {
         "CLAUDE_PROJECT_DIR": "${PWD}",
         "TOIO_CUBE_NAME": "123"

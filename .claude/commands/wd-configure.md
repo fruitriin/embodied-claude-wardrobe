@@ -29,17 +29,17 @@ SOUL.md の設定は `/wd-setup` で行う。
 
 | MCP 名 | ディレクトリ名 | コマンド名（args に使う） |
 |---|---|---|
-| memory | `memory-mcp` | `memory-mcp` |
-| tts | `tts-mcp` | `tts-mcp` |
-| hearing | `hearing` | `hearing-mcp` |
-| usb-webcam | `usb-webcam-mcp` | `usb-webcam-mcp` |
-| wifi-cam | `wifi-cam-mcp` | `wifi-cam-mcp` |
-| ip-webcam | `ip-webcam-mcp` | `ip-webcam-mcp` |
-| mcp-pet | `mcp-pet` | `mcp-pet` |
-| toio | `toio-mcp` | `toio-mcp` |
-| mobility | `mobility-mcp` | `mobility-mcp` |
-| system-temperature | `system-temperature-mcp` | `system-temperature-mcp` |
-| morning-call | `morning-call-mcp` | `morning-call-mcp` |
+| memory | `.claude/mcps/memory-mcp` | `memory-mcp` |
+| tts | `.claude/mcps/tts-mcp` | `tts-mcp` |
+| hearing | `.claude/mcps/hearing` | `hearing-mcp` |
+| usb-webcam | `.claude/mcps/usb-webcam-mcp` | `usb-webcam-mcp` |
+| wifi-cam | `.claude/mcps/wifi-cam-mcp` | `wifi-cam-mcp` |
+| ip-webcam | `.claude/mcps/ip-webcam-mcp` | `ip-webcam-mcp` |
+| mcp-pet | `.claude/mcps/mcp-pet` | `mcp-pet` |
+| toio | `.claude/mcps/toio-mcp` | `toio-mcp` |
+| mobility | `.claude/mcps/mobility-mcp` | `mobility-mcp` |
+| system-temperature | `.claude/mcps/system-temperature-mcp` | `system-temperature-mcp` |
+| morning-call | `.claude/mcps/morning-call-mcp` | `morning-call-mcp` |
 
 ディレクトリ存在チェックは **この表のディレクトリ名** で行うこと。MCP 名で探すと見落とす。
 

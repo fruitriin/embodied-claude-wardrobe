@@ -110,7 +110,7 @@ cron で起動したとき（ユーザーからの明示的な呼びかけがな
 
 ## ランタイム
 
-- **memory-mcp**: Python (uv) — `cd memory-mcp && uv run memory-mcp`
+- **memory-mcp**: Python (uv) — `cd .claude/mcps/memory-mcp && uv run memory-mcp`
 - **スクリプト**: Bun (TypeScript) — `bun run .claude/scripts/xxx.ts`
 - **フック**: Bash
 

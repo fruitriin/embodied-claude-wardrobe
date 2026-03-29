@@ -79,8 +79,8 @@ lock の commit と一致する場合:
 | `prompts.toml` | 上書き |
 | `mcpBehavior.toml` | 上書き |
 | `docs/` | 全ファイル |
-| `memory-mcp/` | diff 表示して手動確認推奨 |
-| `hearing/` | diff 表示して手動確認推奨 |
+| `.claude/mcps/memory-mcp/` | diff 表示して手動確認推奨 |
+| `.claude/mcps/hearing/` | diff 表示して手動確認推奨 |
 | `tts-mcp/` | diff 表示して手動確認推奨 |
 
 ### 保護対象（ダウンストリーム固有、マイグレーション対象外）
@@ -131,7 +131,7 @@ diff -rq --exclude="*.exp.md" \
 [REMOVED] .claude/commands/old-skill.md
 
 --- MCP サーバー（要手動確認） ---
-[CHANGED] memory-mcp/src/server.py
+[CHANGED] .claude/mcps/memory-mcp/src/server.py
 
 --- settings.json（マージ対象） ---
 [CHANGED] .claude/settings.json
@@ -221,15 +221,15 @@ git merge-file CLAUDE.md .git/wardrobe-migrate-base-CLAUDE.md ".claude/wardrobe-
 
 ### 5-4. MCP サーバーの適用
 
-MCP サーバーディレクトリ（memory-mcp/, hearing/, tts-mcp/ 等）は大きな変更になりうるため、**diff を表示して手動確認を求める**:
+MCP サーバーディレクトリ（.claude/mcps/memory-mcp/, .claude/mcps/hearing/, .claude/mcps/tts-mcp/ 等）は大きな変更になりうるため、**diff を表示して手動確認を求める**:
 
 ```bash
-diff -r "$TMPDIR/wardrobe-upstream/memory-mcp/" "memory-mcp/" 2>/dev/null
+diff -r "$TMPDIR/wardrobe-upstream/.claude/mcps/memory-mcp/" ".claude/mcps/memory-mcp/" 2>/dev/null
 ```
 
 ```
 [MCP サーバー更新の確認が必要です]
-memory-mcp/ に変更があります（上記 diff 参照）。
+.claude/mcps/memory-mcp/ に変更があります（上記 diff 参照）。
 依存関係やデータベーススキーマの変更を含む可能性があります。
 
 適用しますか？ (y/N)
@@ -242,7 +242,7 @@ rsync -av --delete \
   --exclude="*.db" \
   --exclude=".venv/" \
   --exclude="__pycache__/" \
-  "$TMPDIR/wardrobe-upstream/memory-mcp/" "memory-mcp/"
+  "$TMPDIR/wardrobe-upstream/.claude/mcps/memory-mcp/" ".claude/mcps/memory-mcp/"
 ```
 
 ---

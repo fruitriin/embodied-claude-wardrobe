@@ -77,7 +77,7 @@ git diff --name-only "$LOCK_HASH"..HEAD
 
 | 変更パス | 影響するシステム |
 |---|---|
-| `memory-mcp/`, `FLASH.md`, `.claude/commands/wd-recall.md`, `.claude/commands/wd-remember.md`, `.claude/commands/wd-great-recall.md`, `.claude/commands/wd-rebuild-index.md`, `.claude/hooks/recall-hook.sh`, `.claude/hooks/post-compact-recovery.sh`, `.claude/scripts/recall-*.ts` | system-memory |
+| `.claude/mcps/memory-mcp/`, `FLASH.md`, `.claude/commands/wd-recall.md`, `.claude/commands/wd-remember.md`, `.claude/commands/wd-great-recall.md`, `.claude/commands/wd-rebuild-index.md`, `.claude/hooks/recall-hook.sh`, `.claude/hooks/post-compact-recovery.sh`, `.claude/scripts/recall-*.ts` | system-memory |
 | `.claude/hooks/interoception.sh`, `.claude/hooks/heartbeat-*.sh`, `.claude/scripts/desire-tick.ts`, `.claude/scripts/interoception.ts`, `.claude/scripts/system-health.ts`, `desires.conf` | system-embodied |
 | `.claude/commands/wd-read.md`, `.claude/scripts/reader.ts` | system-reader |
 | `ROUTINES.md`, `autonomous-action.sh`, `schedule.conf`, `.claude/hooks/continue-check.sh` | system-autonomous |
@@ -148,7 +148,7 @@ interactions.md と phase-flows.md は**更新しない**（構造変更は full
 - `ROUTINES.md` — 存在確認と内容確認
 - `desires.conf`, `schedule.conf` — 存在確認と内容確認
 - `autonomous-action.sh` — 先頭30行 Read
-- `memory-mcp/` — ls でディレクトリ構造を確認
+- `.claude/mcps/memory-mcp/` — ls でディレクトリ構造を確認
 
 **F. コミット情報**
 - `git log -1 --pretty=format:"%H|%s|%ad" --date=short`

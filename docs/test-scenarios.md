@@ -27,7 +27,7 @@
 ### 1-1. memory-mcp
 
 #### 前提条件
-- `uv sync` 済み（memory-mcp ディレクトリ）
+- `uv sync` 済み（.claude/mcps/memory-mcp ディレクトリ）
 - MCP サーバーが connected 状態
 
 #### チェック項目
@@ -162,7 +162,7 @@ MCP が全て接続された状態でのみ実行可能。
 ### 2-1. tts-mcp（声）
 
 #### 前提条件
-- `uv sync` 済み（tts-mcp ディレクトリ）
+- `uv sync` 済み（.claude/mcps/tts-mcp ディレクトリ）
 - ElevenLabs API キー or VOICEVOX が利用可能
 
 #### チェック項目
@@ -172,7 +172,7 @@ MCP が全て接続された状態でのみ実行可能。
 ### 2-2. hearing（聴覚）
 
 #### 前提条件
-- `uv sync` 済み（hearing ディレクトリ）
+- `uv sync` 済み（.claude/mcps/hearing ディレクトリ）
 - ffmpeg がインストール済み
 - マイク or RTSP カメラが利用可能
 - `.mcp.json` のコマンド名が `hearing-mcp`（`hearing` ではない）
@@ -193,7 +193,7 @@ MCP が全て接続された状態でのみ実行可能。
 ### 3-1. wifi-cam-mcp
 
 #### 前提条件
-- `uv sync` 済み（wifi-cam-mcp ディレクトリ）
+- `uv sync` 済み（.claude/mcps/wifi-cam-mcp ディレクトリ）
 - Tapo カメラが LAN 上で接続可能
 - `.mcp.json` に正しい IP・認証情報が設定済み
 
@@ -210,7 +210,7 @@ MCP が全て接続された状態でのみ実行可能。
 ### 3-2. usb-webcam-mcp
 
 #### 前提条件
-- `uv sync` 済み（usb-webcam-mcp ディレクトリ）
+- `uv sync` 済み（.claude/mcps/usb-webcam-mcp ディレクトリ）
 - USB ウェブカメラが接続済み
 
 #### チェック項目
@@ -220,7 +220,7 @@ MCP が全て接続された状態でのみ実行可能。
 ### 3-3. ip-webcam-mcp
 
 #### 前提条件
-- `uv sync` 済み（ip-webcam-mcp ディレクトリ）
+- `uv sync` 済み（.claude/mcps/ip-webcam-mcp ディレクトリ）
 - Android + IP Webcam アプリが起動済み
 
 #### チェック項目
@@ -230,7 +230,7 @@ MCP が全て接続された状態でのみ実行可能。
 ### 3-4. mcp-pet
 
 #### 前提条件
-- `uv sync` 済み（mcp-pet ディレクトリ）
+- `uv sync` 済み（.claude/mcps/mcp-pet ディレクトリ）
 - SkyWay キー + トンネル設定済み
 
 #### チェック項目
@@ -243,7 +243,7 @@ MCP が全て接続された状態でのみ実行可能。
 ### 4-1. toio-mcp
 
 #### 前提条件
-- `uv sync` 済み（toio-mcp ディレクトリ）
+- `uv sync` 済み（.claude/mcps/toio-mcp ディレクトリ）
 - toio コアキューブが BLE 接続可能
 
 #### チェック項目
@@ -253,7 +253,7 @@ MCP が全て接続された状態でのみ実行可能。
 ### 4-2. mobility-mcp
 
 #### 前提条件
-- `uv sync` 済み（mobility-mcp ディレクトリ）
+- `uv sync` 済み（.claude/mcps/mobility-mcp ディレクトリ）
 - Tuya 対応ロボット掃除機が設定済み
 
 #### チェック項目
@@ -263,7 +263,7 @@ MCP が全て接続された状態でのみ実行可能。
 ### 4-3. system-temperature-mcp
 
 #### 前提条件
-- `uv sync` 済み（system-temperature-mcp ディレクトリ）
+- `uv sync` 済み（.claude/mcps/system-temperature-mcp ディレクトリ）
 
 #### チェック項目
 - [ ] MCP サーバーが connected 状態になる
@@ -272,7 +272,7 @@ MCP が全て接続された状態でのみ実行可能。
 ### 4-4. morning-call-mcp
 
 #### 前提条件
-- `uv sync` 済み（morning-call-mcp ディレクトリ）
+- `uv sync` 済み（.claude/mcps/morning-call-mcp ディレクトリ）
 - Twilio API キー設定済み
 - cloudflared 等でトンネル設定済み
 
