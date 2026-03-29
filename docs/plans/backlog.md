@@ -73,8 +73,8 @@
 - [x] 呼称の分離方針を wd-contribution.md に追記（アップストリーム=ユーザー、ダウンストリーム=自由）
 
 ### SessionStart フックでブートシーケンス自動化
-- [ ] SessionStart hook（trigger: always）で SOUL.md + state.md をコンテキスト注入
-- [ ] 現在の CLAUDE.md ベースの「読んで従う」方式からフック駆動に移行
+- [x] SessionStart hook（matcher: startup|resume）で SOUL.md + state.md をコンテキスト注入（session-boot.sh）
+- [ ] 現在の CLAUDE.md ベースの「読んで従う」方式からフック駆動に完全移行（ブートシーケンスの Step 1,5 が自動化済み。残りは memory 系）
 
 ## 将来の検討事項
 
