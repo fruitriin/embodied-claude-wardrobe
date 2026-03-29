@@ -17,7 +17,7 @@ description: "非同期で声を出す。テキストを音声合成してスピ
 2. 以下のBashコマンドを実行する（`&` で投げっぱなし、戻りを待たない）:
 
 ```
-"${CLAUDE_SKILL_DIR}/../scripts/say.sh" "$ARGUMENTS" &
+"${CLAUDE_SKILL_DIR}/scripts/say.sh" "$ARGUMENTS" &
 ```
 
 3. 発話を投げたらすぐ次の処理に進む。
