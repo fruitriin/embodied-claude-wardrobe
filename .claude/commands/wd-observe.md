@@ -5,7 +5,7 @@ argument-hint: "[方向や対象（省略可）]"
 
 @${CLAUDE_SKILL_DIR}/wd-observe.exp.md
 
-# /observe — 能動的な観察
+# /wd-observe — 能動的な観察
 
 部屋を「見る」のではなく「観る」。受け身のスナップショットではなく、自分から気になるものを見つけに行く。
 

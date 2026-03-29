@@ -5,12 +5,12 @@
 ## 仕掛中
 
 ### wd- プレフィックスリネームの残作業
-- [ ] docs/project-overview/ 全域のリネーム漏れ修正（15件）→ `/wd-project-claude-overview` 再実行で解決
-- [ ] docs/test-scenarios.md 内の旧スキル名更新
-- [ ] wd-recall.md, wd-rebuild-index.md の `.exp.md` パス修正（`wd-` なし → `wd-` あり）
-- [ ] wd-recall.md, wd-look.md, wd-rebuild-index.md, wd-great-recall.md 内のプレフィックスなし参照修正
-- [ ] prompts.toml 内の `/great-recall` → `/wd-great-recall`
-- [ ] wd-contribution.md, wd-code-review.md 内の `wardrobe-migrate` → `wd-migrate`
+- [x] docs/project-overview/ 全域のリネーム漏れ修正（15件）→ `/wd-project-claude-overview` 再実行で解決
+- [x] docs/test-scenarios.md 内の旧スキル名更新
+- [x] wd-recall.md, wd-rebuild-index.md の `.exp.md` パス修正（`wd-` なし → `wd-` あり）
+- [x] wd-recall.md, wd-look.md, wd-rebuild-index.md, wd-great-recall.md 内のプレフィックスなし参照修正
+- [x] prompts.toml 内の `/great-recall` → `/wd-great-recall`
+- [x] wd-contribution.md, wd-code-review.md 内の `wardrobe-migrate` → `wd-migrate`
 
 ### コードレビュー指摘の対応
 - [ ] W5: hearing-stop-hook.sh の `truncate_buffer` アトミック化

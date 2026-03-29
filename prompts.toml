@@ -18,7 +18,7 @@ normal = "通常回。HOLY_GRAIL.md の召喚の儀に従い、TODO.md からタ
 # 今日の初回セッション時に追加されるプロンプト
 header = "## 今日の初回セッション\n今日の最初の召喚だ。以下を実施せよ："
 steps = [
-  "/great-recall で多軸想起を実行（直近の重要な決定・未完了タスク・curiosity_target）",
+  "/wd-great-recall で多軸想起を実行（直近の重要な決定・未完了タスク・curiosity_target）",
   "前日のタスクを確認し、今日の方針を決めよ",
   "curiosity_target があれば bun run .claude/scripts/desire-tick.ts set-curiosity で注入せよ",
 ]

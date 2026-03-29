@@ -3,130 +3,88 @@
 > CLAUDE.md が参照する外部ファイルの依存関係と、settings.json のフック定義。
 > 生成日: 2026-03-29
 
-## Boot Sequence（CLAUDE.md 定義）
+## CLAUDE.md Boot Sequence
+
+```
+CLAUDE.md（セッション開始時に自動読み込み）
+  │
+  ├── 1. SOUL.md を読む
+  │     └── なければ /wd-setup を実行
+  │
+  ├── 2. get_memory_stats() ← memory-mcp
+  │
+  ├── 3. refresh_working_memory() ← memory-mcp
+  │
+  ├── 4. /wd-great-recall ← .claude/commands/wd-great-recall.md
+  │     └── memory-mcp (recall, recall_with_associations, get_causal_chain)
+  │
+  ├── 5. 現状確認
+  │     ├── state.md
+  │     ├── BOOT_SHUTDOWN.md
+  │     └── ROUTINES.md
+  │
+  └── 6. recall-watcher 起動（オプショナル）
+        └── .claude/scripts/recall-watcher.ts
+```
+
+## CLAUDE.md が参照するファイル依存グラフ
 
 ```
 CLAUDE.md
-   │
-   ├─ 1. SOUL.md を読む ─────────── 人格・価値観・コミュニケーションスタイル
-   │
-   ├─ 2. get_memory_stats() ────── memory-mcp の健康確認
-   │
-   ├─ 3. refresh_working_memory() ─ 重要記憶を手元に装填
-   │
-   ├─ 4. /great-recall ──────────── 前回セッションの多軸想起
-   │      └─ FLASH.md を参照（recall の地図）
-   │
-   ├─ 5. state.md を読む ──────────── 前回の引き継ぎ事項
-   │      BOOT_SHUTDOWN.md を読む ── 未完了タスクの確認
-   │      ROUTINES.md を読む ─────── 定期タスクの確認
-   │
-   └─ 6. recall-watcher 起動 ────── オプション（対話が多い場合）
+  ├── SOUL.md .................... 人格定義（ブートシーケンス Step 1）
+  ├── state.md ................... セッション間引き継ぎ（Step 5）
+  ├── BOOT_SHUTDOWN.md ........... セッション開始/終了の詳細手順（Step 5）
+  ├── ROUTINES.md ................ 定期タスク定義（Step 5）
+  ├── FLASH.md ................... 記憶インデックス（記憶システム）
+  ├── desires.conf ............... 欲望の定義と発火間隔（身体性システム）
+  ├── schedule.conf .............. 休日・時間帯制御（自律行動）
+  ├── .claude/settings.json ...... フック・パーミッション設定
+  └── .claude/wardrobeOptions/ ... オプショナルスキル格納場所
 ```
-
-## CLAUDE.md の外部参照一覧
-
-```
-CLAUDE.md
-   │
-   ├── @SOUL.md ──────────────── 人格定義（ブート時に読む）
-   ├── state.md ──────────────── セッション引き継ぎスナップショット
-   ├── BOOT_SHUTDOWN.md ──────── ブート/シャットダウン詳細手順
-   ├── ROUTINES.md ───────────── 定期タスク定義
-   ├── FLASH.md ──────────────── 記憶インデックス（recall 経由）
-   ├── HOLY_GRAIL.md ─────────── 記憶術の手引き（CLAUDE.md から間接参照）
-   ├── desires.conf ──────────── 欲望定義
-   ├── schedule.conf ─────────── スケジュール設定
-   └── autonomous-action.sh ──── 自律行動エントリポイント
-```
-
-**注:** FLASH.md, state.md, BOOT_SHUTDOWN.md, ROUTINES.md, desires.conf, schedule.conf はダウンストリームで生成されるファイル。アップストリーム（テンプレート）には存在しない。
 
 ## settings.json フック定義
 
-### 現在のフック構成
-
-```json
-{
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "post-compact-recovery.sh",
-            "trigger": "compact"      ← コンパクション時のみ発火
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "interoception.sh",
-            "timeout": 5              ← 5秒タイムアウト
-          },
-          {
-            "type": "command",
-            "command": "recall-hook.sh",
-            "timeout": 5              ← 5秒タイムアウト
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-### フック発火条件
-
-| イベント | フック | 条件 | 出力先 |
+| イベント | フック | タイムアウト | トリガー |
 |---|---|---|---|
-| SessionStart | post-compact-recovery.sh | trigger: "compact" | stdout → コンテキスト |
-| UserPromptSubmit | interoception.sh | 毎ターン | stdout → system-reminder |
-| UserPromptSubmit | recall-hook.sh | 毎ターン（バッファあれば） | stdout → system-reminder |
+| SessionStart | post-compact-recovery.sh | - | compact |
+| UserPromptSubmit | interoception.sh | 5s | 毎ターン |
+| UserPromptSubmit | recall-hook.sh | 5s | 毎ターン |
+| UserPromptSubmit | hearing-hook.sh | 5s | 毎ターン |
+| Stop | hearing-stop-hook.sh | 20s | 毎ストップ |
 
-### 未登録だが存在するフック
+### 未登録のフック（Orphaned）
 
-以下のフックは .claude/hooks/ に存在するが、settings.json には登録されていない（wardrobe-configure で有効化する）:
+以下のフックは .claude/hooks/ に存在するが settings.json に登録されていない:
 
-| フック | 用途 | 登録先イベント |
-|---|---|---|
-| hearing-hook.sh | 聴覚バッファ注入 | UserPromptSubmit |
-| hearing-stop-hook.sh | 聴覚停止判定 | Stop |
-| continue-check.sh | 自律行動継続判定 | Stop |
-| heartbeat-daemon.sh | 心拍デーモン | launchd（settings.json 外） |
-| statusline.ts | ステータスライン | StatusLine |
+| フック | 状態 |
+|---|---|
+| statusline.ts | settings.json 未登録 |
+| continue-check.sh | settings.json 未登録 |
+| heartbeat-daemon.sh | launchd で別途管理（plist あり） |
+| hearing-daemon.py | 廃止（hearing MCP に移行） |
 
-## その他の設定
+## パーミッション設定
 
-```json
-{
-  "autoMemoryEnabled": false,    ← 組み込み auto-memory は無効（memory-mcp を使用）
-  "permissions": {
-    "allow": [
-      "mcp__memory__*",          ← memory-mcp の全ツール
-      "Bash(bun run:*)",         ← bun スクリプト実行
-      "Bash(bun:*)",
-      "Bash(git:*)",
-      "Read", "Edit", "Write", "Glob", "Grep",
-      "Skill(read)",
-      "Skill(great-recall)"
-    ]
-  }
-}
+```
+allow:
+  - mcp__memory__*       # memory-mcp 全操作
+  - mcp__hearing__*      # hearing MCP 全操作
+  - mcp__wifi-cam__*     # wifi-cam MCP 全操作
+  - Bash(bun run:*)      # Bun スクリプト実行
+  - Bash(bun:*)          # Bun コマンド
+  - Bash(git:*)          # Git コマンド
+  - Read / Edit / Write / Glob / Grep  # ファイル操作
+  - Skill(wd-read)       # 読書スキル
+  - Skill(wd-great-recall) # 多軸想起スキル
 ```
 
 ## wardrobeOptions の構造
 
 ```
 .claude/wardrobeOptions/
-├── README.md          使い方の説明
-└── skills/
-    ├── awake.md       活動頻度を通常に戻す
-    └── sleep.md       活動頻度を下げる
+  └── skills/
+        ├── awake.md   # 活動頻度を通常に戻す（schedule.conf）
+        └── sleep.md   # 活動頻度を下げる（schedule.conf）
 ```
 
-**有効化方法:** `.claude/wardrobeOptions/skills/` から `.claude/commands/` にコピーまたはシンボリックリンクを作成。wardrobe-configure スキルで対話的に設定可能。
+有効化方法: `.claude/commands/` にコピーまたはシンボリックリンクを作成。

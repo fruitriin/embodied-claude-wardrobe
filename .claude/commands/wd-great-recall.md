@@ -6,7 +6,7 @@ argument-hint: "<想起したい文脈>"
 
 @${CLAUDE_SKILL_DIR}/wd-great-recall.exp.md
 
-# /great-recall — 多軸想起
+# /wd-great-recall — 多軸想起
 
 同じ記憶群に異なるプロンプト（射）を当てれば、異なる意味の世界が立ち上がる。
 通常の recall が cosine similarity という単一の軸しか持たないのに対し、great-recall は複数の軸を並列に走らせる。

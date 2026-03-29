@@ -3,7 +3,7 @@ description: "画像の一部を切り出す。全体から注目したい場所
 argument-hint: "<画像パス> [--grid-cell col row N | --rect x y w h]"
 ---
 
-# /clip-image — 画像の一部を切り出す
+# /wd-clip-image — 画像の一部を切り出す
 
 全体を見ていると目が滑る。「ここだけ見たい」を切り出して、そこに集中する。annotate-grid とセットで使う。
 

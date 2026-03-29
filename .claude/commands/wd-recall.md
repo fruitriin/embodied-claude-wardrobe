@@ -5,9 +5,9 @@ argument-hint: "<思い出したいこと>"
 user_invocable: true
 ---
 
-@${CLAUDE_SKILL_DIR}/recall.exp.md
+@${CLAUDE_SKILL_DIR}/wd-recall.exp.md
 
-# /recall — 思い出す
+# /wd-recall — 思い出す
 
 「あの実装どうなったっけ？」「前に何を決めた？」に答える。FLASH.md でキーワードの当たりをつけてから、search_memories と SQL で深掘りする。
 
@@ -81,7 +81,7 @@ Agent ツールで以下のプロンプトを渡す（model: haiku）:
 不満や発見があったら、このセクションか関連スキルに書き足す。
 
 ## 経験の活用
-- 実行前に ${CLAUDE_SKILL_DIR}/recall.exp.md が存在すれば読み、過去の経験を考慮する
-- 実行後、新たな教訓があれば ${CLAUDE_SKILL_DIR}/recall.exp.md に追記する
+- 実行前に ${CLAUDE_SKILL_DIR}/wd-recall.exp.md が存在すれば読み、過去の経験を考慮する
+- 実行後、新たな教訓があれば ${CLAUDE_SKILL_DIR}/wd-recall.exp.md に追記する
 
 入力: $ARGUMENTS

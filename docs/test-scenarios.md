@@ -1,6 +1,6 @@
 # テストシナリオ — wardrobe 動作確認
 
-> `/wardrobe-configure` のカテゴリ分けに準拠。
+> `/wd-configure` のカテゴリ分けに準拠。
 > 各セクションの前提条件を満たしたうえで、チェック項目を順に確認する。
 
 ---
@@ -13,8 +13,8 @@
 
 ### チェック項目
 
-- [ ] `/wardrobe-setup` で SOUL.md が生成される
-- [ ] `/wardrobe-configure` で .mcp.json と settings.json が正しく生成される
+- [ ] `/wd-setup` で SOUL.md が生成される
+- [ ] `/wd-configure` で .mcp.json と settings.json が正しく生成される
 - [ ] `.mcp.json` の args のコマンド名が pyproject.toml の `[project.scripts]` と一致している
 - [ ] セッション起動時にブートシーケンス（SOUL.md → 記憶確認 → 作業記憶 → 想起 → state.md）が実行される
 - [ ] `state.md` が読み込まれ、前回の引き継ぎ事項が把握できる
@@ -230,19 +230,19 @@
 ### チェック項目
 
 **記憶スキル**
-- [ ] `/remember` — 記憶保存 + FLASH.md インデックス追記
-- [ ] `/recall` — FLASH.md をガイドにサブエージェントで検索
-- [ ] `/great-recall` — 3軸並列想起（技術的・感情的・因果的）
-- [ ] `/rebuild-index` — FLASH.md の再構築
+- [ ] `/wd-remember` — 記憶保存 + FLASH.md インデックス追記
+- [ ] `/wd-recall` — FLASH.md をガイドにサブエージェントで検索
+- [ ] `/wd-great-recall` — 3軸並列想起（技術的・感情的・因果的）
+- [ ] `/wd-rebuild-index` — FLASH.md の再構築
 
 **セットアップ・設定スキル**
-- [ ] `/wardrobe-setup` — SOUL.md の初期設定
-- [ ] `/wardrobe-configure` — MCP・フック・自律行動の設定
-- [ ] `/wardrobe-migrate` — アップストリームからの更新取り込み
+- [ ] `/wd-setup` — SOUL.md の初期設定
+- [ ] `/wd-configure` — MCP・フック・自律行動の設定
+- [ ] `/wd-migrate` — アップストリームからの更新取り込み
 
 **読書・観測スキル**
-- [ ] `/read [URL]` — Web ページをリーダーモードで取得
-- [ ] `/observe` — カメラで部屋を観察（視覚 MCP 必要）
+- [ ] `/wd-read [URL]` — Web ページをリーダーモードで取得
+- [ ] `/wd-observe` — カメラで部屋を観察（視覚 MCP 必要）
 
 **セッション管理**
 - [ ] シャットダウン手順で state.md が更新される

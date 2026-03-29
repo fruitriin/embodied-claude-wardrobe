@@ -5,9 +5,9 @@ argument-hint: "[対象期間（省略可、例: 先週）]"
 user_invocable: true
 ---
 
-@${CLAUDE_SKILL_DIR}/rebuild-index.exp.md
+@${CLAUDE_SKILL_DIR}/wd-rebuild-index.exp.md
 
-# /rebuild-index — FLASH.md 再構築
+# /wd-rebuild-index — FLASH.md 再構築
 
 **サブエージェントで自律実行する。** memory DB から記憶を読み、FLASH.md のインデックスを再構築する。
 
@@ -82,11 +82,11 @@ FLASH.md の見出し構造は週ごと:
 
 ## 研ぐ — 記憶スキル間の相互改善
 
-- **/recall で引けなかったキーワードがあった** → 索引に残す基準が厳しすぎる
-- **/recall で大量にノイズが引っかかった** → スキップ基準が甘い
+- **/wd-recall で引けなかったキーワードがあった** → 索引に残す基準が厳しすぎる
+- **/wd-recall で大量にノイズが引っかかった** → スキップ基準が甘い
 
 ## 経験の活用
-- 実行前に ${CLAUDE_SKILL_DIR}/rebuild-index.exp.md が存在すれば読み、過去の経験を考慮する
-- 実行後、新たな教訓があれば ${CLAUDE_SKILL_DIR}/rebuild-index.exp.md に追記する
+- 実行前に ${CLAUDE_SKILL_DIR}/wd-rebuild-index.exp.md が存在すれば読み、過去の経験を考慮する
+- 実行後、新たな教訓があれば ${CLAUDE_SKILL_DIR}/wd-rebuild-index.exp.md に追記する
 
 入力: $ARGUMENTS
