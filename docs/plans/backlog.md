@@ -57,14 +57,15 @@
 
 ### 自律行動プロンプトの具体化
 - 参考: `/Users/riin/workspace/assistant/CLAUDE.md` の Heartbeat Protocol
-- [ ] prompts.toml の `routine_mode.normal` を具体的な行動手順に書き換え（TODO確認→選択→実行→記録）
-- [ ] `/dice` スキルをマシングローバルから持ってくる
-- [ ] CLAUDE.md に Capabilities セクション追加（記憶・感覚・発話。カメラ周りはオプション）
+- [x] prompts.toml の `routine_mode.normal` を具体的な行動手順に書き換え（TODO確認→選択→実行→記録）
+- [x] `/dice` スキルはグローバル（~/.claude/commands/dice/）に既に存在。追加不要
+- [x] CLAUDE.md に Capabilities セクション追加（記憶・感覚・発話。カメラ周りはオプション）
+- [x] CLAUDE.md に Heartbeat Protocol セクション追加
 
 ### メモリプロトコルのドキュメント化
 - 参考: `/Users/riin/workspace/assistant/howtoMemory.md`, `/Users/riin/workspace/riin-service/HOLY_GRAIL.md`
-- [ ] memory MCP の全ツールガイドを docs/ に追加（テンプレート化）
-- [ ] CLAUDE.md に Memory Protocol セクション追加（記録すべきもの・タイミング・FLASH.md の使い方）
+- [x] memory MCP の全ツールガイドをテンプレート化（howtoMemory.template.md）
+- [x] CLAUDE.md に Memory Protocol セクション追加（記録すべきもの・タイミング・FLASH.md の使い方）
 
 ### SessionStart フックでブートシーケンス自動化
 - [ ] SessionStart hook（trigger: always）で SOUL.md + state.md をコンテキスト注入
