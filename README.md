@@ -83,6 +83,36 @@ cron による定期的な自律行動。欲望システムと連携して内発
 
 ---
 
+## Requirements
+
+### 共通
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
+- [uv](https://docs.astral.sh/uv/) — Python パッケージマネージャ
+- [Bun](https://bun.sh/) — `.claude/scripts/` のランタイム
+
+### モジュール別の依存
+
+| モジュール | Python | 主な外部依存 | 備考 |
+|---|---|---|---|
+| memory-mcp | 3.10–3.13 | sudachipy, sentence-transformers, gensim | sudachipy が 3.14 未対応 |
+| hearing | >=3.10 | faster-whisper | |
+| tts-mcp | >=3.10 | elevenlabs（オプション） | |
+| wifi-cam-mcp | >=3.10 | onvif-zeep-async | ONVIF 対応カメラが必要 |
+| usb-webcam-mcp | >=3.10 | opencv-python | |
+| ip-webcam-mcp | >=3.10 | httpx | Android IP Webcam アプリが必要 |
+| system-temperature-mcp | >=3.12 | psutil | |
+| mobility-mcp | >=3.10 | tinytuya | Tuya 対応デバイスが必要 |
+| toio-mcp | >=3.10 | toio.py | toio コアキューブが必要 |
+| mcp-pet | >=3.10 | opencv-python | |
+| morning-call-mcp | >=3.11 | twilio, elevenlabs | |
+| desire-system | >=3.10 | chromadb | |
+
+> **Python 3.12 を推奨。** すべてのモジュールが動作する安全な選択肢。
+>
+> すべてのモジュールを使う必要はない。必要なものだけ `uv sync` すればよい
+
+---
+
 ## クイックスタート
 
 ```bash

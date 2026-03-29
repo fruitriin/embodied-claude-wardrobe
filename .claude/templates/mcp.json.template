@@ -21,9 +21,22 @@
         "TAPO_PASSWORD": "your-password"
       }
     },
+    "hearing": {
+      "command": "uv",
+      "args": ["run", "--directory", "hearing", "hearing-mcp"]
+    },
     "memory": {
       "command": "uv",
       "args": ["run", "--directory", "memory-mcp", "memory-mcp"]
+    },
+    "morning-call": {
+      "command": "uv",
+      "args": ["run", "--directory", "morning-call-mcp", "morning-call-mcp"],
+      "env": {
+        "TWILIO_ACCOUNT_SID": "your-account-sid",
+        "TWILIO_AUTH_TOKEN": "your-auth-token",
+        "ELEVENLABS_API_KEY": "your-api-key"
+      }
     },
     "system-temperature": {
       "command": "uv",

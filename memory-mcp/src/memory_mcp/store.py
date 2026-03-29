@@ -392,6 +392,9 @@ class MemoryStore:
 
                 self._db = await asyncio.to_thread(_open)
 
+                # Check embedding dimension consistency
+                await self._check_embedding_dimension()
+
                 # Initialize VerbChainStore (chiVe lazy-loads on first use)
                 try:
                     from .chive import ChiVeEmbedding
@@ -402,6 +405,31 @@ class MemoryStore:
                     import logging
                     logging.getLogger(__name__).warning("VerbChainStore init skipped: %s", e)
                     self._verb_chain_store = None
+
+    async def _check_embedding_dimension(self) -> None:
+        """Check stored embedding dimension and save for lazy validation."""
+        db = self._ensure_connected()
+
+        def _get_stored_dim() -> int | None:
+            row = db.execute("SELECT vector FROM embeddings LIMIT 1").fetchone()
+            if row is None:
+                return None
+            return len(np.frombuffer(bytes(row[0]), dtype=np.float32))
+
+        self._stored_embedding_dim = await asyncio.to_thread(_get_stored_dim)
+
+    def _validate_embedding_dimension(self, model_dim: int) -> None:
+        """Validate model dimension against stored embeddings. Called on first encode."""
+        stored = getattr(self, "_stored_embedding_dim", None)
+        if stored is not None and stored != model_dim:
+            import logging
+            logging.getLogger(__name__).error(
+                "EMBEDDING DIMENSION MISMATCH: DB has %d-dim vectors, "
+                "but current model produces %d-dim. "
+                "Recall/search will fail. Run: "
+                "cd memory-mcp && uv run python scripts/migrate_embeddings_sqlite.py",
+                stored, model_dim,
+            )
 
     async def disconnect(self) -> None:
         """Close the SQLite connection."""
@@ -418,10 +446,18 @@ class MemoryStore:
     # ── Embedding helpers ───────────────────────
 
     async def _encode_document(self, text: str) -> list[float]:
-        return (await asyncio.to_thread(self._embedding_fn, [text]))[0]
+        result = (await asyncio.to_thread(self._embedding_fn, [text]))[0]
+        if not getattr(self, "_dim_checked", False):
+            self._validate_embedding_dimension(len(result))
+            self._dim_checked = True
+        return result
 
     async def _encode_query(self, text: str) -> list[float]:
-        return (await asyncio.to_thread(self._embedding_fn.encode_query, [text]))[0]
+        result = (await asyncio.to_thread(self._embedding_fn.encode_query, [text]))[0]
+        if not getattr(self, "_dim_checked", False):
+            self._validate_embedding_dimension(len(result))
+            self._dim_checked = True
+        return result
 
     # ── Coactivation helpers ────────────────────
 

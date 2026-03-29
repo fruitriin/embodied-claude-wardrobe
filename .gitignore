@@ -53,6 +53,9 @@ ENV/
 .coverage
 htmlcov/
 
+# Memory database (per-project, contains personal data)
+.claude/memories/
+
 # ChromaDB test data
 :memory:/
 
@@ -94,3 +97,10 @@ references/
 
 
 workingLogs/*.log
+
+# 魂、メモリはアップストリームにはpushしない
+ROUTINES.md
+SOUL.md
+state.md
+FLASH.md
+BOOT_SHUTDOWN.md

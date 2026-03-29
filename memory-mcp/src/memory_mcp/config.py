@@ -22,7 +22,18 @@ class MemoryConfig:
     @classmethod
     def from_env(cls) -> "MemoryConfig":
         """Create config from environment variables."""
-        default_path = str(Path.home() / ".claude" / "memories" / "memory.db")
+        # プロジェクトディレクトリ配下に記憶を保存する
+        # CLAUDE_PROJECT_DIR → cwd の親（memory-mcp/ から起動される場合）→ cwd
+        project_dir = os.getenv("CLAUDE_PROJECT_DIR")
+        if project_dir:
+            default_path = str(Path(project_dir) / ".claude" / "memories" / "memory.db")
+        else:
+            # uv run --directory memory-mcp で起動された場合、cwd は memory-mcp/
+            cwd = Path.cwd()
+            if cwd.name == "memory-mcp" and (cwd.parent / ".claude").exists():
+                default_path = str(cwd.parent / ".claude" / "memories" / "memory.db")
+            else:
+                default_path = str(Path.home() / ".claude" / "memories" / "memory.db")
 
         return cls(
             db_path=os.getenv("MEMORY_DB_PATH", default_path),
