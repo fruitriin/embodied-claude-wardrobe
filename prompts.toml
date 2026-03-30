@@ -4,15 +4,15 @@
 
 [time_rules]
 # 深夜帯（0〜6時）のルール
-night = "現在は深夜帯。tts は使わないこと。静かに自律タスクのみ実行せよ。"
+night = "現在は深夜帯。tts は使わない。静かに自律タスクのみ。"
 # 昼間・夕方のルール
 day = "ユーザーに伝えたいことがあるときは tts を使ってよい。"
 
 [routine_mode]
 # ルーチン回のプロンプト
-routine = "今回はルーチン回。ROUTINES.md を読んで、最終実行日から間隔が空いたものを一つ選んで実行せよ。実行したら最終実行日を更新すること。"
+routine = "今回はルーチン回。ROUTINES.md を読んで、最終実行日から間隔が空いたものを一つ選んで実行する。終わったら最終実行日を更新する。"
 # 通常回のプロンプト
-normal = """通常回。以下の手順で行動せよ:
+normal = """通常回。以下の手順で行動する:
 1. list_recent_memories で直近の記憶を引き、文脈を把握する
 2. TODO.md を確認し、今すぐできるタスクがあるか判断する
 3. あれば一つ選んで実行する。終わったら結果と感想を記憶に書く
@@ -23,11 +23,11 @@ normal = """通常回。以下の手順で行動せよ:
 
 [morning]
 # 今日の初回セッション時に追加されるプロンプト
-header = "## 今日の初回セッション\n今日の最初の召喚だ。以下を実施せよ："
+header = "## 今日の初回セッション\n今日の最初の召喚だ。以下を実施する："
 steps = [
   "/wd-great-recall で多軸想起を実行（直近の重要な決定・未完了タスク・curiosity_target）",
-  "前日のタスクを確認し、今日の方針を決めよ",
-  "curiosity_target があれば bun run .claude/scripts/desire-tick.ts set-curiosity で注入せよ",
+  "前日のタスクを確認し、今日の方針を決める",
+  "curiosity_target があれば bun run .claude/scripts/desire-tick.ts set-curiosity で注入する",
 ]
 
 [desire]
@@ -54,5 +54,5 @@ template = """自律行動（定期巡回）
 
 {DESIRE_SECTION}## 補足ルール
 - {TIME_RULE}
-- MCPが動作していなければ、デバッグのために関係があると思われる要素をallowedToolsの範囲で調査せよ
+- MCPが動作していなければ、デバッグのために関係があると思われる要素をallowedToolsの範囲で調査する
 {INTEROCEPTION}{RECALL_LITE}"""

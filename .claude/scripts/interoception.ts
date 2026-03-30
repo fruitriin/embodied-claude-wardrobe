@@ -10,7 +10,7 @@
 import { readdir } from 'node:fs/promises';
 
 const SCRIPT_DIR = import.meta.dir;
-const LOG_DIR = `${SCRIPT_DIR}/../.autonomous-logs`;
+const LOG_DIR = `${SCRIPT_DIR}/../logs`;
 const STATE_PATH = `${SCRIPT_DIR}/../desires.json`;
 
 // ── 時間帯 → 感覚フレーズ ──

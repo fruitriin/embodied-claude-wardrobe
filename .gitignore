@@ -70,7 +70,7 @@ autonomous-mcp.json
 # Note: autonomous-action.sh is tracked in wardrobe (not ignored)
 
 # Autonomous action logs and session
-.autonomous-logs/
+.claude/logs/*.log
 .heartbeat-session-id
 heartbeat-session-id
 last-session-date.txt
@@ -98,6 +98,7 @@ references/
 .claude/commands/*.exp.md
 
 
+# Legacy log dirs (kept for safety)
 workingLogs/*.log
 
 # Temporary files (tmp/.keep is tracked)

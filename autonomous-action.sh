@@ -109,7 +109,7 @@ fi
 # timeout コマンド検出（GNU coreutils or macOS built-in）
 TIMEOUT_CMD=$(which timeout 2>/dev/null || which gtimeout 2>/dev/null)
 
-LOG_DIR="$SCRIPT_DIR/workingLogs"
+LOG_DIR="$SCRIPT_DIR/.claude/logs"
 mkdir -p "$LOG_DIR"
 
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)

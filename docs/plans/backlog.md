@@ -86,10 +86,18 @@
 - [ ] FLASH-{persona}.md のマルチペルソナ対応（wd-recall.md に既に言及あり）
 - 注: server.py は商会版と同一。store.py/config.py はワードローブ側が先行
 
+### orphaned ファイル整理
+- [ ] statusline.ts の settings.json 登録か削除（Orphaned 状態）
+- [ ] continue-check.sh の settings.json 登録か削除
+- [ ] hearing-daemon.py の削除（hearing MCP に移行済み、system-perception.md に廃止と明記）
+- [ ] heartbeat-daemon.sh の二重配置解消（.claude/hooks/ と .claude/scripts/ に同名）
+- [ ] sanitize スキルファイルの作成（CLAUDE.md, README.md から参照されているが不在）
+
+### wd-project-claude-overview マッピング修正
+- [ ] system-reader → system-reading-knowledge にマッピング名修正
+
 ## 将来の検討事項
 
 - knowhow システムとアップストリームの knowhow 共有（wardrobe/ 配下の同期）
 - PreToolUse フックで /tmp 使用をブロック（SOUL.md Boundaries に対応）
-- statusline.ts の settings.json 登録（Orphaned 状態の解消）※ context_window_size フォールバックは 1M に修正済み
-- continue-check.sh の settings.json 登録検討
 - コンテキストウィンドウ残量を interoception に追加
