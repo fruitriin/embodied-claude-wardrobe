@@ -1,123 +1,151 @@
 # システム間相互作用
 
 > 6つの概念システム間の連携をアスキーアートで表現する。
-> 生成日: 2026-03-29
+> 生成日: 2026-03-30
 
 ## 1. 全システム関係図
 
 ```
-                    ┌─────────────────────┐
-                    │  魂・ハーネス        │
-                    │  (soul-harness)      │
-                    │  SOUL.md / CLAUDE.md │
-                    │  settings.json       │
-                    └──────┬──────────────┘
-                           │ 身支度・設定・フック定義
-          ┌────────────────┼────────────────┐
-          ▼                ▼                ▼
- ┌────────────────┐ ┌──────────────┐ ┌──────────────────┐
- │ 記憶 (memory)  │ │ 身体性       │ │ 自律行動          │
- │ memory-mcp     │ │ (embodied)   │ │ (autonomous)      │
- │ recall/remember│ │ interoception│ │ cron / ROUTINES   │
- │ FLASH.md       │ │ desire/heart │ │ schedule/prompts  │
- └───┬────────┬───┘ └──────┬───────┘ └────┬─────────────┘
-     │        │            │               │
-     │   ┌────┘     欲望発火│        desire-tick
-     │   │     ┌───────────┘        interoception.ts
-     │   │     │                         │
-     ▼   ▼     ▼                         ▼
- ┌────────────────┐              ┌──────────────────┐
- │ 知覚           │              │ 読書・知識        │
- │ (perception)   │◄─── 読書 ───│ (reading-         │
- │ camera/hearing │   欲望発火   │  knowledge)       │
- │ observe/look   │              │ read/knowhow      │
- └────────────────┘              └──────────────────┘
-
- 凡例:
-  ─── データフロー / 連携
-  ─── 欲望発火による間接的連携
+                        ┌──────────────────┐
+                        │   魂・ハーネス    │
+                        │ SOUL.md/CLAUDE.md│
+                        │ session-boot.sh  │
+                        │ レビューエージェント│
+                        └────────┬─────────┘
+                                 │ 設計定義・セッション起動
+                ┌────────────────┼────────────────┐
+                │                │                │
+                ▼                ▼                ▼
+   ┌────────────────┐  ┌────────────────┐  ┌────────────────┐
+   │     記憶       │  │    身体性      │  │   読書・知識    │
+   │  memory-mcp    │  │ interoception  │  │   wd-read      │
+   │  FLASH.md      │◄─┤ desire-tick    │  │   wd-knowhow   │
+   │  recall/remember│  │ heartbeat      │  │   wd-cc-tracker│
+   └───────┬────────┘  └───────┬────────┘  └────────────────┘
+           │                   │
+           │  recall-lite      │  desire-tick
+           │  turn-reminder    │  interoception.ts
+           ▼                   ▼
+        ┌──────────────────────────┐
+        │       自律行動            │
+        │  autonomous-action.sh    │
+        │  schedule.conf           │
+        │  ROUTINES.md             │
+        └────────────┬─────────────┘
+                     │ continue-check
+                     │ hearing-stop-hook (共有)
+                     ▼
+        ┌──────────────────────────┐
+        │        知覚              │
+        │  wd-observe / wd-look    │
+        │  wd-say / hearing        │
+        │  wifi-cam / tts-mcp      │
+        └──────────────────────────┘
 ```
+
+**凡例:**
+- `→` / `▼`: データの流れ・依存方向
+- `◄─`: 逆方向の参照（記憶 ← 身体性: 「記憶を刻む」欲望）
 
 ## 2. セッションライフサイクル × フック発火タイミング
 
 ```
- セッション開始
- │
- ├── [SessionStart:compact] post-compact-recovery.sh
- │     └── SOUL.md 再読 + 記憶復元指示
- │
- ├── 身支度（CLAUDE.md に定義）
- │     1. SOUL.md 読み
- │     2. get_memory_stats()
- │     3. refresh_working_memory()
- │     4. /wd-great-recall
- │     5. state.md + ROUTINES.md 確認
- │     6. recall-watcher 起動（オプショナル）
- │
- ├── 対話ループ ─────────────────────────────────────┐
- │     │                                              │
- │     ├── [UserPromptSubmit]                          │
- │     │     ├── interoception.sh → 内受容感覚注入     │
- │     │     ├── recall-hook.sh → 想起バッファ注入     │
- │     │     └── hearing-hook.sh → 聴覚バッファ注入    │
- │     │                                              │
- │     ├── ユーザー入力 → エージェント応答              │
- │     │                                              │
- │     ├── [Stop]                                      │
- │     │     ├── hearing-stop-hook.sh → 新発話で延長?  │
- │     │     └── continue-check.sh → [CONTINUE]で延長? │
- │     │                                              │
- │     └── 繰り返し ◄──────────────────────────────────┘
- │
- ├── 日記の手順（BOOT_SHUTDOWN.md に定義）
- │     1. state.md 上書き
- │     2. /wd-remember で成果記録
- │     3. /wd-remember で未了記録
- │     4. link_memories
- │     5. create_episode（長セッション時）
- │
- └── セッション終了
+┌─── セッション開始 ─────────────────────────────────────────────────┐
+│                                                                   │
+│  SessionStart (startup|resume)                                    │
+│  ├── session-boot.sh ──→ SOUL.md + state.md 注入                 │
+│  └── reset-turn-count.sh ──→ .turn-count = 0                    │
+│                                                                   │
+│  SessionStart (compact)                                           │
+│  └── post-compact-recovery.sh ──→ 復帰手順注入                   │
+│                                                                   │
+├─── ターンループ ──────────────────────────────────────────────────┤
+│                                                                   │
+│  UserPromptSubmit (毎ターン)                                      │
+│  ├── interoception.sh ──→ [interoception] time=... arousal=...   │
+│  ├── recall-hook.sh ──→ [recall] 関連記憶（バッファあれば）       │
+│  ├── hearing-hook.sh ──→ [hearing] 文字起こし（バッファあれば）   │
+│  └── turn-reminder.sh ──→ 10ターン目: 記憶リマインダー           │
+│                                                                   │
+│  ユーザー ←→ エージェント の対話                                  │
+│                                                                   │
+├─── セッション終了 ────────────────────────────────────────────────┤
+│                                                                   │
+│  Stop                                                             │
+│  └── hearing-stop-hook.sh ──→ 聴覚バッファチェック               │
+│       └── 新発話あり → ターン延長（block）                        │
+│       └── HEARTBEAT=1 → continue-check.sh                        │
+│            └── [CONTINUE: ...] → ターン延長                       │
+│            └── [DONE] or MAX → 終了                               │
+│                                                                   │
+└───────────────────────────────────────────────────────────────────┘
 ```
 
-## 3. 記憶想起フロー
+## 3. 記憶想起フロー図
+
+### 3a. リアルタイム自動想起（対話セッション）
 
 ```
- ┌─────────────────────────────────────────────────────────┐
- │                  受動的想起（自動）                       │
- │                                                         │
- │  recall-watcher.ts (バックグラウンド)                     │
- │    │                                                    │
- │    ├── ccconv talk --watch (stdin パイプ)                │
- │    │     └── ユーザー発言を監視                          │
- │    │                                                    │
- │    ├── キーワード抽出                                    │
- │    │                                                    │
- │    ├── memory-mcp.recall()                              │
- │    │                                                    │
- │    └── recall_buffer.jsonl に書き出し                     │
- │          │                                              │
- │          ▼                                              │
- │    recall-hook.sh [UserPromptSubmit]                     │
- │          │                                              │
- │          └── [recall] プレフィックス付きでコンテキスト注入│
- │                                                         │
- └─────────────────────────────────────────────────────────┘
+ユーザー発言
+  │
+  ├──→ recall-watcher.ts (バックグラウンド常駐)
+  │      │
+  │      ├── ccconv talk --watch からパイプで受信
+  │      ├── キーワード抽出
+  │      ├── memory-mcp.recall()
+  │      └── tmp/recall_buffer.jsonl に書き出し
+  │
+  ├──→ UserPromptSubmit 発火
+  │      │
+  │      └── recall-hook.sh
+  │            ├── recall_buffer.jsonl を読み取り
+  │            ├── [recall] プレフィックスで整形
+  │            ├── stdout → コンテキスト注入
+  │            └── バッファを flush
+  │
+  └──→ エージェントのレスポンスに記憶が自然に混入
+```
 
- ┌─────────────────────────────────────────────────────────┐
- │                  能動的想起（手動）                       │
- │                                                         │
- │  /wd-recall                                             │
- │    ├── FLASH.md 読み → キーワードの当たりをつける         │
- │    └── サブエージェント起動                              │
- │          └── memory-mcp.search_memories()               │
- │                                                         │
- │  /wd-great-recall                                       │
- │    ├── Step 0: メタ圧縮器（どの軸を選ぶか）              │
- │    └── Step 1: 3つの圧縮器サブエージェント並列            │
- │          ├── 技術的圧縮器 → recall + search_memories     │
- │          ├── 感情的圧縮器 → recall_with_associations     │
- │          └── 因果的圧縮器 → get_causal_chain             │
- │          └── 統合結果                                    │
- │                                                         │
- └─────────────────────────────────────────────────────────┘
+### 3b. 手動想起
+
+```
+エージェント or ユーザー: 「あれどうなったっけ？」
+  │
+  ├── FLASH.md でキーワードの当たりをつける
+  │
+  └── /wd-recall (Agent tool, model: haiku)
+        ├── FLASH.md 読み取り
+        ├── search_memories（キーワード + 日付絞り込み）
+        │   or bun:sqlite 直接クエリ
+        ├── 結果を整形して返却
+        └── メインコンテキストに結果を返す
+```
+
+### 3c. 多軸想起
+
+```
+/wd-great-recall "文脈"
+  │
+  ├── Step 0: メタ圧縮器
+  │     └── キーワードパターン → 起動する軸を選択
+  │
+  └── Step 1: 並列サブエージェント (haiku × 2-3)
+        ├── [技術的] recall + recall_with_associations → 設計判断/パターン/依存
+        ├── [感情的] recall + recall_divergent → 感情/関係/動機/発見
+        └── [因果的] recall + get_causal_chain → 因果連鎖/時系列/進行中
+        │
+        └── メインエージェントが統合所見を書く
+```
+
+### 3d. 自律行動時の想起（Heartbeat）
+
+```
+autonomous-action.sh
+  │
+  └── recall-lite.ts (bun:sqlite 直接、MCP 不使用)
+        ├── 直近48h の重要記憶 (importance >= 4)
+        ├── 高頻度アクセス記憶 (access_count 上位)
+        └── 未完了タスク (content LIKE '%未完了%')
+        │
+        └── プロンプトにサイレント注入
 ```

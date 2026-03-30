@@ -1,6 +1,6 @@
 # エコシステム概要 — インデックス
 
-> 生成日: 2026-03-29 | コミット: 446becd8 WIP: chore: .claude/memories/.keep を追加（memory-mcp の DB ディレクトリを確保）
+> 生成日: 2026-03-30 | コミット: 60bf8bc8 WIP: fix: ログディレクトリ統一、prompts.toml トーン修正、say.sh 二重配置解消
 
 embodied-claude-wardrobe をベースとしたエージェントのハーネス。
 memory-mcp を内蔵し、身体性と自律行動を備えた embodied AI の基盤。
@@ -12,12 +12,12 @@ SOUL.md にエージェント固有の人格が定義される。
 
 | ファイル | システム | 主な構成要素 |
 |---|---|---|
-| [system-memory.md](system-memory.md) | 記憶 (memory) | memory-mcp, wd-recall, wd-remember, wd-great-recall, wd-rebuild-index, FLASH.md, recall-hook.sh, recall-watcher.ts, recall-lite.ts, post-compact-recovery.sh |
-| [system-embodied.md](system-embodied.md) | 身体性 (embodied) | interoception.sh, interoception.ts, heartbeat-daemon.sh, launchd plist, desire-tick.ts, desires.conf, system-health.ts, statusline.ts |
-| [system-perception.md](system-perception.md) | 知覚 (perception) | wifi-cam MCP, hearing MCP, wd-observe, wd-look, wd-annotate-grid, wd-clip-image, wd-say, hearing-hook.sh, hearing-stop-hook.sh |
-| [system-reading-knowledge.md](system-reading-knowledge.md) | 読書・知識 (reading-knowledge) | wd-read, wd-slide-watch, wd-knowhow, wd-knowhow-index, wd-knowhow-filter, reader.ts, sanitize |
-| [system-autonomous.md](system-autonomous.md) | 自律行動 (autonomous) | autonomous-action.sh, ROUTINES.md, schedule.conf, prompts.toml, load-prompts.ts, continue-check.sh, sleep, awake |
-| [system-soul-harness.md](system-soul-harness.md) | 魂・ハーネス (soul-harness) | SOUL.md, CLAUDE.md, BOOT_SHUTDOWN.md, state.md, wd-setup, wd-configure, wd-migrate, wd-project-claude-overview, settings.json |
+| [system-memory.md](system-memory.md) | 記憶 | memory-mcp, wd-recall, wd-remember, wd-great-recall, FLASH.md |
+| [system-embodied.md](system-embodied.md) | 身体性 | interoception, heartbeat-daemon, desire-tick, statusline |
+| [system-autonomous.md](system-autonomous.md) | 自律行動 | autonomous-action.sh, schedule.conf, ROUTINES.md, continue-check |
+| [system-perception.md](system-perception.md) | 知覚 | wd-observe, wd-look, wd-say, wifi-cam, hearing |
+| [system-reading-knowledge.md](system-reading-knowledge.md) | 読書・知識 | wd-read, wd-slide-watch, wd-knowhow, wd-cc-tracker |
+| [system-soul-harness.md](system-soul-harness.md) | 魂・ハーネス | SOUL.md, wd-setup, wd-configure, wd-migrate, レビューエージェント群 |
 
 ## 補完ドキュメント
 
@@ -29,8 +29,9 @@ SOUL.md にエージェント固有の人格が定義される。
 
 ## 全要素カウント
 
-- スキル: 18本（うち .exp.md あり: 9本）
-- オプショナルスキル（wardrobeOptions）: 2本
-- フックスクリプト: 10本（.claude/hooks/）
-- スクリプト: 7本（.claude/scripts/）
-- 概念システム: 6（前回: 5 → 知覚を新設、読書と知識を統合）
+- スキル: 21本（うち .exp.md あり: 1本）
+- オプショナルスキル（wardrobeOptions）: 2本（sleep, awake）
+- エージェント（.claude/agents/）: 4本
+- フックスクリプト: 13本（.claude/hooks/）
+- スクリプト: 8本（.claude/scripts/）
+- 概念システム: 6（前回: 6 — 分類は同一、構成要素に差分あり）

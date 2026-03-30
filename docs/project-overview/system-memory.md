@@ -1,53 +1,81 @@
-# 記憶 (memory) — 経験の保存・想起・索引管理
+# 記憶 — セッションを超えて覚え、思い出す
 
 > 概念単位の記録。実装がスキル/フック/MCP/スクリプト/ファイルのどれであっても、
 > 「記憶」に関わるものをまとめている。
 
 ## 構成要素
 
-| 種別 | 要素 | 役割 |
-|---|---|---|
-| MCP | memory-mcp | 記憶の永続化・検索・埋め込みベクトル管理。SQLite + sentence-transformers |
-| スキル | wd-remember | 記憶保存 + FLASH.md インデックス追記を一括実行 |
-| スキル | wd-recall | FLASH.md をガイドに、サブエージェントで記憶を検索 |
-| スキル | wd-great-recall | 3軸（技術的・感情的・因果的）並列想起。メタ圧縮器 + 圧縮器サブエージェント |
-| スキル | wd-rebuild-index | memory DB から FLASH.md を再構築。ループで全記憶を走査 |
-| ファイル | FLASH.md | 記憶のキーワード逆引きインデックス。recall のガイドマップ |
-| フック | recall-hook.sh | UserPromptSubmit で recall_buffer.jsonl をコンテキストに注入 |
-| フック | post-compact-recovery.sh | コンパクション後に SOUL.md 再読 + 記憶復元を指示 |
-| スクリプト | recall-watcher.ts | ユーザー発言をリアルタイム監視し、関連記憶を recall_buffer.jsonl に書き出し |
-| スクリプト | recall-lite.ts | 身支度で記憶 DB から3軸で軽量想起 |
+### MCP サーバー
+- **memory-mcp** — 長期記憶の永続化。ベクトル検索・因果連鎖・エピソード・連想・作業記憶。Python (uv) で動作。`.claude/mcps/memory-mcp/`
+
+### スキル
+- **wd-recall** — FLASH.md を地図にサブエージェント（haiku）で記憶を検索。メインコンテキスト非消費
+- **wd-remember** — memory-mcp に保存 + FLASH.md にキーワード索引を追記。記録と索引を一発で
+- **wd-great-recall** — 多軸想起。技術的・感情的・因果的の最大3軸を並列サブエージェントで走らせる。メタ圧縮器がキーワードパターンから起動する軸を自動選択
+- **wd-rebuild-index** — FLASH.md を記憶 DB（bun:sqlite 直接アクセス）から再構築。サブエージェントで実行
+
+### フック
+- **recall-hook.sh** (UserPromptSubmit) — recall-watcher が書き出した `tmp/recall_buffer.jsonl` を読み取り、コンテキストに注入。バッファを flush
+- **post-compact-recovery.sh** (SessionStart/compact) — コンパクション後に身支度手順を自動注入。SOUL.md 再読・記憶復元のガイダンス
+- **turn-reminder.sh** (UserPromptSubmit) — ターンカウンターを管理。10ターン経過時に `/wd-remember` のリマインダーを注入
+- **reset-turn-count.sh** (SessionStart) — ターンカウンターをリセット
+
+### スクリプト
+- **recall-watcher.ts** — リアルタイム想起ウォッチャー。`ccconv talk --watch` のパイプから発言を受け取り、キーワード抽出 → memory MCP recall → バッファ書き出し
+- **recall-lite.ts** — 軽量自動想起。bun:sqlite で直接検索（embedding 不使用）。3軸: 直近重要記憶・高頻度アクセス・未完了タスク。autonomous-action.sh から注入
+
+### ファイル
+- **FLASH.md** — 記憶の逆引き索引。LLM の後方予測の弱さを補う。今週は曜日単位、古くなるにつれ粗くなる
+- **memories/memory.db** — SQLite 記憶データベース（保護対象）
 
 ## 設計思想
 
-CLAUDE.md の「記憶システム」セクションに対応。SOUL.md の「エラーを見過ごさない」は記憶の正確性にも適用される。
+CLAUDE.md の記憶プロトコルに基づく。「記録しても思い出せなければないのと同じ」が原則。
 
-- 記憶は memory-mcp（SQLite + 埋め込みベクトル）に永続化される
-- FLASH.md は記憶の「目次」で、recall が高速に当たりをつけるためのガイド
-- 想起はサブエージェントで実行し、メインの会話コンテキストを汚さない
-- recall-watcher は受動的想起（会話の流れから自動的に関連記憶を引く）
-- wd-great-recall は能動的想起（3つの異なる観点で並列に意味を掘る）
+- **remember → FLASH → recall** の三点セットが基本サイクル
+- FLASH.md は「検索キーワードの逆引き表」。記憶本文ではなく、想起の手がかり
+- 各スキルに「研ぐ」セクションがあり、recall の成功・失敗を相互フィードバックする
+- サブエージェント実行により、メインコンテキストを圧迫しない設計
 
 ## 主要フロー
 
+### 記録フロー
 ```
-[保存]
-ユーザー/エージェント → /wd-remember → memory-mcp.remember() + FLASH.md 追記
+ユーザーとの会話 / 発見 / 判断
+  → /wd-remember (または自発的に)
+    → memory-mcp.remember()
+    → FLASH.md にキーワード追記
+```
 
-[能動的想起]
-/wd-recall → FLASH.md 読み → サブエージェント → memory-mcp.search_memories() → 結果返却
-/wd-great-recall → 3つの圧縮器サブエージェント並列 → 統合結果
+### 想起フロー（手動）
+```
+話題に関連する記憶がありそう
+  → FLASH.md でキーワード確認
+  → /wd-recall (サブエージェント)
+    → search_memories / bun:sqlite 検索
+    → 結果をメインに返却
+```
 
-[受動的想起]
-recall-watcher.ts → ユーザー発言監視 → memory-mcp.recall() → recall_buffer.jsonl
-→ recall-hook.sh (UserPromptSubmit) → コンテキスト注入
+### 想起フロー（自動）
+```
+recall-watcher.ts (バックグラウンド常駐)
+  → ユーザー発言からキーワード抽出
+  → memory-mcp.recall()
+  → tmp/recall_buffer.jsonl に書き出し
+  → recall-hook.sh (次の UserPromptSubmit で発火)
+    → バッファ読み取り → コンテキスト注入
+```
 
-[復旧]
-コンパクション → post-compact-recovery.sh → SOUL.md 再読 + recall_divergent
+### コンパクション復帰
+```
+コンテキスト圧縮発生
+  → post-compact-recovery.sh (SessionStart/compact)
+    → 身支度手順を注入
+    → SOUL.md 再読 → recall_divergent → 文脈復元
 ```
 
 ## 関連するシステム
 
-- **身体性**: desire-tick の「記憶を刻む」欲望が発火すると記憶保存が促される
-- **自律行動**: autonomous-action.sh から記憶の振り返り・整理が実行される
-- **魂・ハーネス**: 身支度で get_memory_stats → refresh_working_memory → wd-great-recall
+- **身体性** — turn-reminder がターン数を管理し、記憶保存をリマインド
+- **自律行動** — recall-lite.ts が autonomous-action.sh のプロンプトに記憶コンテキストを注入
+- **魂・ハーネス** — session-boot.sh → BOOT_SHUTDOWN.md の身支度手順で great-recall を実行

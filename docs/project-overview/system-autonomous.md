@@ -1,52 +1,67 @@
-# 自律行動 (autonomous) — cron 駆動の自律行動と活動制御
+# 自律行動 — cron で動く、もう一つのモード
 
 > 概念単位の記録。実装がスキル/フック/MCP/スクリプト/ファイルのどれであっても、
 > 「自律行動」に関わるものをまとめている。
 
 ## 構成要素
 
-| 種別 | 要素 | 役割 |
-|---|---|---|
-| スクリプト | autonomous-action.sh | 自律行動のメインエントリ。cron 20分間隔で実行 |
-| ファイル | ROUTINES.md | 日次・週次・月次の定期タスク定義 |
-| ファイル | schedule.conf | 休日設定・スキップ確率・時間帯ルール |
-| ファイル | prompts.toml | 時間帯・ルーチン・欲望のプロンプトテンプレート |
-| スクリプト | load-prompts.ts | prompts.toml からキーを抽出して stdout |
-| フック | continue-check.sh | Stop 時に [CONTINUE] ブロックがあればターン延長 |
-| オプショナル | sleep | schedule.conf の実行確率を下げて「眠る」 |
-| オプショナル | awake | schedule.conf の実行確率を戻して「起きる」 |
+### メインスクリプト
+- **autonomous-action.sh** — cron で20分ごとに実行。時間帯×曜日×確率でスキップ判定し、通常回/ルーチン回/朝の再構成を振り分ける。`claude -p` でヘッドレスセッションを起動。`--dry-run`, `--force-routine`, `--date` 等のテストオプション付き
+
+### フック
+- **continue-check.sh** (Stop) — Heartbeat セッション終了時に `[CONTINUE: ...]` / `[DONE]` を検出し、ターン延長を判定。対話セッション（HEARTBEAT 環境変数なし）では即 exit
+
+### スクリプト
+- **load-prompts.ts** — `prompts.toml` からプロンプトテンプレートを読み込み。時間帯ルール・ルーチンモード・朝のプロンプト等のキーを出力
+
+### スキル（オプショナル）
+- **sleep** (wardrobeOptions) — schedule.conf の実行確率を下げて活動頻度を落とす。light/deep の2段階
+- **awake** (wardrobeOptions) — schedule.conf の実行確率を通常値に戻す
+- **wd-dice** — 選択ダイス。Heartbeat Protocol で「やりたいことが複数あって迷ったら」使う
+
+### ファイル
+- **schedule.conf** — スケジュール制御。休日曜日、時間帯別実行確率（DAYTIME_CHANCE/NIGHT_CHANCE）、深夜帯ルール、ルーチン確率、プロンプトテンプレート
+- **ROUTINES.md** — 定期タスク定義。日次（state.md更新、FLASH.md確認）、週次（SOUL.md見直し、consolidate、エピソードまとめ）、月次（アーカイブ精査）
+- **prompts.toml** — プロンプトテンプレート。load-prompts.ts が読み込む
 
 ## 設計思想
 
-CLAUDE.md の「自律行動」セクションに対応。
+CLAUDE.md の Heartbeat Protocol に基づく。
 
-- autonomous-action.sh が cron で20分ごとに起動。時間帯・曜日に応じてスキップ判定
-- ROUTINES.md で定期タスクを定義。routine モードで未実行タスクを消化
-- schedule.conf で活動時間帯・休日・スキップ確率をカスタマイズ
-- prompts.toml で時間帯別の口調・ルーチンのプロンプトを定義
-- sleep/awake は活動頻度の動的調整（オプショナル。デフォルト無効）
-- continue-check.sh は「自分で自分を続ける」仕組み。[CONTINUE] マークがあればターン延長
+- **「タスク消化マシンにならない」** が原則。「なぜこれをやるのか」を一瞬でも考える
+- cron 20分間隔だが、schedule.conf の確率でスキップされる。深夜は10%、昼間は50%
+- 欲望システム（desires.conf → desire-tick.ts）が内的動機を生成。外部タスクだけでなく「記憶を刻みたい」「休みたい」が自然に発生
+- sleep/awake で活動頻度を自己調整できる
+- 朝の最初の Heartbeat で「朝の再構成」プロンプトが発火し、前日の振り返りと今日の計画を行う
 
 ## 主要フロー
 
+### cron 起動フロー
 ```
-[自律行動ループ]
-cron (20分) → autonomous-action.sh
-  ├── schedule.conf チェック → スキップ判定（時間帯・曜日・確率）
-  ├── desire-tick.ts → 欲望レベル更新
-  ├── load-prompts.ts → 時間帯プロンプト取得
-  ├── interoception.ts → 感覚フレーズ生成
-  └── claude -p "組み立てたプロンプト" → 自律セッション開始
-       ├── ROUTINES.md 確認 → 未実行タスク消化（routine モード）
-       └── 欲望発火 → 記憶整理・読書・振り返り等（normal モード）
+cron (*/20 * * * *)
+  → autonomous-action.sh
+    → schedule.conf 読み込み
+    → 時間帯×曜日×確率でスキップ判定
+    → desire-tick.ts で欲望チェック
+    → interoception.ts で身体感覚テキスト生成
+    → recall-lite.ts で記憶コンテキスト生成
+    → load-prompts.ts でプロンプト組み立て
+    → claude -p でヘッドレスセッション起動
+      → Heartbeat Protocol に従って行動
+      → [CONTINUE: ...] or [DONE]
+    → continue-check.sh でターン延長判定
+```
 
-[ターン延長]
-Stop hook → continue-check.sh → [CONTINUE] ブロック検出
-  → MAX_CONTINUES 未達なら続行
+### ルーチン回
+```
+確率判定 → ルーチン回
+  → ROUTINES.md を読む
+  → 最終実行日から間隔が空いたタスクを1つ選んで実行
+  → 最終実行日を更新
 ```
 
 ## 関連するシステム
 
-- **身体性**: desire-tick.ts（欲望）と interoception.ts（感覚）は autonomous-action.sh から呼ばれる
-- **記憶**: 自律行動中に「記憶を刻む」「記憶整理」欲望が発火
-- **読書・知識**: 「読書」欲望が発火すると /wd-read が促される
+- **身体性** — desire-tick.ts と interoception.ts がプロンプトに身体感覚を注入
+- **記憶** — recall-lite.ts がプロンプトに記憶コンテキストを注入。「記憶を刻む」欲望で記録が促される
+- **魂・ハーネス** — CLAUDE.md の Heartbeat Protocol が行動指針を定義
