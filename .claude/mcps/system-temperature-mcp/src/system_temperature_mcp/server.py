@@ -128,11 +128,21 @@ def interpret_temperature(temps: list[dict[str, Any]]) -> str:
     return feeling
 
 
+def _is_wsl() -> bool:
+    """Detect if running inside WSL."""
+    try:
+        return "microsoft" in Path("/proc/version").read_text().lower()
+    except OSError:
+        return False
+
+
 def _run_powershell(script: str) -> str:
     """Run a PowerShell script and return stdout. Returns empty string on failure."""
+    # WSL2 uses powershell.exe; native Windows uses powershell
+    cmd = "powershell.exe" if _is_wsl() else "powershell"
     try:
         result = subprocess.run(
-            ["powershell", "-NonInteractive", "-NoProfile", "-Command", script],
+            [cmd, "-NonInteractive", "-NoProfile", "-Command", script],
             capture_output=True,
             text=True,
             timeout=5,
@@ -212,7 +222,7 @@ def get_windows_temperatures() -> list[dict[str, Any]]:
     1. LibreHardwareMonitor / OpenHardwareMonitor WMI namespace (most accurate).
     2. MSAcpi_ThermalZoneTemperature (basic ACPI zones, no extra software needed).
     """
-    if sys.platform != "win32":
+    if sys.platform != "win32" and not _is_wsl():
         return []
 
     temps = _get_hardware_monitor_temps()

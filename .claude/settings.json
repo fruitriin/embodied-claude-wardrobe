@@ -68,8 +68,10 @@
   "permissions": {
     "allow": [
       "mcp__memory__*",
+      "mcp__tts__*",
       "mcp__hearing__*",
       "mcp__wifi-cam__*",
+      "mcp__system-temperature__*",
       "Bash(bun run:*)",
       "Bash(bun:*)",
       "Bash(git:*)",
