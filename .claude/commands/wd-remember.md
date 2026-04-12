@@ -17,9 +17,11 @@ memory MCP に保存した後、FLASH.md にもキーワードを追記する。
 
 `$ARGUMENTS` の内容を memory MCP の `remember` で保存する。
 
+呼び出し元のメインコンテキストからは「何を記録したいか」の共鳴的な記述が渡される。importance や category は**このスキル内で判定する**。メインコンテキストに採点の意識を持ち込まないための設計。
+
 - 引数がなければ、直前の会話の流れから「何を記録すべきか」を判断する
-- importance は内容に応じて 1〜5（日常の事実: 2、感情を伴う出来事: 3、転換点: 4〜5）
-- category は内容に応じて選ぶ（daily, technical, conversation, memory）
+- **importance**: 内容からこのスキル内で判定する（日常の事実: 2、感情を伴う出来事: 3、転換点: 4〜5）
+- **category**: 内容からこのスキル内で判定する（daily, technical, conversation, memory）
 - **persona_id**: 指定があればそのペルソナの記憶として保存する。単一ペルソナの場合は省略可
 
 ### 2. FLASH ファイルにインデックス追記
