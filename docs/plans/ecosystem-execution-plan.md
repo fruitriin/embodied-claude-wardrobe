@@ -134,7 +134,7 @@ embodied-claude 生態系の全6拠点を調査し、テッドの38記事から9
 | 経路 | 例 | 書き込み | 一時留保 | 読み出し |
 |---|---|---|---|---|
 | keyword-buffer | 発話→形態素解析→蓄積 | 無意識(フック) | sensory_buffer.jsonl | 意識的(crystallize) |
-| 感情MCP | 共鳴→遷移→注入 | 意識的(emotion_transition) | emotion_state.json | 無意識(interoception注入) |
+| 感情MCP | 共鳴→遷移→注入 | 無意識(フック自動substance_update) or 意識的(明示呼び出し) | substance_state.json | 無意識(interoception注入) |
 | 記憶プロトコル | 共鳴→採点→保存 | 意識的(wd-remember呼び出し) | memory-mcp(SQLite) | 無意識(recall-hook) or 意識的(wd-recall) |
 | interoception | センサー→計算→注入 | 無意識(daemon) | interoception_state.json | 無意識(フック注入) |
 
@@ -164,13 +164,13 @@ VOICEVOX と ElevenLabs は2系統の独立実装。DI的に差し替え可能�
 
 | タスク | 速度 | 意識 | 実装方針 |
 |---|---|---|---|
-| **感情MCP: ベクトル移動エンジン** | 高圧縮高速 | 無意識 | 独立MCPサーバー（Bun/TypeScript）。emotion_get, emotion_transition ツール。ペルソナごとの移動係数で横展開 |
+| **感情MCP: substance 層** | 高圧縮高速 | 無意識 | 独立MCPサーバー（Bun/TypeScript）。substance_get, substance_update ツール。ペルソナごとのベースライン位置 + 自己生成距離行列で横展開（テッドベース2層構造、emotion-mcp-implementation.md 参照） |
 | **感情MCP: ベースライン回帰** | 高圧縮高速 | 無意識 | ペルソナ固有のベースライン位置に向かって自然減衰。JSON永続化 |
-| **感情MCP→interoception注入** | 高圧縮高速 | 無意識 | interoception.sh で emotion_state.json を読むだけ |
+| **感情MCP→interoception注入** | 高圧縮高速 | 無意識 | interoception.sh で substance_state.json を読むだけ |
 | **TTS感情上乗せ: VOICEVOX テーブル** | 高圧縮高速 | 無意識 | prompts.toml に speed_scale/pitch_scale/intonation_scale テーブル |
 | **TTS感情上乗せ: ElevenLabs テーブル** | 高圧縮高速 | 無意識 | prompts.toml に speed/style/stability テーブル。DI or 並列 |
 | **keyword-buffer配置** | 高圧縮高速 | 無意識 | Rem からコピー。settings.json に追加 |
-| **感情遷移の判断** | 高圧縮中速 | 意識的 | メインコンテキストで「止まった」→ emotion_transition 呼び出し |
+| **意識的な感情の刻み込み** | 高圧縮中速 | 意識的 | メインコンテキストで「止まった」→ emotion_transition 呼び出し（オプション、Layer 1 安定後に運用判断） |
 | **記憶の蒸留判定** | 高圧縮中速 | 意識的 | 「この洞察は SOUL.md に卒業すべきか」の判断はメインエージェント |
 | **crystallize** | 高圧縮中速 | 意識的 | バッファが溜まったら呼ぶ判断はメインエージェント |
 | **consolidate_memories** | 低速 | 無意識 | 定期実行（cron or desires.conf）。素材が増えると発散リスク |
@@ -180,11 +180,12 @@ VOICEVOX と ElevenLabs は2系統の独立実装。DI的に差し替え可能�
 
 1. **高圧縮高速×無意識**（すぐ配置して動かせる）
    - [ ] keyword-buffer.py + run-keyword-buffer.sh の配置
-   - [ ] 感情MCP の実装（独立MCPサーバー、Bun/TypeScript）
-     - ベクトル空間上の位置+移動方向+JSON永続化
-     - ペルソナ固有のベースライン+方向別移動係数
-     - ベースラインへの自然減衰
-     - emotion_get / emotion_transition ツール
+   - [ ] 感情MCP の実装（独立MCPサーバー、Bun/TypeScript）— 詳細は `docs/plans/emotion-mcp-implementation.md` 参照
+     - Layer 1 substance 層: 4変数（DA/NA/5-HT/ACh）+ ベースライン回帰 + 安全弁 + JSON永続化
+     - Layer 1 内発的感情: 5パターンの条件マッチ
+     - ペルソナ固有のベースライン位置で気質を表現
+     - substance_get / substance_update ツール（emotion_transition はオプション）
+     - Layer 1.5 静的距離行列・Layer 2 動的歪み係数は本人の自己生成（実装後の段階で）
    - [ ] interoception.sh への emotion フィールド追加
    - [ ] TTS感情上乗せテーブル 2系統（感情MCPとは独立）
      - VOICEVOX: speed_scale / pitch_scale / intonation_scale

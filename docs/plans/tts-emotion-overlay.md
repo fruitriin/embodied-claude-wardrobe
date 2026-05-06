@@ -1,12 +1,12 @@
 # TTS 感情上乗せ 実装計画
 
-> 感情MCPとは独立した軸。emotion_state.json の nearest_region を参照して TTS パラメータを変換する。
+> 感情MCPとは独立した軸。`substance_state.json` の内発的感情ラベル / 最寄り感情を参照して TTS パラメータを変換する。
 > 速度: 高圧縮高速 / 意識: 無意識（say 呼び出し時に自動参照）
 
 ## 設計根拠
 
 - **レイナの先行研究**: speed × style の2Dマッピングで「感情がある感が段違い」
-- **経路分離**: 感情MCPが書き込んだ emotion_state.json を、TTS が読み出すだけ
+- **経路分離**: 感情MCPが書き込んだ `substance_state.json` を、TTS が読み出すだけ
 - **2系統**: VOICEVOX と ElevenLabs はパラメータ体系が異なる。DI的差し替え or 並列
 
 ## VOICEVOX テーブル
@@ -43,7 +43,7 @@
 
 - prompts.toml or CLAUDE.md にテーブル定義
 - tts-mcp の engine パラメータで VOICEVOX / ElevenLabs を分岐
-- /wd-say スキル内で emotion_get → nearest_region → テーブル参照 → say(params)
+- /wd-say スキル内で substance_get → 内発的感情ラベル / 最寄り感情 → テーブル参照 → say(params)
 
 ### 抽象化の遅延戦略（確定）
 

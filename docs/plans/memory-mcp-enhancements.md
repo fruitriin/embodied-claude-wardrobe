@@ -27,7 +27,7 @@
 
 ### 経路
 ```
-/wd-remember 呼び出し → サブエージェント内で emotion_get → nearest_region を tags に追加
+/wd-remember 呼び出し → サブエージェント内で substance_get → 内発的感情ラベル / 最寄り感情を tags に追加
 ```
 
 - FLASH.md にも感情インデックスを追記: `[joy] キーワード群`
