@@ -77,12 +77,13 @@ git diff --name-only "$LOCK_HASH"..HEAD
 
 | 変更パス | 影響するシステム |
 |---|---|
-| `.claude/mcps/memory-mcp/`, `FLASH.md`, `.claude/commands/wd-recall.md`, `.claude/commands/wd-remember.md`, `.claude/commands/wd-great-recall.md`, `.claude/commands/wd-rebuild-index.md`, `.claude/hooks/recall-hook.sh`, `.claude/hooks/post-compact-recovery.sh`, `.claude/scripts/recall-*.ts` | system-memory |
+| `.claude/mcps/memory-mcp/`, `FLASH.md`, `.claude/commands/wd-recall.md`, `.claude/commands/wd-remember.md`, `.claude/commands/wd-great-recall.md`, `.claude/commands/wd-rebuild-index.md`, `.claude/hooks/recall-hook.sh`, `.claude/hooks/post-compact-recovery.sh`, `.claude/hooks/keyword-buffer.py`, `.claude/hooks/run-keyword-buffer.sh`, `.claude/scripts/recall-*.ts` | system-memory |
 | `.claude/hooks/interoception.sh`, `.claude/hooks/heartbeat-*.sh`, `.claude/scripts/desire-tick.ts`, `.claude/scripts/interoception.ts`, `.claude/scripts/system-health.ts`, `desires.conf` | system-embodied |
-| `.claude/commands/wd-read.md`, `.claude/scripts/reader.ts` | system-reader |
+| `.claude/commands/wd-read.md`, `.claude/commands/wd-slide-watch.md`, `.claude/commands/wd-knowhow.md`, `.claude/commands/wd-knowhow-index.md`, `.claude/commands/wd-knowhow-filter.md`, `.claude/commands/wd-cc-tracker.md`, `.claude/scripts/reader.ts`, `docs/knowhow/` | system-reading-knowledge |
+| `.claude/commands/wd-observe.md`, `.claude/commands/wd-look.md`, `.claude/commands/wd-annotate-grid.md`, `.claude/commands/wd-clip-image.md`, `.claude/commands/wd-say.md`, `.claude/hooks/hearing-*.sh`, `.claude/mcps/wifi-cam-mcp/`, `.claude/mcps/hearing/`, `.claude/mcps/tts-mcp/`, `.claude/mcps/usb-webcam/`, `.claude/mcps/ip-webcam-mcp/`, `.claude/mcps/mcp-pet/` | system-perception |
 | `ROUTINES.md`, `autonomous-action.sh`, `schedule.conf`, `.claude/hooks/continue-check.sh` | system-autonomous |
-| `SOUL.md`, `CLAUDE.md` | system-soul |
-| `.claude/settings.json`, `.claude/settings.local.json` | claude-md-deps |
+| `SOUL.md`, `.claude/commands/wd-setup.md`, `.claude/commands/wd-configure.md`, `.claude/commands/wd-migrate.md`, `.claude/commands/wd-project-claude-overview.md`, `.claude/commands/wd-experience.md`, `.claude/agents/wd-*.md`, `.claude/hooks/session-boot.sh`, `.claude/templates/SOUL.template.md` | system-soul-harness |
+| `CLAUDE.md`, `.claude/settings.json`, `.claude/settings.local.json` | claude-md-deps |
 
 **マッピングに該当しないファイルの変更**（docs/, tests/, memory-mcp のソース変更等）は無視してよい。
 
