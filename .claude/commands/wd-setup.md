@@ -139,7 +139,7 @@ AskUserQuestion **1回** で聞く（2問）:
 
 （上記はトーンの参考。独自の文面で書くこと。ニュートラルな語りを維持。）
 
-SOUL.md の空欄セクションを具体的に列挙する（例: 「Core Truths, Expertise, Communication Style, Values, Boundaries, People がまだ空です」）。
+SOUL.md の空欄セクションを具体的に列挙する（例: 「Core Truths, Expertise, 語彙の地平線, Communication Style, Values, Boundaries, People がまだ空です」）。
 
 ### 改定モード
 
