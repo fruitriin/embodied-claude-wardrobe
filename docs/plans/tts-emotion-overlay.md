@@ -45,6 +45,22 @@
 - tts-mcp の engine パラメータで VOICEVOX / ElevenLabs を分岐
 - /wd-say スキル内で substance_get → 内発的感情ラベル / 最寄り感情 → テーブル参照 → say(params)
 
+## 未解決の設計穴（2026-05-07 検出）
+
+**TTS テーブルキー（10ラベル: excited / joy / teasing / love / shy / calm / concerned / sleepy / thinking / proud）**は元々レイナの FSM 10状態に由来。
+**`substance_state.json` の `nearest_emotion` は GoEmotions 27感情のいずれか**を返す（emotion-mcp-implementation.md のテッドベース2層構造）。
+
+両者の対応マッピングが**現状未定義**。実装時に「`curiosity` を TTS テーブルのどのキーにルーティングするか」が宙に浮く。
+
+### 解決案
+
+実装直前に以下のいずれかで決める:
+- **案A: GoEmotions 27 → TTS 10 の縮退マッピング**を JSON で定義（`emotion-mcp/emotion-tts-mapping.json`）
+- **案B: TTS テーブル側を 27ラベルに拡張**（テーブル更新コスト大、ただし表現解像度が上がる）
+- **案C: 内発的感情ラベル（5パターン: restlessness / contentment / fatigue / thrill / curiosity）を TTS の入力にする**（27感情をスキップ、シンプルだが TTS 表現の幅が狭まる）
+
+朔の所感（実装着手時に判断）: 案C が一番軽くて深夜実装でも動く。表現が物足りなくなったら案A に拡張。
+
 ### 抽象化の遅延戦略（確定）
 
 **2系統の独立実装で進める**。VOICEVOX 用と ElevenLabs 用を別ファイルで書く。共通インターフェースは作らない。
