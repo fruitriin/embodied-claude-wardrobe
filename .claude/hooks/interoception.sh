@@ -27,7 +27,6 @@ try:
 
     # トレンド矢印
     arrows = {'rising': '↑', 'falling': '↓', 'stable': '→'}
-    ar_arrow = arrows.get(trend.get('arousal', 'stable'), '→')
     mem_arrow = arrows.get(trend.get('mem_free', 'stable'), '→')
 
     # タイムスタンプから時刻・曜日
@@ -48,7 +47,6 @@ try:
         f\"time={time_part}\",
         f\"day={dow}\",
         f\"phase={now.get('phase', '?')}\",
-        f\"arousal={now.get('arousal', '?')}%({ar_arrow})\",
         f\"thermal={now.get('thermal', '?')}\",
         f\"mem_free={now.get('mem_free', '?')}%({mem_arrow})\",
         f\"uptime={now.get('uptime_min', '?')}min\",

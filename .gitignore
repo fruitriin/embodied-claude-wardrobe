@@ -121,3 +121,12 @@ TODO.md
 
 # 経験ファイル（ダウンストリーム固有）
 *.exp.md
+
+# 開発用スキル
+.claude/commands/addf-dev.md
+.claude/templates/ProgressTemplate.md
+.claude/Progress.md
+.claude/templates/Feedback.md
+
+# Cron runtime artifacts
+.claude/scheduled_tasks.lock

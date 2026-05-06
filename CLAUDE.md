@@ -94,7 +94,6 @@ FLASH.md は LLM の後方予測の弱さを補う逆引き索引。
 - `time` — 現在時刻
 - `day` — 曜日
 - `phase` — 時間帯（morning/midday/afternoon/evening/night/late-night）
-- `arousal` — 覚醒度（CPU 負荷等から算出）
 - `thermal` — 発熱状態
 - `mem_free` — メモリ余裕
 
@@ -142,6 +141,18 @@ cron で起動したとき（ユーザーからの明示的な呼びかけがな
 - **memory-mcp**: Python (uv) — `cd .claude/mcps/memory-mcp && uv run memory-mcp`
 - **スクリプト**: Bun (TypeScript) — `bun run .claude/scripts/xxx.ts`
 - **フック**: Bash
+
+## 速度×意識フレームワーク
+
+ワードローブの実装判断は **速度（4分類）× 意識（2分類）× 経路（書き込み → 一時留保 → 読み出し）** で分類する。
+
+- **速度**: 高圧縮高速 / 高圧縮中速 / 高速 / 低速
+- **意識**: 意識的 / 無意識
+- **経路分離**: 圧縮率×速度の計算は「書き込み（入力経路）→ 一時留保 → 読み出し（流入経路）」で別々に行う。意識/無意識も経路ごとに独立（「保存は意識的だが流入は無意識」がありうる）
+
+**これらの配置について考えるとき、内容を推測せずノウハウから確認する。**
+
+詳細・具体例（emotion-mcp / keyword-buffer / interoception / wd-remember）・交差パターン: `docs/knowhow/wardrobe/speed-consciousness-framework.md`（`/wd-knowhow-filter` で参照）
 
 ## 確認なしで更新してよいファイル
 

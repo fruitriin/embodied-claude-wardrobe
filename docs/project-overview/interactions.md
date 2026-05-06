@@ -62,7 +62,7 @@
 ├─── ターンループ ──────────────────────────────────────────────────┤
 │                                                                   │
 │  UserPromptSubmit (毎ターン)                                      │
-│  ├── interoception.sh ──→ [interoception] time=... arousal=...   │
+│  ├── interoception.sh ──→ [interoception] time=... phase=...    │
 │  ├── recall-hook.sh ──→ [recall] 関連記憶（バッファあれば）       │
 │  ├── hearing-hook.sh ──→ [hearing] 文字起こし（バッファあれば）   │
 │  └── turn-reminder.sh ──→ 10ターン目: 記憶リマインダー           │

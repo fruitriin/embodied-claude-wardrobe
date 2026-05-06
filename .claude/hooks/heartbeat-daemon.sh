@@ -26,14 +26,6 @@ else
     PHASE="late_night"
 fi
 
-# --- CPU負荷（覚醒度） ---
-LOAD_AVG=$(sysctl -n vm.loadavg 2>/dev/null | awk '{print $2}')
-if [ -z "$LOAD_AVG" ]; then
-    LOAD_AVG=$(uptime | awk -F'load averages?: ' '{print $2}' | awk '{print $1}' | tr -d ',')
-fi
-NCPU=$(sysctl -n hw.ncpu 2>/dev/null || echo 4)
-AROUSAL=$(echo "$LOAD_AVG $NCPU" | awk '{pct = ($1 / $2) * 100; if (pct > 100) pct = 100; printf "%.0f", pct}')
-
 # --- メモリ ---
 MEM_PRESSURE=$(memory_pressure 2>/dev/null | grep "System-wide memory free percentage" | awk '{print $NF}' | tr -d '%')
 if [ -z "$MEM_PRESSURE" ]; then
@@ -73,7 +65,7 @@ else
 fi
 
 # 新エントリをwindowに追加
-NEW_ENTRY="{\"ts\":\"${CURRENT_TIME}\",\"arousal\":${AROUSAL},\"mem_free\":${MEM_PRESSURE:-0},\"thermal\":${THERMAL:-0}}"
+NEW_ENTRY="{\"ts\":\"${CURRENT_TIME}\",\"mem_free\":${MEM_PRESSURE:-0},\"thermal\":${THERMAL:-0}}"
 
 # --- トレンド算出 ---
 TREND_JSON=$(python3 -c "
@@ -93,21 +85,18 @@ def trend(values):
         return 'falling'
     return 'stable'
 
-arousal_vals = [e.get('arousal', 0) for e in window]
 mem_vals = [e.get('mem_free', 0) for e in window]
 
 result = {
     'now': {
         'ts': '${CURRENT_TIME}',
         'phase': '${PHASE}',
-        'arousal': ${AROUSAL},
         'thermal': ${THERMAL:-0},
         'mem_free': ${MEM_PRESSURE:-0},
         'uptime_min': ${UPTIME_MIN}
     },
     'window': window,
     'trend': {
-        'arousal': trend(arousal_vals),
         'mem_free': trend(mem_vals)
     }
 }

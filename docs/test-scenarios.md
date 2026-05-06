@@ -69,7 +69,7 @@
 - `.claude/scripts/heartbeat-daemon.sh` が動作中（launchd）
 
 #### チェック項目
-- [ ] UserPromptSubmit で `[interoception] time=... day=... phase=... arousal=... thermal=... mem_free=...` が注入される
+- [ ] UserPromptSubmit で `[interoception] time=... day=... phase=... thermal=... mem_free=...` が注入される
 - [ ] 時間帯 (phase) が実際の時刻と一致する
 
 ### 1-3. recall-hook（追想フック）
