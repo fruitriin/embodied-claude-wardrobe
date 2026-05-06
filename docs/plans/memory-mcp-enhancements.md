@@ -3,23 +3,37 @@
 > keyword-buffer、蒸留、consolidate、FLASH.md を Memory-MCP 圏として一括管理。
 > 感情MCPとの連携ポイントも含む。
 
-## keyword-buffer 配置
+## keyword-buffer 配置 ✅（2026-05-07 完了）
 
-**出自**: Rem フォーク（確認済み、乖離なし）
+**出自**: Rem (embodied-claude) フォーク
 **速度**: 高圧縮高速 / **意識**: 無意識（UserPromptSubmit フック）
 
 ### 経路
 ```
-ユーザー入力 → keyword-buffer.py（sudachipy形態素解析）→ sensory_buffer.jsonl
+ユーザー入力 → keyword-buffer.py（sudachipy形態素解析）→ $PROJECT_DIR/.claude/sensory_buffer.jsonl
                                                             ↓ 意識的
-                                                        crystallize → 動詞チェーン
+                                                        crystallize_buffer → 動詞チェーン
 ```
 
-### 実装
-- `.claude/hooks/keyword-buffer.py` + `run-keyword-buffer.sh` を Rem からコピー
+### 実装内容
+- `.claude/hooks/keyword-buffer.py` 配置（Rem ベース + ワードローブ向け修正）
+- `.claude/hooks/run-keyword-buffer.sh` 配置（memory-mcp venv パスをワードローブ構造に整合）
 - `.claude/settings.json` の UserPromptSubmit に追加
-- 依存: sudachipy（memory-mcp の venv 経由）
-- ワードローブの memory-mcp に crystallize_buffer 実装済み
+- 依存: sudachipy（memory-mcp の `.venv` 経由で解決済み）
+- `.gitignore` に `sensory_buffer.jsonl` 追加（ペルソナ環境固有）
+
+### Rem からの差分
+- **保存先**: Rem は `~/.claude/sensory_buffer.jsonl`（ユーザー全体共有）→ ワードローブは `$CLAUDE_PROJECT_DIR/.claude/sensory_buffer.jsonl`（プロジェクト/ペルソナごとに分離）
+- **ノイズワード**: `wardrobe`、`ワードローブ` を追加
+- **venv パス**: Rem は `$PROJECT_DIR/memory-mcp/.venv/...` → ワードローブは `$PROJECT_DIR/.claude/mcps/memory-mcp/.venv/...`
+
+### 動作確認済み
+形態素解析 → 名詞/動詞抽出 → ノイズ除去 → JSONL 書き込みの一連を smoke test で確認済み。
+
+### 残タスク（別計画）
+- `crystallize_buffer` ツールを MCP 経由で意識的に呼び出す流れの統合
+- バッファ肥大時のローテーション or サイズ上限制御
+- `backfill-keywords-batch.py` 系の取り込み判断（過去ログからのキーワード再生成、ワードローブで必要かは未判断）
 
 ## 感情タグ付与（感情MCP連携）
 

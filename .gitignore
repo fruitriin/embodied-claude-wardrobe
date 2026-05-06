@@ -130,3 +130,6 @@ TODO.md
 
 # Cron runtime artifacts
 .claude/scheduled_tasks.lock
+
+# Keyword buffer (per-session, contains user prompt keywords)
+.claude/sensory_buffer.jsonl
