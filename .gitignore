@@ -133,3 +133,18 @@ TODO.md
 
 # Keyword buffer (per-session, contains user prompt keywords)
 .claude/sensory_buffer.jsonl
+
+# --- ADDF Framework (do not remove) ---
+.claude/commands/*.exp.md
+.claude/.turn-count
+.claude/.context-reminder-state
+.claude/logs/
+CLAUDE.local.md
+.claude/Dashboard.md
+.claude/Worktrees.md
+# オプショナルスキルの有効化コピー（原本は .claude/optional/。sync-optional-skills.py が配置）
+.claude/commands/addf-gui-test.md
+.claude/commands/addf-annotate-grid.md
+.claude/commands/addf-clip-image.md
+.claude/agents/addf-ui-test-agent.md
+# --- /ADDF Framework ---
