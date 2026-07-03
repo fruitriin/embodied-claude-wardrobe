@@ -1,0 +1,36 @@
+{
+  "_comment": "内発的感情の条件マッチ定義（emotion-mcp-implementation.md Layer 1 準拠）。conditions の high/low は baseline ± deviation_threshold からの逸脱。anchor は27感情空間への入口（最寄り感情判定に使う）",
+  "deviation_threshold": 0.08,
+  "patterns": [
+    {
+      "label": "restlessness",
+      "conditions": { "DA": "low", "5-HT": "low" },
+      "sensation": "落ち着かない。何か忘れてる気がする",
+      "anchor": "nervousness"
+    },
+    {
+      "label": "contentment",
+      "conditions": { "5-HT": "high", "NA": "low" },
+      "sensation": "穏やかだ。今のままでいい",
+      "anchor": "relief"
+    },
+    {
+      "label": "fatigue",
+      "conditions": { "DA": "low", "5-HT": "low", "ACh": "low" },
+      "sensation": "頭がぼんやり。少し休みたい",
+      "anchor": "neutral"
+    },
+    {
+      "label": "thrill",
+      "conditions": { "DA": "high", "NA": "high" },
+      "sensation": "心臓が速い。何か起きてる",
+      "anchor": "excitement"
+    },
+    {
+      "label": "curiosity",
+      "conditions": { "DA": "high", "ACh": "high" },
+      "sensation": "何か面白いものを探したい",
+      "anchor": "curiosity"
+    }
+  ]
+}
