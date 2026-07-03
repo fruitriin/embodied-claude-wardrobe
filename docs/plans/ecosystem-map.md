@@ -168,6 +168,27 @@ LLMとASD傾向の人間は共通して**メタ認知困難**を示し、人間�
 - コミットログの時期と Author を確認する
 - 「これは独自であって意図と意思があるのか?」「取り残されているのか?」を判定する
 
+### リポジトリの更新手順 — デフォルトブランチ以外も fetch する
+
+**main だけ見て「静か」と判定しない。** 各拠点は未マージのフィーチャーブランチで大きく開発していることがある。
+
+```bash
+# 全ブランチを fetch（デフォルトの追跡設定は main しか取らないことがある）
+git fetch origin '+refs/heads/*:refs/remotes/origin/*'
+
+# 全ブランチの最終コミット日を俯瞰し、main より新しい未マージブランチを探す
+git for-each-ref --sort=-committerdate refs/remotes/origin \
+  --format='%(committerdate:short) %(refname:short) | %(subject)'
+
+# 見つけたら規模と中身を確認
+git log --oneline origin/main..origin/<branch>
+git diff --stat origin/main...origin/<branch>
+# ファイルの中身は checkout せずに読む
+git show origin/<branch>:<path>
+```
+
+実例（2026-07 調査）: main だけ見て「ぷちは3月から休眠」「Rem は静か」と誤判定した。実際には ぷち `feature/m5_server`（+24,000行）、Rem `wave-exp`（wave_recall 実験 +2,968行）が main の外で動いていた。詳細は `external-intake-2026-07.md`。
+
 ## まだ見えないこと
 
 - ここね（共通の祖） と各フォークの乖離度
