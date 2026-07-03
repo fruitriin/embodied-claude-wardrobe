@@ -102,14 +102,18 @@ describe("API 統合（emotion_get / substance_update / emotion_transition 相�
     });
   }
 
-  test("get は状態ファイルを規定の場所に作る", () => {
+  test("get は読み取り専用（書かない）、--sync 指定時のみ規定の場所に書き戻す", () => {
     const nowRef = { value: T0 };
     const api = makeApi(nowRef);
     const snapshot = api.get();
     expect(api.statePath).toBe(defaultStatePath(dir, "default"));
-    expect(existsSync(api.statePath)).toBe(true);
+    // デフォルトの get は暗黙 saveState しない
+    expect(existsSync(api.statePath)).toBe(false);
     expect(snapshot.substance).toEqual(DEFAULT_PROFILE.baseline);
     expect(snapshot.nearest_emotion).toBe("neutral");
+    // sync 明示時のみ書き戻す
+    api.get({ sync: true });
+    expect(existsSync(api.statePath)).toBe(true);
   });
 
   test("update がプロセスをまたいで永続化される（別 API インスタンスで読める）", () => {

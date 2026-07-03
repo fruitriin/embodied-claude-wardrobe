@@ -3,7 +3,8 @@
  * emotion-mcp Layer 1 CLI — 状態エンジンの操作面
  *
  * 使い方:
- *   bun run cli.ts get [--persona <id>]
+ *   bun run cli.ts get [--persona <id>] [--sync]
+ *     --sync: decay 反映後の状態を書き戻す（デフォルトの get は読み取り専用）
  *   bun run cli.ts update --delta DA=0.1 --delta NA=-0.05 [--source user|self|environment] [--context "..."]
  *   bun run cli.ts transition <emotion> [--magnitude 0.5] [--context "..."]
  *
@@ -56,7 +57,7 @@ function usage(): never {
   console.error(
     [
       "usage:",
-      "  cli.ts get [--persona <id>]",
+      "  cli.ts get [--persona <id>] [--sync]",
       "  cli.ts update --delta KEY=VALUE ... [--source user|self|environment] [--context <text>]",
       `    KEY: ${SUBSTANCE_KEYS.join(" | ")}`,
       "  cli.ts transition <emotion> [--magnitude 0..1] [--context <text>]",
@@ -76,7 +77,7 @@ const api = createEmotionApi({
 try {
   switch (args.command) {
     case "get": {
-      console.log(JSON.stringify(api.get(), null, 2));
+      console.log(JSON.stringify(api.get({ sync: args.flags.has("sync") }), null, 2));
       break;
     }
     case "update": {

@@ -18,6 +18,7 @@ import {
 } from "./engine";
 import { loadDistanceOverrides, loadIntrinsicConfig, loadProfile } from "./profile";
 import { LEGACY_STATE_FILENAME, defaultStatePath, loadState, saveState } from "./persistence";
+import { withFileLock } from "./lock";
 
 /**
  * rootDir のデフォルト解決（memory-mcp の config.py と同じ優先順位）:
@@ -44,7 +45,12 @@ export interface EmotionApiOptions {
 }
 
 export interface EmotionApi {
-  get(): EmotionSnapshot;
+  /**
+   * 現在状態のスナップショット（decay 反映済みの読み取り専用ビュー）。
+   * デフォルトでは書き込まない。decay 反映を永続化したいときのみ sync: true
+   * （ロックを取って書き戻す）。
+   */
+  get(options?: { sync?: boolean }): EmotionSnapshot;
   update(
     deltas: Partial<Record<SubstanceKey, number>>,
     options?: { source?: string; context?: string }
@@ -114,36 +120,56 @@ export function createEmotionApi(options: EmotionApiOptions): EmotionApi {
     return initialState(personaId, profile, now);
   };
 
+  const lockPath = `${statePath}.lock`;
+
   return {
     statePath,
 
-    get() {
-      const now = clock();
-      let state = applyDecay(load(now), profile, now);
-      state = refreshDerived(state, profile, intrinsic, now);
-      saveState(statePath, state);
-      return toSnapshot(state, profile.baseline);
+    get(opts = {}) {
+      const view = () => {
+        const now = clock();
+        let state = applyDecay(load(now), profile, now);
+        state = refreshDerived(state, profile, intrinsic, now);
+        return state;
+      };
+      if (!opts.sync) {
+        // 読み取り専用ビュー: decay は読み出しのたび決定的に再計算されるので
+        // 書き戻さなくても値は一貫する。暗黙の saveState はしない
+        return toSnapshot(view(), profile.baseline);
+      }
+      // --sync: decay 反映を永続化する（書くので read-modify-write をロックで直列化）
+      return withFileLock(lockPath, () => {
+        const state = view();
+        saveState(statePath, state);
+        return toSnapshot(state, profile.baseline);
+      });
     },
 
     update(deltas, opts = {}) {
-      const now = clock();
-      const { state } = updateSubstance(load(now), profile, deltas, intrinsic, {
-        source: opts.source,
-        context: opts.context,
-        now,
+      // load → 計算 → save をロックで直列化（並行呼び出しのロストアップデート防止）。
+      // 返すスナップショットは保存した状態そのもの（保存されなかった値を成功として返さない）
+      return withFileLock(lockPath, () => {
+        const now = clock();
+        const { state } = updateSubstance(load(now), profile, deltas, intrinsic, {
+          source: opts.source,
+          context: opts.context,
+          now,
+        });
+        saveState(statePath, state);
+        return toSnapshot(state, profile.baseline);
       });
-      saveState(statePath, state);
-      return toSnapshot(state, profile.baseline);
     },
 
     transition(target, magnitude, context) {
-      const now = clock();
-      const state = transitionEmotion(load(now), profile, matrix, target, magnitude, intrinsic, {
-        context,
-        now,
+      return withFileLock(lockPath, () => {
+        const now = clock();
+        const state = transitionEmotion(load(now), profile, matrix, target, magnitude, intrinsic, {
+          context,
+          now,
+        });
+        saveState(statePath, state);
+        return toSnapshot(state, profile.baseline);
       });
-      saveState(statePath, state);
-      return toSnapshot(state, profile.baseline);
     },
   };
 }
