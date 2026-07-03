@@ -43,9 +43,11 @@ done
 # Bun テスト（ワードローブ追加: .claude 配下の *.test.ts を一括発見）
 echo ""
 echo "▶ Bun Tests (wardrobe)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+BUN_TESTS=$(find "$PROJECT_ROOT/.claude" -name '*.test.ts' -not -path '*/node_modules/*' 2>/dev/null)
+BUN_STATUS=""
+BUN_EXECUTED=0
 if command -v bun >/dev/null 2>&1; then
-  PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-  BUN_TESTS=$(find "$PROJECT_ROOT/.claude" -name '*.test.ts' -not -path '*/node_modules/*' 2>/dev/null)
   if [ -n "$BUN_TESTS" ]; then
     while IFS= read -r f; do
       echo ""
@@ -60,12 +62,25 @@ if command -v bun >/dev/null 2>&1; then
         echo "→ $(basename "$f"): SOME FAILED"
         TOTAL_FAIL=$((TOTAL_FAIL + 1))
       fi
+      BUN_EXECUTED=$((BUN_EXECUTED + 1))
     done <<< "$BUN_TESTS"
+    BUN_STATUS="Bun tests: ${BUN_EXECUTED} executed"
   else
-    echo "  （*.test.ts なし — SKIP）"
+    echo "  （*.test.ts なし — 真の SKIP）"
+    BUN_STATUS="Bun tests: SKIPPED (no *.test.ts files)"
   fi
 else
-  echo "  （bun 不在 — SKIP）"
+  # bun 不在: テストファイルが実在するなら FAIL 扱い（cron の PATH 落ちで無音 SKIP を防ぐ）
+  if [ -n "$BUN_TESTS" ]; then
+    BUN_COUNT=$(printf '%s\n' "$BUN_TESTS" | wc -l | tr -d ' ')
+    echo "  ✗ bun が見つからないが *.test.ts が ${BUN_COUNT} 件実在する（cron の PATH 落ちの可能性）"
+    echo "  → FAIL 扱いにする"
+    TOTAL_FAIL=$((TOTAL_FAIL + 1))
+    BUN_STATUS="Bun tests: FAILED (bun not found, ${BUN_COUNT} test file(s) exist)"
+  else
+    echo "  （bun 不在 かつ *.test.ts なし — 真の SKIP）"
+    BUN_STATUS="Bun tests: SKIPPED (bun not found, no *.test.ts files)"
+  fi
 fi
 
 # メモ: memory-mcp の pytest（約4.5分、E5モデル実ロード）は重いため本ランナーには含めない。
@@ -81,6 +96,8 @@ done
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "▶ Summary"
+echo "  ${BUN_STATUS}"
 if [ "$TOTAL_FAIL" -eq 0 ]; then
   echo "✓ All automated tests passed"
   exit 0

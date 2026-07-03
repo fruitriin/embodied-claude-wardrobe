@@ -1,6 +1,6 @@
 // journal-scripts.test.ts — 非退行台帳スクリプトのテスト
-// 実行: bun test ./.claude/tests/tools/journal-scripts.test.ts
-// （run-all.sh は tools/test-*.sh のみ拾うので、このファイルは bun test 専用）
+// 実行: run-all.sh の Bun 自動発見（.claude 配下の *.test.ts）で拾われる。
+// 手動実行は `bun test ./.claude/tests/tools/journal-scripts.test.ts` でも可。
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
