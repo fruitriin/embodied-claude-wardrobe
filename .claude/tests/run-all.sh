@@ -40,6 +40,37 @@ for f in "$SCRIPT_DIR"/tools/test-*.sh; do
   [ -f "$f" ] && run_test "$f"
 done
 
+# Bun テスト（ワードローブ追加: .claude 配下の *.test.ts を一括発見）
+echo ""
+echo "▶ Bun Tests (wardrobe)"
+if command -v bun >/dev/null 2>&1; then
+  PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+  BUN_TESTS=$(find "$PROJECT_ROOT/.claude" -name '*.test.ts' -not -path '*/node_modules/*' 2>/dev/null)
+  if [ -n "$BUN_TESTS" ]; then
+    while IFS= read -r f; do
+      echo ""
+      echo "━━━ $(basename "$f") ━━━"
+      # emotion-mcp 等サブプロジェクトのテストは package.json のあるディレクトリで実行
+      pkg_dir="$(dirname "$f")"
+      while [ "$pkg_dir" != "$PROJECT_ROOT" ] && [ ! -f "$pkg_dir/package.json" ]; do pkg_dir="$(dirname "$pkg_dir")"; done
+      if [ -f "$pkg_dir/package.json" ]; then run_dir="$pkg_dir"; else run_dir="$PROJECT_ROOT"; fi
+      if (cd "$run_dir" && bun test "$f"); then
+        echo "→ $(basename "$f"): ALL PASSED"
+      else
+        echo "→ $(basename "$f"): SOME FAILED"
+        TOTAL_FAIL=$((TOTAL_FAIL + 1))
+      fi
+    done <<< "$BUN_TESTS"
+  else
+    echo "  （*.test.ts なし — SKIP）"
+  fi
+else
+  echo "  （bun 不在 — SKIP）"
+fi
+
+# メモ: memory-mcp の pytest（約4.5分、E5モデル実ロード）は重いため本ランナーには含めない。
+# 実行: cd .claude/mcps/memory-mcp && uv run pytest
+
 # スキルテスト案内
 echo ""
 echo "▶ Skill Tests (manual)"
