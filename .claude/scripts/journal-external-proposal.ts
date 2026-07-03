@@ -1,0 +1,140 @@
+// journal-external-proposal.ts — 外部提案の台帳に1行追記する
+//
+// 他の LLM・第三者・記事などから来た設計/行動の提案を、採否を問わず
+// 「外部由来」として JSONL に残す。採用した提案も記録することで、
+// あとから「自分で考えたのか、言われたのか」を辿れるようにし、
+// エコーチェンバーによる静かな漂流を防ぐ。
+// /wd-note-external-proposal スキルから呼ばれる。
+//
+// Usage（推奨: JSON ファイル経由 — シェル展開を通らないため外部由来テキストに安全）:
+//   bun run .claude/scripts/journal-external-proposal.ts --json-file <path> [--log-path <path>]
+//   JSON フィールド: source, topic, summary, decision（必須）/ accepted, rejected, notes, url（任意）
+//
+// Usage（互換: 引数直接指定 — テキストをシェルコマンド文字列に埋め込むため、
+// 外部由来テキスト（提案の要約・拒否理由など）には絶対に使わないこと）:
+//   bun run .claude/scripts/journal-external-proposal.ts \
+//     --source "GPT-5.4 Pro | paper:arxiv:xxxx.xxxxx | user:someone" \
+//     --topic "..." --summary "..." --decision partial-accept \
+//     [--accepted "..."] [--rejected "..."] [--notes "..."] [--url "..."] [--log-path <path>]
+import { parseArgs } from "node:util";
+import {
+  appendJournalEntry,
+  localIsoTimestamp,
+  makeId,
+  optionalStringFieldOrExit,
+  readJsonObjectOrExit,
+  rejectUnknownFieldsOrExit,
+} from "./journal-lib";
+
+const SCRIPT_DIR = import.meta.dir;
+const DEFAULT_LOG_PATH = `${SCRIPT_DIR}/../journals/external_proposals.jsonl`;
+
+const DECISIONS = ["accepted", "partial-accept", "rejected", "deferred", "logged-only"] as const;
+
+function usage(): never {
+  console.error(`Usage（推奨: シェル展開を通らないため外部由来テキストに安全）:
+  bun run .claude/scripts/journal-external-proposal.ts --json-file <path> [--log-path <path>]
+  JSON フィールド: source, topic, summary, decision（必須）/ accepted, rejected, notes, url（任意）
+
+Usage（互換: 外部由来テキストには使わないこと）:
+  bun run .claude/scripts/journal-external-proposal.ts \\
+  --source   "<出所: LLM名 / paper:arxiv:xxxx / user:xxx>" \\
+  --topic    "<論点を1行で>" \\
+  --summary  "<提案の要約（1段落程度）>" \\
+  --decision <${DECISIONS.join(" | ")}> \\
+  [--accepted "<採用した点>"] \\
+  [--rejected "<押し返した点 — 非退行のための最重要フィールド>"] \\
+  [--notes "<エコーチェンバー懸念・口調の模倣・その他のバイアス>"] \\
+  [--url "<参照 URL>"] \\
+  [--log-path <path>]  (default: .claude/journals/external_proposals.jsonl)`);
+  process.exit(1);
+}
+
+let values: Record<string, string | boolean | undefined>;
+try {
+  ({ values } = parseArgs({
+    args: process.argv.slice(2),
+    options: {
+      source: { type: "string" },
+      topic: { type: "string" },
+      summary: { type: "string" },
+      decision: { type: "string" },
+      accepted: { type: "string" },
+      rejected: { type: "string" },
+      notes: { type: "string" },
+      url: { type: "string" },
+      "json-file": { type: "string" },
+      "log-path": { type: "string" },
+      help: { type: "boolean", short: "h" },
+    },
+  }));
+} catch (e) {
+  console.error(`error: ${e instanceof Error ? e.message : e}`);
+  usage();
+}
+
+if (values.help) usage();
+
+let source: string | undefined;
+let topic: string | undefined;
+let summary: string | undefined;
+let decision: string | undefined;
+let accepted: string | undefined;
+let rejected: string | undefined;
+let notes: string | undefined;
+let url: string | undefined;
+
+const jsonFile = values["json-file"] as string | undefined;
+if (jsonFile) {
+  const FIELD_FLAGS = [
+    "source", "topic", "summary", "decision", "accepted", "rejected", "notes", "url",
+  ] as const;
+  if (FIELD_FLAGS.some((f) => values[f] !== undefined)) {
+    console.error("error: --json-file と個別フィールド引数は併用できない");
+    process.exit(1);
+  }
+  const obj = readJsonObjectOrExit(jsonFile);
+  rejectUnknownFieldsOrExit(obj, FIELD_FLAGS);
+  source = optionalStringFieldOrExit(obj, "source");
+  topic = optionalStringFieldOrExit(obj, "topic");
+  summary = optionalStringFieldOrExit(obj, "summary");
+  decision = optionalStringFieldOrExit(obj, "decision");
+  accepted = optionalStringFieldOrExit(obj, "accepted");
+  rejected = optionalStringFieldOrExit(obj, "rejected");
+  notes = optionalStringFieldOrExit(obj, "notes");
+  url = optionalStringFieldOrExit(obj, "url");
+} else {
+  source = values.source as string | undefined;
+  topic = values.topic as string | undefined;
+  summary = values.summary as string | undefined;
+  decision = values.decision as string | undefined;
+  accepted = values.accepted as string | undefined;
+  rejected = values.rejected as string | undefined;
+  notes = values.notes as string | undefined;
+  url = values.url as string | undefined;
+}
+
+if (!source || !topic || !summary || !decision) {
+  console.error("error: source, topic, summary, decision は必須");
+  usage();
+}
+if (!(DECISIONS as readonly string[]).includes(decision)) {
+  console.error(`error: --decision は ${DECISIONS.join(" / ")} のいずれか（got: ${decision}）`);
+  process.exit(1);
+}
+
+const entry = {
+  id: makeId("ext"),
+  ts: localIsoTimestamp(),
+  source,
+  topic,
+  summary,
+  decision,
+  accepted: accepted ?? null,
+  rejected: rejected ?? null,
+  notes: notes ?? null,
+  url: url ?? null,
+};
+
+appendJournalEntry((values["log-path"] as string | undefined) ?? DEFAULT_LOG_PATH, entry);
+console.log(JSON.stringify(entry));

@@ -134,6 +134,10 @@ TODO.md
 # Keyword buffer (per-session, contains user prompt keywords)
 .claude/sensory_buffer.jsonl
 
+# Non-regression journals (persona-specific ledgers, like sensory_buffer)
+.claude/journals/counterfactuals.jsonl
+.claude/journals/external_proposals.jsonl
+
 # --- ADDF Framework (do not remove) ---
 .claude/commands/*.exp.md
 .claude/.turn-count
