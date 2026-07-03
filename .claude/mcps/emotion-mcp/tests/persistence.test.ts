@@ -37,14 +37,57 @@ describe("substance_state.json の永続化", () => {
     expect(entries).toEqual(["substance_state.json"]);
   });
 
-  test("存在しない・壊れたファイルは null（作り直しを促す）", () => {
+  test("存在しない・JSON として読めない・persona 不明のファイルは null（作り直しを促す）", () => {
     expect(loadState(join(dir, "missing.json"))).toBeNull();
     const broken = join(dir, "broken.json");
     writeFileSync(broken, "{not json", "utf-8");
     expect(loadState(broken)).toBeNull();
-    const wrongShape = join(dir, "wrong.json");
-    writeFileSync(wrongShape, JSON.stringify({ persona: "x", substance: { DA: 0.5 } }), "utf-8");
-    expect(loadState(wrongShape)).toBeNull();
+    const noPersona = join(dir, "no-persona.json");
+    writeFileSync(noPersona, JSON.stringify({ substance: { DA: 0.5 } }), "utf-8");
+    expect(loadState(noPersona)).toBeNull();
+  });
+
+  test("不正フィールドは全体 null ではなくフィールド単位でベースライン修復される", () => {
+    // NaN は JSON.stringify で null になる（NaN 毒の永続化経路の再現）
+    const poisoned = join(dir, "poisoned.json");
+    writeFileSync(
+      poisoned,
+      JSON.stringify({
+        persona: "riin",
+        substance: { DA: null, NA: 0.9, "5-HT": "broken", ACh: 0.3 },
+        activations: { joy: 0.4, sadness: null },
+        last_updated: "2026-07-03T12:00:00Z",
+      }),
+      "utf-8"
+    );
+    const state = loadState(poisoned, DEFAULT_PROFILE.baseline);
+    expect(state).not.toBeNull();
+    // 不正フィールドだけベースラインで修復
+    expect(state!.substance.DA).toBe(DEFAULT_PROFILE.baseline.DA);
+    expect(state!.substance["5-HT"]).toBe(DEFAULT_PROFILE.baseline["5-HT"]);
+    // 蓄積された正常フィールドは保全される（全消去しない）
+    expect(state!.substance.NA).toBe(0.9);
+    expect(state!.substance.ACh).toBe(0.3);
+    expect(state!.activations).toEqual({ joy: 0.4 });
+    expect(state!.last_updated).toBe("2026-07-03T12:00:00Z");
+  });
+
+  test("last_updated 不正は現在時刻で修復される（過去に飛ばして decay 全消ししない）", () => {
+    const path = join(dir, "bad-ts.json");
+    writeFileSync(
+      path,
+      JSON.stringify({
+        persona: "riin",
+        substance: { DA: 0.9, NA: 0.45, "5-HT": 0.55, ACh: 0.6 },
+        last_updated: "not-a-date",
+      }),
+      "utf-8"
+    );
+    const before = Date.now();
+    const state = loadState(path);
+    expect(state).not.toBeNull();
+    expect(new Date(state!.last_updated).getTime()).toBeGreaterThanOrEqual(before - 1000);
+    expect(state!.substance.DA).toBe(0.9);
   });
 });
 

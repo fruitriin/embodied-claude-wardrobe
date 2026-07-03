@@ -143,6 +143,11 @@ export function updateSubstance(
   for (const key of SUBSTANCE_KEYS) {
     const raw = deltas[key];
     if (raw === undefined || raw === 0) continue;
+    // NaN 毒対策: 非有限値はコア層で弾く（CLI 検証だけでは api 直呼びを防げない）
+    if (!Number.isFinite(raw)) {
+      console.error(`[emotion-mcp] non-finite delta ignored: ${key}=${raw}`);
+      continue;
+    }
 
     const gain = raw > 0 ? profile.substance_direction_gain[key].up : profile.substance_direction_gain[key].down;
     let d = raw * weight * gain;
@@ -199,6 +204,10 @@ export function transitionEmotion(
 ): EmotionState {
   if (!isEmotion(target)) {
     throw new Error(`unknown emotion: ${target} (GoEmotions 27感情のいずれかを指定)`);
+  }
+  // NaN 毒対策: clamp01(NaN) は NaN のまま活性値を汚染するため明示エラー
+  if (!Number.isFinite(magnitude)) {
+    throw new Error(`magnitude must be a finite number: ${magnitude}`);
   }
   const mag = clamp01(magnitude);
   const { now } = options;

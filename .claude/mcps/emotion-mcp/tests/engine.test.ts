@@ -304,3 +304,43 @@ describe("感情遷移（emotion_transition 相当）と伝播", () => {
     ).toThrow(/unknown emotion/);
   });
 });
+
+describe("NaN 毒対策（api 直呼び経路のコア層ガード）", () => {
+  test("非有限 delta はスキップされ、正常な delta だけが反映される", () => {
+    for (const poison of [NaN, Infinity, -Infinity]) {
+      const { state, applied } = updateSubstance(
+        freshState(),
+        DEFAULT_PROFILE,
+        { DA: poison, NA: 0.1 },
+        DEFAULT_INTRINSIC,
+        { now: minutesLater(1) }
+      );
+      expect(state.substance.DA).toBe(DEFAULT_PROFILE.baseline.DA);
+      expect(Number.isFinite(state.substance.DA)).toBe(true);
+      expect(applied.DA).toBeUndefined();
+      expect(state.substance.NA).toBeCloseTo(0.55, 5); // 正常 delta は生きる
+    }
+  });
+
+  test("NaN delta 後も状態は有限のまま、後続の更新が積み上がる（全消去されない）", () => {
+    const first = updateSubstance(freshState(), DEFAULT_PROFILE, { DA: 0.15 }, DEFAULT_INTRINSIC, {
+      now: minutesLater(1),
+    });
+    const poisoned = updateSubstance(first.state, DEFAULT_PROFILE, { DA: NaN }, DEFAULT_INTRINSIC, {
+      now: minutesLater(1.1),
+    });
+    for (const key of ["DA", "NA", "5-HT", "ACh"] as const) {
+      expect(Number.isFinite(poisoned.state.substance[key])).toBe(true);
+    }
+    // 蓄積された状態が保全されている（decay 数秒分の誤差のみ）
+    expect(poisoned.state.substance.DA).toBeCloseTo(0.75, 2);
+  });
+
+  test("transition の非有限 magnitude は明示エラー", () => {
+    expect(() =>
+      transitionEmotion(freshState(), DEFAULT_PROFILE, matrix, "joy", NaN, DEFAULT_INTRINSIC, {
+        now: minutesLater(0.1),
+      })
+    ).toThrow(/finite/);
+  });
+});

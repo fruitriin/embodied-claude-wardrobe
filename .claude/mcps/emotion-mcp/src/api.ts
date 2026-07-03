@@ -69,7 +69,7 @@ export function createEmotionApi(options: EmotionApiOptions): EmotionApi {
   const matrix = buildDistanceMatrix(loadDistanceOverrides(personasDir, personaId));
 
   const load = (now: Date): EmotionState => {
-    const state = loadState(statePath);
+    const state = loadState(statePath, profile.baseline);
     if (state && state.persona === personaId) return state;
     return initialState(personaId, profile, now);
   };
