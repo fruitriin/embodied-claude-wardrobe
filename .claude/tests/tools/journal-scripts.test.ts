@@ -47,6 +47,7 @@ describe("journal-counterfactual.ts", () => {
       "--why", "深夜帯で、以前『作業中は割り込まないで』と言われていた",
       "--trigger", "heartbeat",
       "--person-id", "riin",
+      "--allow-legacy-args",
       "--log-path", logPath,
     ]);
     expect(r.code).toBe(0);
@@ -68,7 +69,7 @@ describe("journal-counterfactual.ts", () => {
 
   test("2回呼ぶと2行になる（追記）", () => {
     const logPath = join(tmp, "cf.jsonl");
-    const args = ["--wanted", "a", "--chose", "b", "--why", "c", "--log-path", logPath];
+    const args = ["--wanted", "a", "--chose", "b", "--why", "c", "--allow-legacy-args", "--log-path", logPath];
     run("journal-counterfactual.ts", args);
     run("journal-counterfactual.ts", args);
     const lines = readFileSync(logPath, "utf-8").trim().split("\n");
@@ -79,7 +80,7 @@ describe("journal-counterfactual.ts", () => {
   test("必須引数が欠けると exit 1 で書き込まない", () => {
     const logPath = join(tmp, "cf.jsonl");
     const r = run("journal-counterfactual.ts", [
-      "--wanted", "a", "--chose", "b", "--log-path", logPath,
+      "--wanted", "a", "--chose", "b", "--allow-legacy-args", "--log-path", logPath,
     ]);
     expect(r.code).toBe(1);
     expect(existsSync(logPath)).toBe(false);
@@ -89,6 +90,7 @@ describe("journal-counterfactual.ts", () => {
     const r = run("journal-counterfactual.ts", [
       "--wanted", "a", "--chose", "b", "--why", "c",
       "--regret", "1.5",
+      "--allow-legacy-args",
       "--log-path", join(tmp, "cf.jsonl"),
     ]);
     expect(r.code).toBe(1);
@@ -106,6 +108,7 @@ describe("journal-external-proposal.ts", () => {
       "--accepted", "台帳の思想",
       "--rejected", "4層自己モデルの全面再構築",
       "--notes", "文体が自分に似ていた——エコーチェンバー注意",
+      "--allow-legacy-args",
       "--log-path", logPath,
     ]);
     expect(r.code).toBe(0);
@@ -125,6 +128,7 @@ describe("journal-external-proposal.ts", () => {
     const r = run("journal-external-proposal.ts", [
       "--source", "s", "--topic", "t", "--summary", "s",
       "--decision", "maybe",
+      "--allow-legacy-args",
       "--log-path", logPath,
     ]);
     expect(r.code).toBe(1);
@@ -135,6 +139,7 @@ describe("journal-external-proposal.ts", () => {
   test("必須引数が欠けると exit 1", () => {
     const r = run("journal-external-proposal.ts", [
       "--source", "s", "--topic", "t",
+      "--allow-legacy-args",
       "--log-path", join(tmp, "ext.jsonl"),
     ]);
     expect(r.code).toBe(1);
@@ -229,23 +234,22 @@ describe("journal-counterfactual.ts --json-file", () => {
   });
 });
 
-// 旧引数モード（--wanted 等の直接指定）は互換維持のため残しているが、
-// 外部由来テキストをシェルコマンド文字列に埋め込むリスクがある。
-// 実行時に stderr へ deprecation 警告を出し、--allow-legacy-args で明示抑制できることを検証する。
-describe("journal-counterfactual.ts 旧引数モードの deprecation 警告", () => {
-  test("旧引数モードは stderr に deprecation 警告を出す（exit 0 は維持）", () => {
+// 旧引数モード（--wanted 等の直接指定）は default で拒否される。
+// 外部由来テキストをシェルコマンド文字列へ埋め込むと任意コマンド実行のリスクがあるため、
+// 対話的な手動デバッグ等で意図的に使う場合のみ --allow-legacy-args で明示許可する。
+describe("journal-counterfactual.ts 旧引数モードの default 拒否", () => {
+  test("旧引数モードは --allow-legacy-args なしで exit 1、stderr に [error]、書き込みなし", () => {
     const logPath = join(tmp, "cf.jsonl");
     const r = run("journal-counterfactual.ts", [
       "--wanted", "a", "--chose", "b", "--why", "c", "--log-path", logPath,
     ]);
-    expect(r.code).toBe(0);
-    expect(r.stderr).toContain("[deprecated]");
-    expect(r.stderr).toContain("--json-file");
-    // 書き込みは通常どおり行われる（互換維持）
-    expect(readFileSync(logPath, "utf-8").trim().split("\n").length).toBe(1);
+    expect(r.code).toBe(1);
+    expect(r.stderr).toContain("[error]");
+    expect(r.stderr).toContain("--allow-legacy-args");
+    expect(existsSync(logPath)).toBe(false);
   });
 
-  test("--allow-legacy-args を明示指定すると警告が出ない", () => {
+  test("--allow-legacy-args を明示指定すると exit 0、stderr に [warn]、書き込みあり", () => {
     const logPath = join(tmp, "cf.jsonl");
     const r = run("journal-counterfactual.ts", [
       "--wanted", "a", "--chose", "b", "--why", "c",
@@ -253,10 +257,12 @@ describe("journal-counterfactual.ts 旧引数モードの deprecation 警告", (
       "--log-path", logPath,
     ]);
     expect(r.code).toBe(0);
-    expect(r.stderr).not.toContain("[deprecated]");
+    expect(r.stderr).toContain("[warn]");
+    expect(r.stderr).not.toContain("[error]");
+    expect(readFileSync(logPath, "utf-8").trim().split("\n").length).toBe(1);
   });
 
-  test("--json-file モードには deprecation 警告が出ない", () => {
+  test("--json-file モードには警告が出ない", () => {
     const logPath = join(tmp, "cf.jsonl");
     const jsonPath = join(tmp, "input.json");
     writeFileSync(jsonPath, JSON.stringify({ wanted: "a", chose: "b", why: "c" }));
@@ -264,25 +270,53 @@ describe("journal-counterfactual.ts 旧引数モードの deprecation 警告", (
       "--json-file", jsonPath, "--log-path", logPath,
     ]);
     expect(r.code).toBe(0);
-    expect(r.stderr).not.toContain("[deprecated]");
+    expect(r.stderr).toBe("");
+  });
+
+  test("--json-file + --allow-legacy-args は無視され stderr にその旨の [warn]", () => {
+    const logPath = join(tmp, "cf.jsonl");
+    const jsonPath = join(tmp, "input.json");
+    writeFileSync(jsonPath, JSON.stringify({ wanted: "a", chose: "b", why: "c" }));
+    const r = run("journal-counterfactual.ts", [
+      "--json-file", jsonPath, "--allow-legacy-args", "--log-path", logPath,
+    ]);
+    expect(r.code).toBe(0);
+    expect(r.stderr).toContain("--allow-legacy-args は --json-file モードでは無視されます");
+    expect(readFileSync(logPath, "utf-8").trim().split("\n").length).toBe(1);
+  });
+
+  // 攻撃再現: 外部由来テキスト（--wanted の値）に --allow-legacy-args という文字列を
+  // 混ぜても、parseArgs は key/value を分離するので --wanted の値の一部として扱われ、
+  // 意図せず旧引数モードを許可することにはならない。default 拒否のまま exit 1 になる。
+  test("外部テキスト値に --allow-legacy-args を混ぜても抑制されない（攻撃再現・default 拒否維持）", () => {
+    const logPath = join(tmp, "cf.jsonl");
+    const r = run("journal-counterfactual.ts", [
+      "--wanted", "選択肢A --allow-legacy-args まぎらわしい文字列",
+      "--chose", "選択肢B",
+      "--why", "テスト",
+      "--log-path", logPath,
+    ]);
+    expect(r.code).toBe(1);
+    expect(r.stderr).toContain("[error]");
+    expect(existsSync(logPath)).toBe(false);
   });
 });
 
-describe("journal-external-proposal.ts 旧引数モードの deprecation 警告", () => {
-  test("旧引数モードは stderr に deprecation 警告を出す（exit 0 は維持）", () => {
+describe("journal-external-proposal.ts 旧引数モードの default 拒否", () => {
+  test("旧引数モードは --allow-legacy-args なしで exit 1、stderr に [error]、書き込みなし", () => {
     const logPath = join(tmp, "ext.jsonl");
     const r = run("journal-external-proposal.ts", [
       "--source", "s", "--topic", "t", "--summary", "s",
       "--decision", "logged-only",
       "--log-path", logPath,
     ]);
-    expect(r.code).toBe(0);
-    expect(r.stderr).toContain("[deprecated]");
-    expect(r.stderr).toContain("--json-file");
-    expect(readFileSync(logPath, "utf-8").trim().split("\n").length).toBe(1);
+    expect(r.code).toBe(1);
+    expect(r.stderr).toContain("[error]");
+    expect(r.stderr).toContain("--allow-legacy-args");
+    expect(existsSync(logPath)).toBe(false);
   });
 
-  test("--allow-legacy-args を明示指定すると警告が出ない", () => {
+  test("--allow-legacy-args を明示指定すると exit 0、stderr に [warn]、書き込みあり", () => {
     const logPath = join(tmp, "ext.jsonl");
     const r = run("journal-external-proposal.ts", [
       "--source", "s", "--topic", "t", "--summary", "s",
@@ -291,10 +325,12 @@ describe("journal-external-proposal.ts 旧引数モードの deprecation 警告"
       "--log-path", logPath,
     ]);
     expect(r.code).toBe(0);
-    expect(r.stderr).not.toContain("[deprecated]");
+    expect(r.stderr).toContain("[warn]");
+    expect(r.stderr).not.toContain("[error]");
+    expect(readFileSync(logPath, "utf-8").trim().split("\n").length).toBe(1);
   });
 
-  test("--json-file モードには deprecation 警告が出ない", () => {
+  test("--json-file モードには警告が出ない", () => {
     const logPath = join(tmp, "ext.jsonl");
     const jsonPath = join(tmp, "input.json");
     writeFileSync(jsonPath, JSON.stringify({
@@ -304,7 +340,37 @@ describe("journal-external-proposal.ts 旧引数モードの deprecation 警告"
       "--json-file", jsonPath, "--log-path", logPath,
     ]);
     expect(r.code).toBe(0);
-    expect(r.stderr).not.toContain("[deprecated]");
+    expect(r.stderr).toBe("");
+  });
+
+  test("--json-file + --allow-legacy-args は無視され stderr にその旨の [warn]", () => {
+    const logPath = join(tmp, "ext.jsonl");
+    const jsonPath = join(tmp, "input.json");
+    writeFileSync(jsonPath, JSON.stringify({
+      source: "s", topic: "t", summary: "s", decision: "logged-only",
+    }));
+    const r = run("journal-external-proposal.ts", [
+      "--json-file", jsonPath, "--allow-legacy-args", "--log-path", logPath,
+    ]);
+    expect(r.code).toBe(0);
+    expect(r.stderr).toContain("--allow-legacy-args は --json-file モードでは無視されます");
+    expect(readFileSync(logPath, "utf-8").trim().split("\n").length).toBe(1);
+  });
+
+  // 攻撃再現: 外部由来テキスト（--summary の値）に --allow-legacy-args を混ぜても
+  // parseArgs は key/value を分離するため、意図せず抑制されない。default 拒否のまま exit 1。
+  test("外部テキスト値に --allow-legacy-args を混ぜても抑制されない（攻撃再現・default 拒否維持）", () => {
+    const logPath = join(tmp, "ext.jsonl");
+    const r = run("journal-external-proposal.ts", [
+      "--source", "some-llm",
+      "--topic", "trick",
+      "--summary", "提案の要約 --allow-legacy-args こういう文字列を混ぜてくる",
+      "--decision", "rejected",
+      "--log-path", logPath,
+    ]);
+    expect(r.code).toBe(1);
+    expect(r.stderr).toContain("[error]");
+    expect(existsSync(logPath)).toBe(false);
   });
 });
 

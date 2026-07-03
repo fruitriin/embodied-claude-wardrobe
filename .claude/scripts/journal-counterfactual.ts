@@ -8,8 +8,10 @@
 //   bun run .claude/scripts/journal-counterfactual.ts --json-file <path> [--log-path <path>]
 //   JSON フィールド: wanted, chose, why（必須）/ trigger, person_id, regret（任意）
 //
-// 旧引数モード（--wanted 等の直接指定）は互換維持のため残置。外部由来テキストには使うな。
-// 実行時に stderr へ deprecation 警告を出す。抑制したい場合は --allow-legacy-args を明示指定する。
+// 旧引数モード（--wanted 等の直接指定）は default で拒否される（exit 1）。
+// 外部由来テキストをシェルコマンド文字列へ埋め込むと任意コマンド実行のリスクがあるため、
+// 対話的な手動デバッグなど「これは外部由来ではない」と自覚した上で使う場合のみ
+// --allow-legacy-args を明示指定して有効化する。
 import { parseArgs } from "node:util";
 import {
   appendJournalEntry,
@@ -30,7 +32,8 @@ function usage(): never {
   [--log-path <path>]  (default: .claude/journals/counterfactuals.jsonl)
 
 旧引数モード（--wanted / --chose / --why / --trigger / --person-id / --regret）は
-互換維持のため残置。外部由来テキストに使うな。--allow-legacy-args で警告抑制。`);
+default で拒否される（exit 1）。対話的手動デバッグ等で使う場合のみ
+--allow-legacy-args を明示指定して有効化する。外部由来テキストには絶対に使うな。`);
   process.exit(1);
 }
 
@@ -72,6 +75,9 @@ if (jsonFile) {
     console.error("error: --json-file と個別フィールド引数は併用できない");
     process.exit(1);
   }
+  if (values["allow-legacy-args"]) {
+    console.error("[warn] --allow-legacy-args は --json-file モードでは無視されます");
+  }
   const obj = readJsonObjectOrExit(jsonFile);
   rejectUnknownFieldsOrExit(obj, ["wanted", "chose", "why", "trigger", "person_id", "regret"]);
   wanted = optionalStringFieldOrExit(obj, "wanted");
@@ -89,9 +95,11 @@ if (jsonFile) {
 } else {
   if (!values["allow-legacy-args"]) {
     console.error(
-      "[deprecated] --wanted 等の直接指定は非推奨。外部由来テキストには --json-file を使うこと（抑制: --allow-legacy-args）",
+      "[error] 旧引数モードは default で拒否されます。外部由来テキストはシェル展開経由で任意コマンド実行になるリスクがあります。明示的に許可する場合は --allow-legacy-args を付けてください（例: 対話的手動デバッグ）",
     );
+    process.exit(1);
   }
+  console.error("[warn] 旧引数モードで実行しました（外部由来テキストに使わないこと）");
   wanted = values.wanted as string | undefined;
   chose = values.chose as string | undefined;
   why = values.why as string | undefined;

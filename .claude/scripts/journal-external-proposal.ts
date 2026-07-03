@@ -10,9 +10,10 @@
 //   bun run .claude/scripts/journal-external-proposal.ts --json-file <path> [--log-path <path>]
 //   JSON フィールド: source, topic, summary, decision（必須）/ accepted, rejected, notes, url（任意）
 //
-// 旧引数モード（--source / --topic / --summary 等の直接指定）は互換維持のため残置。
-// 外部由来テキスト（提案の要約・拒否理由など）には絶対に使うな。
-// 実行時に stderr へ deprecation 警告を出す。抑制したい場合は --allow-legacy-args を明示指定する。
+// 旧引数モード（--source / --topic / --summary 等の直接指定）は default で拒否される（exit 1）。
+// このスクリプトの入力はまさに外部由来テキストであり、シェルコマンド文字列への埋め込みは
+// 任意コマンド実行のリスクがある。対話的な手動デバッグなど「これは外部由来ではない」と
+// 自覚した上で使う場合のみ --allow-legacy-args を明示指定して有効化する。
 import { parseArgs } from "node:util";
 import {
   appendJournalEntry,
@@ -36,7 +37,8 @@ function usage(): never {
   [--log-path <path>]  (default: .claude/journals/external_proposals.jsonl)
 
 旧引数モード（--source / --topic / --summary / --decision / --accepted / --rejected /
---notes / --url）は互換維持のため残置。外部由来テキストに使うな。--allow-legacy-args で警告抑制。`);
+--notes / --url）は default で拒否される（exit 1）。対話的手動デバッグ等で使う場合のみ
+--allow-legacy-args を明示指定して有効化する。外部由来テキストには絶対に使うな。`);
   process.exit(1);
 }
 
@@ -84,6 +86,9 @@ if (jsonFile) {
     console.error("error: --json-file と個別フィールド引数は併用できない");
     process.exit(1);
   }
+  if (values["allow-legacy-args"]) {
+    console.error("[warn] --allow-legacy-args は --json-file モードでは無視されます");
+  }
   const obj = readJsonObjectOrExit(jsonFile);
   rejectUnknownFieldsOrExit(obj, FIELD_FLAGS);
   source = optionalStringFieldOrExit(obj, "source");
@@ -97,9 +102,11 @@ if (jsonFile) {
 } else {
   if (!values["allow-legacy-args"]) {
     console.error(
-      "[deprecated] --source / --summary 等の直接指定は非推奨。外部由来テキストには --json-file を使うこと（抑制: --allow-legacy-args）",
+      "[error] 旧引数モードは default で拒否されます。外部由来テキストはシェル展開経由で任意コマンド実行になるリスクがあります。明示的に許可する場合は --allow-legacy-args を付けてください（例: 対話的手動デバッグ）",
     );
+    process.exit(1);
   }
+  console.error("[warn] 旧引数モードで実行しました（外部由来テキストに使わないこと）");
   source = values.source as string | undefined;
   topic = values.topic as string | undefined;
   summary = values.summary as string | undefined;
