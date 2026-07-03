@@ -3,8 +3,8 @@
 # このファイルは聴覚モジュールの一部です。関連ファイル:
 #   .claude/hooks/hearing-hook.sh      — 聴覚開始フック
 #   .claude/hooks/hearing-stop-hook.sh — 聴覚停止フック  ← このファイル
-#   .claude/hooks/hearing-daemon.py    — 聴覚デーモン（常駐プロセス）
 #   .claude/hooks/continue-check.sh   — 継続判定
+# （常駐プロセス本体は hearing/ ライブラリ + wifi-cam-mcp の start_listening に移行済み）
 # ──────────────────────────────────────────────────
 # hearing-stop-hook.sh — Stop hook で聴覚バッファをチェックし、
 # 新しい発話があればターンを延長する。

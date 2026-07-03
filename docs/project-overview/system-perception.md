@@ -17,7 +17,7 @@
 ### 聴覚フック
 - **hearing-hook.sh** (UserPromptSubmit) — hearing-daemon が蓄積した `hearing_buffer.jsonl` を読み取り、[hearing] プレフィックスでコンテキストに注入
 - **hearing-stop-hook.sh** (Stop) — セッション終了時にバッファをチェックし、新しい発話があればターン延長。行番号ベースのオフセット管理
-- **hearing-daemon.py** (deprecated) — hearing/ ライブラリに移行済み。wifi-cam-mcp の start_listening ツールで代替
+- ~~**hearing-daemon.py**~~ — 削除済み。hearing/ ライブラリ + wifi-cam-mcp の start_listening ツールに移行（後方互換のため PID/バッファのファイル名規約は継承）
 
 ### MCP サーバー（オプション）
 - **wifi-cam** — Wi-Fi PTZ カメラ（Tapo 等）。パン・チルト対応。see / look_around / look_left / look_right / look_up / look_down / listen
@@ -35,7 +35,7 @@ SOUL.md の「直すだけじゃなく、仕立てる」と CLAUDE.md の Capabi
 - **「聞く」は常設の聞き耳**。hearing-daemon がバックグラウンドで文字起こしし、フックで注入。エージェントは「呼ばれたら気づく」
 - **「話す」は非同期**。say.sh をバックグラウンドで実行し、発話完了を待たずに思考を続ける
 - **wd-look の哲学**: 画像全体を漫然と見ると細部が溶ける。グリッドで区切ると「ここを見る」が決まる
-- **聴覚モジュールは4ファイルで構成**: hearing-hook.sh, hearing-stop-hook.sh, hearing-daemon.py（deprecated）, continue-check.sh（自律行動と共有）
+- **聴覚モジュールは3ファイルで構成**: hearing-hook.sh, hearing-stop-hook.sh, continue-check.sh（自律行動と共有）。常駐プロセス本体は hearing/ ライブラリに移行済み
 
 ## 主要フロー
 
