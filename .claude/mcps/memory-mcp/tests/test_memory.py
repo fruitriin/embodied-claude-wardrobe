@@ -1,6 +1,6 @@
 """Tests for memory operations."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -32,6 +32,13 @@ class TestMemorySave:
         assert memory.category == "memory"
         assert memory.id is not None
         assert memory.timestamp is not None
+
+    @pytest.mark.asyncio
+    async def test_save_timestamp_is_tz_aware(self, memory_store: MemoryStore):
+        """save() must record tz-aware (UTC) timestamps."""
+        memory = await memory_store.save(content="tz check")
+        parsed = datetime.fromisoformat(memory.timestamp)
+        assert parsed.tzinfo is not None
 
     @pytest.mark.asyncio
     async def test_save_with_defaults(self, memory_store: MemoryStore):
@@ -199,6 +206,40 @@ class TestScoringFunctions:
         decay = calculate_time_decay(timestamp, now, half_life_days=30.0)
         # After 2 half-lives, should be around 0.25
         assert 0.2 < decay < 0.3
+
+    def test_time_decay_aware_timestamp_with_default_now(self):
+        """tz-aware timestamp must not raise when now is defaulted (naive/aware mix)."""
+        aware = datetime.now(timezone.utc)
+        timestamp = aware.isoformat()  # e.g. "...+00:00"
+        decay = calculate_time_decay(timestamp)
+        assert decay > 0.99
+
+    def test_time_decay_aware_timestamp_with_naive_now(self):
+        """tz-aware timestamp vs naive now must be normalized, not TypeError."""
+        now_naive = datetime.now()
+        old_aware = datetime.now(timezone.utc) - timedelta(days=30)
+        decay = calculate_time_decay(
+            old_aware.isoformat(), now_naive, half_life_days=30.0
+        )
+        # After 1 half-life, should be around 0.5
+        assert 0.4 < decay < 0.6
+
+    def test_time_decay_naive_timestamp_with_aware_now(self):
+        """Naive stored timestamp vs tz-aware now must be normalized, not TypeError."""
+        now_aware = datetime.now(timezone.utc)
+        old_naive = (now_aware - timedelta(days=60)).replace(tzinfo=None)
+        decay = calculate_time_decay(
+            old_naive.isoformat(), now_aware, half_life_days=30.0
+        )
+        # After 2 half-lives, should be around 0.25
+        assert 0.2 < decay < 0.3
+
+    def test_time_decay_jst_offset_timestamp(self):
+        """Timestamps with non-UTC offsets (e.g. +09:00) must not raise."""
+        jst = timezone(timedelta(hours=9))
+        old_jst = datetime.now(jst) - timedelta(days=30)
+        decay = calculate_time_decay(old_jst.isoformat(), half_life_days=30.0)
+        assert 0.4 < decay < 0.6
 
     def test_emotion_boost_values(self):
         """Test emotion boost returns expected values."""

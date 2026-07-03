@@ -8,6 +8,7 @@ import math
 import sqlite3
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -211,12 +212,21 @@ def calculate_time_decay(
     now: datetime | None = None,
     half_life_days: float = 30.0,
 ) -> float:
+    # タイムスタンプ方針: 保存・比較とも UTC aware に統一（naive/aware 混在の
+    # TypeError 対策、2026-07-03）。naive な既存データは「UTC とみなして」解釈する
+    # ため、修正以前に JST ローカル時刻で保存された記憶は最大9時間古く評価される
+    # （half_life=30日に対して軽微、既知のトレードオフ）。厳密化するなら既存データの
+    # 一括マイグレーションが必要。経緯: docs/knowhow/wardrobe/timestamp-policy.md
     if now is None:
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
+    elif now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
     try:
         memory_time = datetime.fromisoformat(timestamp)
     except ValueError:
         return 1.0
+    if memory_time.tzinfo is None:
+        memory_time = memory_time.replace(tzinfo=timezone.utc)
     age_seconds = (now - memory_time).total_seconds()
     if age_seconds < 0:
         return 1.0
@@ -373,6 +383,9 @@ class MemoryStore:
             if self._db is None:
                 db_path = self._config.db_path
 
+                if db_path != ":memory:":
+                    Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+
                 def _open() -> sqlite3.Connection:
                     conn = sqlite3.connect(db_path, check_same_thread=False)
                     conn.row_factory = sqlite3.Row
@@ -507,7 +520,7 @@ class MemoryStore:
         """Save a new memory."""
         db = self._ensure_connected()
         memory_id = str(uuid.uuid4())
-        timestamp = datetime.now().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
         importance = max(1, min(5, importance))
 
         memory = Memory(
@@ -673,7 +686,7 @@ class MemoryStore:
         )
 
         scored_results: list[ScoredMemory] = []
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
 
         for memory, semantic_distance in pairs:
             time_decay = (
@@ -865,7 +878,7 @@ class MemoryStore:
                    SET access_count = access_count + 1,
                        last_accessed = ?
                    WHERE id = ?""",
-                (datetime.now().isoformat(), memory_id),
+                (datetime.now(timezone.utc).isoformat(), memory_id),
             )
             db.commit()
 
@@ -929,7 +942,7 @@ class MemoryStore:
             return False
         payload: dict[str, Any] = {
             "activation_count": memory.activation_count + 1,
-            "last_activated": datetime.now().isoformat(),
+            "last_activated": datetime.now(timezone.utc).isoformat(),
         }
         if prediction_error is not None:
             payload["prediction_error"] = max(0.0, min(1.0, prediction_error))
@@ -1111,7 +1124,7 @@ class MemoryStore:
 
         db = self._ensure_connected()
         memory_id = str(uuid.uuid4())
-        timestamp = datetime.now().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
         importance = max(1, min(5, importance))
 
         memory = Memory(
@@ -1246,7 +1259,7 @@ class MemoryStore:
         new_link = MemoryLink(
             target_id=target_id,
             link_type=link_type,
-            created_at=datetime.now().isoformat(),
+            created_at=datetime.now(timezone.utc).isoformat(),
             note=note,
         )
         existing_links = list(source_memory.links)
