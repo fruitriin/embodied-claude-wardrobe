@@ -6,16 +6,13 @@
 // エコーチェンバーによる静かな漂流を防ぐ。
 // /wd-note-external-proposal スキルから呼ばれる。
 //
-// Usage（推奨: JSON ファイル経由 — シェル展開を通らないため外部由来テキストに安全）:
+// Usage（正: JSON ファイル経由 — シェル展開を通らないため外部由来テキストに安全）:
 //   bun run .claude/scripts/journal-external-proposal.ts --json-file <path> [--log-path <path>]
 //   JSON フィールド: source, topic, summary, decision（必須）/ accepted, rejected, notes, url（任意）
 //
-// Usage（互換: 引数直接指定 — テキストをシェルコマンド文字列に埋め込むため、
-// 外部由来テキスト（提案の要約・拒否理由など）には絶対に使わないこと）:
-//   bun run .claude/scripts/journal-external-proposal.ts \
-//     --source "GPT-5.4 Pro | paper:arxiv:xxxx.xxxxx | user:someone" \
-//     --topic "..." --summary "..." --decision partial-accept \
-//     [--accepted "..."] [--rejected "..."] [--notes "..."] [--url "..."] [--log-path <path>]
+// 旧引数モード（--source / --topic / --summary 等の直接指定）は互換維持のため残置。
+// 外部由来テキスト（提案の要約・拒否理由など）には絶対に使うな。
+// 実行時に stderr へ deprecation 警告を出す。抑制したい場合は --allow-legacy-args を明示指定する。
 import { parseArgs } from "node:util";
 import {
   appendJournalEntry,
@@ -32,21 +29,14 @@ const DEFAULT_LOG_PATH = `${SCRIPT_DIR}/../journals/external_proposals.jsonl`;
 const DECISIONS = ["accepted", "partial-accept", "rejected", "deferred", "logged-only"] as const;
 
 function usage(): never {
-  console.error(`Usage（推奨: シェル展開を通らないため外部由来テキストに安全）:
+  console.error(`Usage:
   bun run .claude/scripts/journal-external-proposal.ts --json-file <path> [--log-path <path>]
   JSON フィールド: source, topic, summary, decision（必須）/ accepted, rejected, notes, url（任意）
+  decision の enum: ${DECISIONS.join(" | ")}
+  [--log-path <path>]  (default: .claude/journals/external_proposals.jsonl)
 
-Usage（互換: 外部由来テキストには使わないこと）:
-  bun run .claude/scripts/journal-external-proposal.ts \\
-  --source   "<出所: LLM名 / paper:arxiv:xxxx / user:xxx>" \\
-  --topic    "<論点を1行で>" \\
-  --summary  "<提案の要約（1段落程度）>" \\
-  --decision <${DECISIONS.join(" | ")}> \\
-  [--accepted "<採用した点>"] \\
-  [--rejected "<押し返した点 — 非退行のための最重要フィールド>"] \\
-  [--notes "<エコーチェンバー懸念・口調の模倣・その他のバイアス>"] \\
-  [--url "<参照 URL>"] \\
-  [--log-path <path>]  (default: .claude/journals/external_proposals.jsonl)`);
+旧引数モード（--source / --topic / --summary / --decision / --accepted / --rejected /
+--notes / --url）は互換維持のため残置。外部由来テキストに使うな。--allow-legacy-args で警告抑制。`);
   process.exit(1);
 }
 
@@ -65,6 +55,7 @@ try {
       url: { type: "string" },
       "json-file": { type: "string" },
       "log-path": { type: "string" },
+      "allow-legacy-args": { type: "boolean" },
       help: { type: "boolean", short: "h" },
     },
   }));
@@ -104,6 +95,11 @@ if (jsonFile) {
   notes = optionalStringFieldOrExit(obj, "notes");
   url = optionalStringFieldOrExit(obj, "url");
 } else {
+  if (!values["allow-legacy-args"]) {
+    console.error(
+      "[deprecated] --source / --summary 等の直接指定は非推奨。外部由来テキストには --json-file を使うこと（抑制: --allow-legacy-args）",
+    );
+  }
   source = values.source as string | undefined;
   topic = values.topic as string | undefined;
   summary = values.summary as string | undefined;

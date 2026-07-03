@@ -4,17 +4,12 @@
 // やらなかったことの記録は、やったことの記録と同じくらい自己の連続性に効く。
 // /wd-note-counterfactual スキルから呼ばれる。
 //
-// Usage（推奨: JSON ファイル経由 — シェル展開を通らないため外部由来テキストに安全）:
+// Usage（正: JSON ファイル経由 — シェル展開を通らないため外部由来テキストに安全）:
 //   bun run .claude/scripts/journal-counterfactual.ts --json-file <path> [--log-path <path>]
 //   JSON フィールド: wanted, chose, why（必須）/ trigger, person_id, regret（任意）
 //
-// Usage（互換: 引数直接指定 — テキストをシェルコマンド文字列に埋め込むため、
-// 外部由来テキストには使わないこと）:
-//   bun run .claude/scripts/journal-counterfactual.ts \
-//     --wanted "話しかけたかった" \
-//     --chose  "黙って待った" \
-//     --why    "深夜帯で、以前『作業中は割り込まないで』と言われていた" \
-//     [--trigger "振り返り"] [--person-id "riin"] [--regret 0.2] [--log-path <path>]
+// 旧引数モード（--wanted 等の直接指定）は互換維持のため残置。外部由来テキストには使うな。
+// 実行時に stderr へ deprecation 警告を出す。抑制したい場合は --allow-legacy-args を明示指定する。
 import { parseArgs } from "node:util";
 import {
   appendJournalEntry,
@@ -29,19 +24,13 @@ const SCRIPT_DIR = import.meta.dir;
 const DEFAULT_LOG_PATH = `${SCRIPT_DIR}/../journals/counterfactuals.jsonl`;
 
 function usage(): never {
-  console.error(`Usage（推奨: シェル展開を通らないため外部由来テキストに安全）:
+  console.error(`Usage:
   bun run .claude/scripts/journal-counterfactual.ts --json-file <path> [--log-path <path>]
   JSON フィールド: wanted, chose, why（必須）/ trigger, person_id, regret（任意）
+  [--log-path <path>]  (default: .claude/journals/counterfactuals.jsonl)
 
-Usage（互換: 外部由来テキストには使わないこと）:
-  bun run .claude/scripts/journal-counterfactual.ts \\
-  --wanted "<やりたかったこと>" \\
-  --chose  "<実際に選んだこと>" \\
-  --why    "<なぜその選択をしたか>" \\
-  [--trigger "<きっかけの欲望・状況>"] \\
-  [--person-id "<関係した人>"] \\
-  [--regret <0-1>] \\
-  [--log-path <path>]  (default: .claude/journals/counterfactuals.jsonl)`);
+旧引数モード（--wanted / --chose / --why / --trigger / --person-id / --regret）は
+互換維持のため残置。外部由来テキストに使うな。--allow-legacy-args で警告抑制。`);
   process.exit(1);
 }
 
@@ -58,6 +47,7 @@ try {
       regret: { type: "string" },
       "json-file": { type: "string" },
       "log-path": { type: "string" },
+      "allow-legacy-args": { type: "boolean" },
       help: { type: "boolean", short: "h" },
     },
   }));
@@ -97,6 +87,11 @@ if (jsonFile) {
     regretRaw = obj.regret;
   }
 } else {
+  if (!values["allow-legacy-args"]) {
+    console.error(
+      "[deprecated] --wanted 等の直接指定は非推奨。外部由来テキストには --json-file を使うこと（抑制: --allow-legacy-args）",
+    );
+  }
   wanted = values.wanted as string | undefined;
   chose = values.chose as string | undefined;
   why = values.why as string | undefined;

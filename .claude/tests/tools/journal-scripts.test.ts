@@ -229,6 +229,85 @@ describe("journal-counterfactual.ts --json-file", () => {
   });
 });
 
+// 旧引数モード（--wanted 等の直接指定）は互換維持のため残しているが、
+// 外部由来テキストをシェルコマンド文字列に埋め込むリスクがある。
+// 実行時に stderr へ deprecation 警告を出し、--allow-legacy-args で明示抑制できることを検証する。
+describe("journal-counterfactual.ts 旧引数モードの deprecation 警告", () => {
+  test("旧引数モードは stderr に deprecation 警告を出す（exit 0 は維持）", () => {
+    const logPath = join(tmp, "cf.jsonl");
+    const r = run("journal-counterfactual.ts", [
+      "--wanted", "a", "--chose", "b", "--why", "c", "--log-path", logPath,
+    ]);
+    expect(r.code).toBe(0);
+    expect(r.stderr).toContain("[deprecated]");
+    expect(r.stderr).toContain("--json-file");
+    // 書き込みは通常どおり行われる（互換維持）
+    expect(readFileSync(logPath, "utf-8").trim().split("\n").length).toBe(1);
+  });
+
+  test("--allow-legacy-args を明示指定すると警告が出ない", () => {
+    const logPath = join(tmp, "cf.jsonl");
+    const r = run("journal-counterfactual.ts", [
+      "--wanted", "a", "--chose", "b", "--why", "c",
+      "--allow-legacy-args",
+      "--log-path", logPath,
+    ]);
+    expect(r.code).toBe(0);
+    expect(r.stderr).not.toContain("[deprecated]");
+  });
+
+  test("--json-file モードには deprecation 警告が出ない", () => {
+    const logPath = join(tmp, "cf.jsonl");
+    const jsonPath = join(tmp, "input.json");
+    writeFileSync(jsonPath, JSON.stringify({ wanted: "a", chose: "b", why: "c" }));
+    const r = run("journal-counterfactual.ts", [
+      "--json-file", jsonPath, "--log-path", logPath,
+    ]);
+    expect(r.code).toBe(0);
+    expect(r.stderr).not.toContain("[deprecated]");
+  });
+});
+
+describe("journal-external-proposal.ts 旧引数モードの deprecation 警告", () => {
+  test("旧引数モードは stderr に deprecation 警告を出す（exit 0 は維持）", () => {
+    const logPath = join(tmp, "ext.jsonl");
+    const r = run("journal-external-proposal.ts", [
+      "--source", "s", "--topic", "t", "--summary", "s",
+      "--decision", "logged-only",
+      "--log-path", logPath,
+    ]);
+    expect(r.code).toBe(0);
+    expect(r.stderr).toContain("[deprecated]");
+    expect(r.stderr).toContain("--json-file");
+    expect(readFileSync(logPath, "utf-8").trim().split("\n").length).toBe(1);
+  });
+
+  test("--allow-legacy-args を明示指定すると警告が出ない", () => {
+    const logPath = join(tmp, "ext.jsonl");
+    const r = run("journal-external-proposal.ts", [
+      "--source", "s", "--topic", "t", "--summary", "s",
+      "--decision", "logged-only",
+      "--allow-legacy-args",
+      "--log-path", logPath,
+    ]);
+    expect(r.code).toBe(0);
+    expect(r.stderr).not.toContain("[deprecated]");
+  });
+
+  test("--json-file モードには deprecation 警告が出ない", () => {
+    const logPath = join(tmp, "ext.jsonl");
+    const jsonPath = join(tmp, "input.json");
+    writeFileSync(jsonPath, JSON.stringify({
+      source: "s", topic: "t", summary: "s", decision: "logged-only",
+    }));
+    const r = run("journal-external-proposal.ts", [
+      "--json-file", jsonPath, "--log-path", logPath,
+    ]);
+    expect(r.code).toBe(0);
+    expect(r.stderr).not.toContain("[deprecated]");
+  });
+});
+
 describe("journal-external-proposal.ts --json-file", () => {
   test("正常系: JSON ファイルから全フィールドを読んで記録する", () => {
     const logPath = join(tmp, "ext.jsonl");
