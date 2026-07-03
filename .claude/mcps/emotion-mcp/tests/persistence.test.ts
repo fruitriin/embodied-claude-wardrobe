@@ -2,10 +2,10 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadState, saveState, defaultStatePath } from "../src/persistence";
+import { LEGACY_STATE_FILENAME, loadState, saveState, defaultStatePath } from "../src/persistence";
 import { initialState } from "../src/engine";
 import { DEFAULT_PROFILE } from "../src/profile";
-import { createEmotionApi } from "../src/api";
+import { createEmotionApi, resolveRootDir } from "../src/api";
 
 let dir: string;
 
@@ -106,7 +106,7 @@ describe("API 統合（emotion_get / substance_update / emotion_transition 相�
     const nowRef = { value: T0 };
     const api = makeApi(nowRef);
     const snapshot = api.get();
-    expect(api.statePath).toBe(defaultStatePath(dir));
+    expect(api.statePath).toBe(defaultStatePath(dir, "default"));
     expect(existsSync(api.statePath)).toBe(true);
     expect(snapshot.substance).toEqual(DEFAULT_PROFILE.baseline);
     expect(snapshot.nearest_emotion).toBe("neutral");
@@ -187,6 +187,70 @@ describe("API 統合（emotion_get / substance_update / emotion_transition 相�
       expect(plainGrief).toBeUndefined();
     } finally {
       rmSync(plainDir, { recursive: true, force: true });
+    }
+  });
+
+  test("persona スコープ: ペルソナごとに別ファイルに保存され互いに干渉しない", () => {
+    const nowRef = { value: T0 };
+    makeApi(nowRef, "alice").update({ DA: 0.2 }, { context: "alice の出来事" });
+    makeApi(nowRef, "bob").update({ DA: -0.2 }, { context: "bob の出来事" });
+
+    expect(existsSync(defaultStatePath(dir, "alice"))).toBe(true);
+    expect(existsSync(defaultStatePath(dir, "bob"))).toBe(true);
+
+    nowRef.value = new Date(T0.getTime() + 1000);
+    expect(makeApi(nowRef, "alice").get().substance.DA).toBeCloseTo(0.8, 2);
+    expect(makeApi(nowRef, "bob").get().substance.DA).toBeCloseTo(0.4, 2);
+  });
+
+  test("persona 不一致はサイレント初期化ではなく明示エラー", () => {
+    const nowRef = { value: T0 };
+    makeApi(nowRef, "alice").update({ DA: 0.2 });
+    // 状態ファイルの persona スタンプを改ざん（別ペルソナのファイルが紛れ込んだ状況の再現）
+    const path = defaultStatePath(dir, "alice");
+    const raw = JSON.parse(readFileSync(path, "utf-8"));
+    raw.persona = "bob";
+    writeFileSync(path, JSON.stringify(raw), "utf-8");
+
+    expect(() => makeApi(nowRef, "alice").get()).toThrow(/persona mismatch/);
+    expect(() => makeApi(nowRef, "alice").update({ DA: 0.1 })).toThrow(/persona mismatch/);
+    // エラー後もファイルは上書きされていない（データ保全）
+    expect(JSON.parse(readFileSync(path, "utf-8")).persona).toBe("bob");
+  });
+
+  test("旧パス substance_state.json は persona 一致時のみ一度だけ新パスへ移行される", () => {
+    const legacyPath = join(dir, LEGACY_STATE_FILENAME);
+    const legacy = initialState("default", DEFAULT_PROFILE, T0);
+    legacy.substance.DA = 0.85;
+    legacy.last_context = "旧レイアウト時代の記憶";
+    saveState(legacyPath, legacy);
+
+    const nowRef = { value: new Date(T0.getTime() + 1000) };
+    const snapshot = makeApi(nowRef).get();
+    // 旧状態が引き継がれている（initialState に巻き戻らない）
+    expect(snapshot.substance.DA).toBeCloseTo(0.85, 2);
+    expect(snapshot.last_context).toBe("旧レイアウト時代の記憶");
+    // 新パスに移行済み。以後は新パスが正
+    const newPath = defaultStatePath(dir, "default");
+    expect(existsSync(newPath)).toBe(true);
+    expect(JSON.parse(readFileSync(newPath, "utf-8")).persona).toBe("default");
+
+    // persona 不一致の旧ファイルは移行されない（黙って初期状態から始まる）
+    const other = makeApi(nowRef, "someone-else").get();
+    expect(other.substance.DA).toBeCloseTo(DEFAULT_PROFILE.baseline.DA, 5);
+  });
+
+  test("resolveRootDir は CLAUDE_PROJECT_DIR を優先する", () => {
+    const saved = process.env.CLAUDE_PROJECT_DIR;
+    try {
+      process.env.CLAUDE_PROJECT_DIR = "/tmp/some-project";
+      expect(resolveRootDir()).toBe(join("/tmp/some-project", ".claude", "mcps", "emotion-mcp"));
+      delete process.env.CLAUDE_PROJECT_DIR;
+      // 未設定時はパッケージ自身のディレクトリ
+      expect(resolveRootDir().endsWith("emotion-mcp")).toBe(true);
+    } finally {
+      if (saved === undefined) delete process.env.CLAUDE_PROJECT_DIR;
+      else process.env.CLAUDE_PROJECT_DIR = saved;
     }
   });
 

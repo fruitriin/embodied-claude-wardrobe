@@ -155,4 +155,6 @@ CLAUDE.local.md
 
 # emotion-mcp（ペルソナ固有の現在状態・プロファイルは追跡しない。計画: emotion-mcp-implementation.md）
 .claude/mcps/emotion-mcp/substance_state.json
+.claude/mcps/emotion-mcp/substance_state.*.json
+.claude/mcps/emotion-mcp/substance_state.*.json.lock
 .claude/mcps/emotion-mcp/personas/

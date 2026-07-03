@@ -1,5 +1,9 @@
 /**
- * substance_state.json の永続化（アトミック書き込み）
+ * substance_state.<personaId>.json の永続化（アトミック書き込み）
+ *
+ * persona スコープ: memory-mcp と同じ「1ディレクトリ=1ペルソナ」のパスベース分離。
+ * ファイル名に personaId を含めるのは取り違え防止の保険で、state 内の persona
+ * フィールドは整合性スタンプ（不一致は明示エラー）。ルーターではない。
  *
  * 破損時の方針: 「1フィールド不正 = 全体 null → ベースライン巻き戻し」にしない。
  * 修復可能なフィールドはベースライン等で個別に修復して stderr に警告を出し、
@@ -11,10 +15,11 @@ import { dirname, join } from "node:path";
 import { SUBSTANCE_KEYS, type EmotionState, type SubstanceVector } from "./types";
 import { DEFAULT_PROFILE } from "./profile";
 
-export const STATE_FILENAME = "substance_state.json";
+/** 旧レイアウト（persona スコープ導入前）のファイル名。一度だけの移行読み替え用 */
+export const LEGACY_STATE_FILENAME = "substance_state.json";
 
-export function defaultStatePath(rootDir: string): string {
-  return join(rootDir, STATE_FILENAME);
+export function defaultStatePath(rootDir: string, personaId: string): string {
+  return join(rootDir, `substance_state.${personaId}.json`);
 }
 
 function warn(message: string): void {

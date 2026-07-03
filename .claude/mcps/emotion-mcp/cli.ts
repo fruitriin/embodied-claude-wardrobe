@@ -9,12 +9,16 @@
  *
  * 共通オプション:
  *   --persona <id>   ペルソナID（デフォルト: default）
- *   --root <dir>     emotion-mcp ルート（デフォルト: このファイルのディレクトリ）
+ *   --root <dir>     emotion-mcp ルート（デフォルト: CLAUDE_PROJECT_DIR/.claude/mcps/emotion-mcp、
+ *                    未設定ならこのファイルのディレクトリ）
  *   --state <path>   状態ファイルパスの上書き
+ *
+ * 状態ファイルは substance_state.<personaId>.json（1ディレクトリ=1ペルソナ + ファイル名の保険）。
+ * 状態ファイルの persona が指定と食い違う場合は exit 1。
  */
 
 import { SUBSTANCE_KEYS, type SubstanceKey } from "./src/types";
-import { createEmotionApi } from "./src/api";
+import { createEmotionApi, resolveRootDir } from "./src/api";
 
 interface ParsedArgs {
   command: string | undefined;
@@ -64,7 +68,7 @@ function usage(): never {
 const args = parseArgs(process.argv.slice(2));
 
 const api = createEmotionApi({
-  rootDir: flagValue(args, "root") ?? import.meta.dir,
+  rootDir: flagValue(args, "root") ?? resolveRootDir(),
   personaId: flagValue(args, "persona"),
   statePath: flagValue(args, "state"),
 });

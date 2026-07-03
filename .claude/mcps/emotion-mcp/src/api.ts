@@ -5,6 +5,7 @@
  * 同じ API を露出する（応答に効く経路は同期・数百ms、ログ蓄積は非同期の切り分け方針）。
  */
 
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import type { EmotionSnapshot, EmotionState, SubstanceKey } from "./types";
 import { buildDistanceMatrix } from "./distance";
@@ -16,11 +17,25 @@ import {
   updateSubstance,
 } from "./engine";
 import { loadDistanceOverrides, loadIntrinsicConfig, loadProfile } from "./profile";
-import { defaultStatePath, loadState, saveState } from "./persistence";
+import { LEGACY_STATE_FILENAME, defaultStatePath, loadState, saveState } from "./persistence";
+
+/**
+ * rootDir のデフォルト解決（memory-mcp の config.py と同じ優先順位）:
+ * 1. CLAUDE_PROJECT_DIR 環境変数 → <project>/.claude/mcps/emotion-mcp
+ * 2. このパッケージ自身のディレクトリ（src/ の親）
+ */
+export function resolveRootDir(): string {
+  const projectDir = process.env.CLAUDE_PROJECT_DIR;
+  if (projectDir) return join(projectDir, ".claude", "mcps", "emotion-mcp");
+  return join(import.meta.dir, "..");
+}
 
 export interface EmotionApiOptions {
-  /** emotion-mcp のルート（intrinsic-patterns.json / personas/ / substance_state.json の基準） */
-  rootDir: string;
+  /**
+   * emotion-mcp のルート（intrinsic-patterns.json / personas/ / 状態ファイルの基準）。
+   * 省略時は resolveRootDir()（CLAUDE_PROJECT_DIR 優先）
+   */
+  rootDir?: string;
   personaId?: string;
   /** 状態ファイルの置き場所を上書き（テスト用） */
   statePath?: string;
@@ -58,9 +73,9 @@ function toSnapshot(state: EmotionState, baseline: EmotionSnapshot["baseline"]):
 }
 
 export function createEmotionApi(options: EmotionApiOptions): EmotionApi {
-  const rootDir = options.rootDir;
+  const rootDir = options.rootDir ?? resolveRootDir();
   const personaId = options.personaId ?? "default";
-  const statePath = options.statePath ?? defaultStatePath(rootDir);
+  const statePath = options.statePath ?? defaultStatePath(rootDir, personaId);
   const clock = options.now ?? (() => new Date());
 
   const personasDir = join(rootDir, "personas");
@@ -68,9 +83,34 @@ export function createEmotionApi(options: EmotionApiOptions): EmotionApi {
   const intrinsic = loadIntrinsicConfig(rootDir);
   const matrix = buildDistanceMatrix(loadDistanceOverrides(personasDir, personaId));
 
+  /**
+   * persona フィールドは整合性スタンプ。不一致はサイレント initialState 差し替えではなく
+   * 明示エラー（別ペルソナの状態を黙って捨てる/上書きする事故を防ぐ）。
+   */
   const load = (now: Date): EmotionState => {
     const state = loadState(statePath, profile.baseline);
-    if (state && state.persona === personaId) return state;
+    if (state) {
+      if (state.persona !== personaId) {
+        throw new Error(
+          `persona mismatch: state file ${statePath} belongs to persona "${state.persona}", ` +
+            `not "${personaId}". ペルソナごとに別ディレクトリ（または --state）を使うこと`
+        );
+      }
+      return state;
+    }
+    // 旧レイアウト（substance_state.json）からの一度だけの読み替え移行。
+    // persona が一致する場合のみ。次の保存で新パスに書かれ、以後旧ファイルは参照されない
+    if (!options.statePath) {
+      const legacyPath = join(rootDir, LEGACY_STATE_FILENAME);
+      if (existsSync(legacyPath)) {
+        const legacy = loadState(legacyPath, profile.baseline);
+        if (legacy && legacy.persona === personaId) {
+          console.error(`[emotion-mcp] migrating legacy state ${legacyPath} -> ${statePath}`);
+          saveState(statePath, legacy);
+          return legacy;
+        }
+      }
+    }
     return initialState(personaId, profile, now);
   };
 
