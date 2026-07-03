@@ -1,0 +1,4 @@
+{
+  "_comment": "動的歪み係数（Layer 2、本人と相談で決定）。substance 状態が距離行列をどれだけ歪めるか。Layer 1.5 が動いて違和感が見えてから着手する — Layer 1 実装時点では未使用のプレースホルダ。方向パターンの例（テッド記事より）: DA高 → excitement|joy がさらに近づく / 5-HT低 → annoyance|nervousness が近づく / NA高 → fear|nervousness が近づく",
+  "rules": []
+}

@@ -1,0 +1,18 @@
+{
+  "_comment": "ペルソナプロファイルのテンプレート。.claude/mcps/emotion-mcp/personas/<persona-id>/profile.json にコピーして使う。全フィールド省略可（省略時はデフォルト継承）。baseline がペルソナ固有の気質: DA高め=探索好き、ACh高め=学習モード寄り、など。substance_direction_gain と direction_coefficients は方向別移動係数（>1.0=動きにくい/ゲインは倍率）。ベースラインを叩き台に、動かして違和感が出たら本人が上書きする",
+  "baseline": { "DA": 0.6, "NA": 0.45, "5-HT": 0.55, "ACh": 0.6 },
+  "decay_rate": 0.15,
+  "decay_minutes": 30,
+  "activation_halflife_minutes": 30,
+  "source_weights": { "user": 1.5, "self": 1.0, "environment": 1.0 },
+  "substance_direction_gain": {
+    "DA": { "up": 1.0, "down": 1.0 },
+    "NA": { "up": 1.0, "down": 1.0 },
+    "5-HT": { "up": 1.0, "down": 1.0 },
+    "ACh": { "up": 1.0, "down": 1.0 }
+  },
+  "direction_coefficients": {
+    "valence": {},
+    "pairs": {}
+  }
+}
