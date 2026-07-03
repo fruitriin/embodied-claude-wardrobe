@@ -34,7 +34,7 @@ memory-mcp を使いこなすためのスキル群とフック。記憶を「刻
 
 - `.claude/hooks/interoception.sh` — CPU・メモリ・時刻・フェーズ等を自動注入
 - `.claude/hooks/recall-hook.sh` — 想起バッファをコンテキストに自動注入
-- `.claude/scripts/heartbeat-daemon.sh` — 5秒ごとの計測デーモン（launchd）
+- `.claude/hooks/heartbeat-daemon.sh` — 5秒ごとの計測デーモン（launchd）
 
 ### セッション管理
 身支度と日記の手順を構造化し、セッションをまたいだ記憶の断絶を防ぐ。

@@ -12,7 +12,6 @@
 - **com.embodied-claude.heartbeat.plist** — macOS launchd の設定ファイル。heartbeat-daemon.sh を5秒間隔で起動する
 
 ### スクリプト
-- **heartbeat-daemon.sh** (.claude/scripts/) — hooks/ と同一内容。身体状態の計測・書き出しロジック本体
 - **system-health.ts** — ストレージ・メモリ・プロセスのヘルスチェック。履歴を `workingDirs/system-health-history.json` に蓄積し、前回比で変化を検出
 - **desire-tick.ts** — 欲望レベルの時間経過計算。desires.conf の成長率に基づき、閾値（0.6）を超えた欲望を autonomous-action.sh に通知
 - **interoception.ts** — 自律行動用の内的感覚テキスト生成。時間帯・セッション間隔・欲望レベルから感覚フレーズを合成。LLM が直接言及してはいけない暗黙の身体感覚
