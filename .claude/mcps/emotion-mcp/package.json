@@ -1,0 +1,10 @@
+{
+  "name": "emotion-mcp",
+  "version": "0.1.0",
+  "description": "感情MCP Layer 1 — substance ベクトル移動エンジン + JSON 永続化（Bun/TypeScript）",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "bun test"
+  }
+}
