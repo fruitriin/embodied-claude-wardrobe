@@ -6,14 +6,15 @@
 // エコーチェンバーによる静かな漂流を防ぐ。
 // /wd-note-external-proposal スキルから呼ばれる。
 //
-// Usage（正: JSON ファイル経由 — シェル展開を通らないため外部由来テキストに安全）:
+// Usage（唯一の経路 — シェル展開を通らないため外部由来テキストに安全）:
 //   bun run .claude/scripts/journal-external-proposal.ts --json-file <path> [--log-path <path>]
 //   JSON フィールド: source, topic, summary, decision（必須）/ accepted, rejected, notes, url（任意）
 //
-// 旧引数モード（--source / --topic / --summary 等の直接指定）は default で拒否される（exit 1）。
-// このスクリプトの入力はまさに外部由来テキストであり、シェルコマンド文字列への埋め込みは
-// 任意コマンド実行のリスクがある。対話的な手動デバッグなど「これは外部由来ではない」と
-// 自覚した上で使う場合のみ --allow-legacy-args を明示指定して有効化する。
+// 歴史的な理由: 以前は --source / --summary 等の個別フィールド引数と
+// --allow-legacy-args による明示許可モードを備えていたが、
+// このスクリプトの入力はまさに外部由来テキストであり、シェルコマンド文字列への
+// 埋め込みは任意コマンド実行のリスクがある。「バイパスの公式手段」化を避けるため、
+// v0.5.1 以降は --json-file 専用に一本化した。
 import { parseArgs } from "node:util";
 import {
   appendJournalEntry,
@@ -32,13 +33,20 @@ const DECISIONS = ["accepted", "partial-accept", "rejected", "deferred", "logged
 function usage(): never {
   console.error(`Usage:
   bun run .claude/scripts/journal-external-proposal.ts --json-file <path> [--log-path <path>]
-  JSON フィールド: source, topic, summary, decision（必須）/ accepted, rejected, notes, url（任意）
-  decision の enum: ${DECISIONS.join(" | ")}
-  [--log-path <path>]  (default: .claude/journals/external_proposals.jsonl)
 
-旧引数モード（--source / --topic / --summary / --decision / --accepted / --rejected /
---notes / --url）は default で拒否される（exit 1）。対話的手動デバッグ等で使う場合のみ
---allow-legacy-args を明示指定して有効化する。外部由来テキストには絶対に使うな。`);
+必須オプション:
+  --json-file <path>   フィールドを JSON オブジェクトで書いたファイルのパス
+                       JSON フィールド: source, topic, summary, decision（必須）
+                                       accepted, rejected, notes, url（任意）
+                       decision の enum: ${DECISIONS.join(" | ")}
+
+任意オプション:
+  --log-path <path>    出力先 JSONL（default: .claude/journals/external_proposals.jsonl）
+  -h, --help           このヘルプを表示
+
+歴史的な理由: 以前は --source 等の個別引数と --allow-legacy-args による明示許可
+モードがあったが、外部由来テキストのシェル埋め込みリスクを根絶するため
+v0.5.1 以降は --json-file 専用。個別引数は未知のオプションとして拒否される。`);
   process.exit(1);
 }
 
@@ -47,75 +55,44 @@ try {
   ({ values } = parseArgs({
     args: process.argv.slice(2),
     options: {
-      source: { type: "string" },
-      topic: { type: "string" },
-      summary: { type: "string" },
-      decision: { type: "string" },
-      accepted: { type: "string" },
-      rejected: { type: "string" },
-      notes: { type: "string" },
-      url: { type: "string" },
       "json-file": { type: "string" },
       "log-path": { type: "string" },
-      "allow-legacy-args": { type: "boolean" },
       help: { type: "boolean", short: "h" },
     },
   }));
 } catch (e) {
-  console.error(`error: ${e instanceof Error ? e.message : e}`);
-  usage();
+  // parseArgs は default で strict モード（未知のオプションを拒否）。
+  // 旧引数（--source / --summary / --allow-legacy-args 等）はここで捕捉される。
+  console.error(`[error] ${e instanceof Error ? e.message : e}`);
+  console.error(
+    "[error] 個別フィールド引数（--source / --topic / --summary / --decision 等）と --allow-legacy-args は v0.5.1 で撤廃されました。--json-file <path> を使ってください（Write ツールで一時 JSON を書いて渡すのが正の経路）。",
+  );
+  process.exit(1);
 }
 
 if (values.help) usage();
 
-let source: string | undefined;
-let topic: string | undefined;
-let summary: string | undefined;
-let decision: string | undefined;
-let accepted: string | undefined;
-let rejected: string | undefined;
-let notes: string | undefined;
-let url: string | undefined;
-
 const jsonFile = values["json-file"] as string | undefined;
-if (jsonFile) {
-  const FIELD_FLAGS = [
-    "source", "topic", "summary", "decision", "accepted", "rejected", "notes", "url",
-  ] as const;
-  if (FIELD_FLAGS.some((f) => values[f] !== undefined)) {
-    console.error("error: --json-file と個別フィールド引数は併用できない");
-    process.exit(1);
-  }
-  if (values["allow-legacy-args"]) {
-    console.error("[warn] --allow-legacy-args は --json-file モードでは無視されます");
-  }
-  const obj = readJsonObjectOrExit(jsonFile);
-  rejectUnknownFieldsOrExit(obj, FIELD_FLAGS);
-  source = optionalStringFieldOrExit(obj, "source");
-  topic = optionalStringFieldOrExit(obj, "topic");
-  summary = optionalStringFieldOrExit(obj, "summary");
-  decision = optionalStringFieldOrExit(obj, "decision");
-  accepted = optionalStringFieldOrExit(obj, "accepted");
-  rejected = optionalStringFieldOrExit(obj, "rejected");
-  notes = optionalStringFieldOrExit(obj, "notes");
-  url = optionalStringFieldOrExit(obj, "url");
-} else {
-  if (!values["allow-legacy-args"]) {
-    console.error(
-      "[error] 旧引数モードは default で拒否されます。外部由来テキストはシェル展開経由で任意コマンド実行になるリスクがあります。明示的に許可する場合は --allow-legacy-args を付けてください（例: 対話的手動デバッグ）",
-    );
-    process.exit(1);
-  }
-  console.error("[warn] 旧引数モードで実行しました（外部由来テキストに使わないこと）");
-  source = values.source as string | undefined;
-  topic = values.topic as string | undefined;
-  summary = values.summary as string | undefined;
-  decision = values.decision as string | undefined;
-  accepted = values.accepted as string | undefined;
-  rejected = values.rejected as string | undefined;
-  notes = values.notes as string | undefined;
-  url = values.url as string | undefined;
+if (!jsonFile) {
+  console.error(
+    "[error] --json-file <path> は必須です。フィールドを JSON オブジェクトで書いたファイルを渡してください（Write ツールで一時 JSON を書いて渡すのが正の経路）。",
+  );
+  process.exit(1);
 }
+
+const ALLOWED_FIELDS = [
+  "source", "topic", "summary", "decision", "accepted", "rejected", "notes", "url",
+] as const;
+const obj = readJsonObjectOrExit(jsonFile);
+rejectUnknownFieldsOrExit(obj, ALLOWED_FIELDS);
+const source = optionalStringFieldOrExit(obj, "source");
+const topic = optionalStringFieldOrExit(obj, "topic");
+const summary = optionalStringFieldOrExit(obj, "summary");
+const decision = optionalStringFieldOrExit(obj, "decision");
+const accepted = optionalStringFieldOrExit(obj, "accepted");
+const rejected = optionalStringFieldOrExit(obj, "rejected");
+const notes = optionalStringFieldOrExit(obj, "notes");
+const url = optionalStringFieldOrExit(obj, "url");
 
 if (!source || !topic || !summary || !decision) {
   console.error("error: source, topic, summary, decision は必須");

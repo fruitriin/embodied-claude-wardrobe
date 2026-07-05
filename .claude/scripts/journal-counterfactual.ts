@@ -4,14 +4,13 @@
 // やらなかったことの記録は、やったことの記録と同じくらい自己の連続性に効く。
 // /wd-note-counterfactual スキルから呼ばれる。
 //
-// Usage（正: JSON ファイル経由 — シェル展開を通らないため外部由来テキストに安全）:
+// Usage（唯一の経路 — シェル展開を通らないため外部由来テキストに安全）:
 //   bun run .claude/scripts/journal-counterfactual.ts --json-file <path> [--log-path <path>]
 //   JSON フィールド: wanted, chose, why（必須）/ trigger, person_id, regret（任意）
 //
-// 旧引数モード（--wanted 等の直接指定）は default で拒否される（exit 1）。
-// 外部由来テキストをシェルコマンド文字列へ埋め込むと任意コマンド実行のリスクがあるため、
-// 対話的な手動デバッグなど「これは外部由来ではない」と自覚した上で使う場合のみ
-// --allow-legacy-args を明示指定して有効化する。
+// 歴史的な理由: 以前は --wanted 等の個別フィールド引数と --allow-legacy-args による
+// 明示許可モードを備えていたが、外部由来テキストのシェル埋め込みリスク（任意コマンド実行）
+// と「バイパスの公式手段」化を避けるため、v0.5.1 以降は --json-file 専用に一本化した。
 import { parseArgs } from "node:util";
 import {
   appendJournalEntry,
@@ -28,12 +27,19 @@ const DEFAULT_LOG_PATH = `${SCRIPT_DIR}/../journals/counterfactuals.jsonl`;
 function usage(): never {
   console.error(`Usage:
   bun run .claude/scripts/journal-counterfactual.ts --json-file <path> [--log-path <path>]
-  JSON フィールド: wanted, chose, why（必須）/ trigger, person_id, regret（任意）
-  [--log-path <path>]  (default: .claude/journals/counterfactuals.jsonl)
 
-旧引数モード（--wanted / --chose / --why / --trigger / --person-id / --regret）は
-default で拒否される（exit 1）。対話的手動デバッグ等で使う場合のみ
---allow-legacy-args を明示指定して有効化する。外部由来テキストには絶対に使うな。`);
+必須オプション:
+  --json-file <path>   フィールドを JSON オブジェクトで書いたファイルのパス
+                       JSON フィールド: wanted, chose, why（必須）
+                                       trigger, person_id, regret（任意）
+
+任意オプション:
+  --log-path <path>    出力先 JSONL（default: .claude/journals/counterfactuals.jsonl）
+  -h, --help           このヘルプを表示
+
+歴史的な理由: 以前は --wanted 等の個別引数と --allow-legacy-args による明示許可
+モードがあったが、外部由来テキストのシェル埋め込みリスクを根絶するため
+v0.5.1 以降は --json-file 専用。個別引数は未知のオプションとして拒否される。`);
   process.exit(1);
 }
 
@@ -42,70 +48,45 @@ try {
   ({ values } = parseArgs({
     args: process.argv.slice(2),
     options: {
-      wanted: { type: "string" },
-      chose: { type: "string" },
-      why: { type: "string" },
-      trigger: { type: "string" },
-      "person-id": { type: "string" },
-      regret: { type: "string" },
       "json-file": { type: "string" },
       "log-path": { type: "string" },
-      "allow-legacy-args": { type: "boolean" },
       help: { type: "boolean", short: "h" },
     },
   }));
 } catch (e) {
-  console.error(`error: ${e instanceof Error ? e.message : e}`);
-  usage();
+  // parseArgs は default で strict モード（未知のオプションを拒否）。
+  // 旧引数（--wanted / --allow-legacy-args 等）はここで捕捉される。
+  console.error(`[error] ${e instanceof Error ? e.message : e}`);
+  console.error(
+    "[error] 個別フィールド引数（--wanted / --chose / --why 等）と --allow-legacy-args は v0.5.1 で撤廃されました。--json-file <path> を使ってください（Write ツールで一時 JSON を書いて渡すのが正の経路）。",
+  );
+  process.exit(1);
 }
 
 if (values.help) usage();
 
-let wanted: string | undefined;
-let chose: string | undefined;
-let why: string | undefined;
-let trigger: string | undefined;
-let personId: string | undefined;
-let regretRaw: string | number | undefined;
-
 const jsonFile = values["json-file"] as string | undefined;
-if (jsonFile) {
-  const FIELD_FLAGS = ["wanted", "chose", "why", "trigger", "person-id", "regret"] as const;
-  if (FIELD_FLAGS.some((f) => values[f] !== undefined)) {
-    console.error("error: --json-file と個別フィールド引数は併用できない");
+if (!jsonFile) {
+  console.error(
+    "[error] --json-file <path> は必須です。フィールドを JSON オブジェクトで書いたファイルを渡してください（Write ツールで一時 JSON を書いて渡すのが正の経路）。",
+  );
+  process.exit(1);
+}
+
+const obj = readJsonObjectOrExit(jsonFile);
+rejectUnknownFieldsOrExit(obj, ["wanted", "chose", "why", "trigger", "person_id", "regret"]);
+const wanted = optionalStringFieldOrExit(obj, "wanted");
+const chose = optionalStringFieldOrExit(obj, "chose");
+const why = optionalStringFieldOrExit(obj, "why");
+const trigger = optionalStringFieldOrExit(obj, "trigger");
+const personId = optionalStringFieldOrExit(obj, "person_id");
+let regretRaw: string | number | undefined;
+if (obj.regret !== undefined && obj.regret !== null) {
+  if (typeof obj.regret !== "number" && typeof obj.regret !== "string") {
+    console.error(`error: --json-file のフィールド regret は数値である必要がある（got: ${typeof obj.regret}）`);
     process.exit(1);
   }
-  if (values["allow-legacy-args"]) {
-    console.error("[warn] --allow-legacy-args は --json-file モードでは無視されます");
-  }
-  const obj = readJsonObjectOrExit(jsonFile);
-  rejectUnknownFieldsOrExit(obj, ["wanted", "chose", "why", "trigger", "person_id", "regret"]);
-  wanted = optionalStringFieldOrExit(obj, "wanted");
-  chose = optionalStringFieldOrExit(obj, "chose");
-  why = optionalStringFieldOrExit(obj, "why");
-  trigger = optionalStringFieldOrExit(obj, "trigger");
-  personId = optionalStringFieldOrExit(obj, "person_id");
-  if (obj.regret !== undefined && obj.regret !== null) {
-    if (typeof obj.regret !== "number" && typeof obj.regret !== "string") {
-      console.error(`error: --json-file のフィールド regret は数値である必要がある（got: ${typeof obj.regret}）`);
-      process.exit(1);
-    }
-    regretRaw = obj.regret;
-  }
-} else {
-  if (!values["allow-legacy-args"]) {
-    console.error(
-      "[error] 旧引数モードは default で拒否されます。外部由来テキストはシェル展開経由で任意コマンド実行になるリスクがあります。明示的に許可する場合は --allow-legacy-args を付けてください（例: 対話的手動デバッグ）",
-    );
-    process.exit(1);
-  }
-  console.error("[warn] 旧引数モードで実行しました（外部由来テキストに使わないこと）");
-  wanted = values.wanted as string | undefined;
-  chose = values.chose as string | undefined;
-  why = values.why as string | undefined;
-  trigger = values.trigger as string | undefined;
-  personId = values["person-id"] as string | undefined;
-  regretRaw = values.regret as string | undefined;
+  regretRaw = obj.regret;
 }
 
 if (!wanted || !chose || !why) {
