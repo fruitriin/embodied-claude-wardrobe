@@ -1,0 +1,37 @@
+# Postgres 16 + PGroonga + pgvector（ローカル開発用）
+#
+# 使い方:
+#   cp .env.example .env
+#   docker compose up -d
+#   ../scripts/pg-psql.sh -f ../sql/schema/001_init.sql
+#   ../scripts/smoke.sh
+#
+# 「動く Supabase 相当物」をローカルに置くのが目的。本番は Supabase を想定。
+
+services:
+  postgres:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: wardrobe/postgres-memory:pg16
+    container_name: wardrobe-postgres-memory
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-wardrobe_memory}
+      POSTGRES_USER: ${POSTGRES_USER:-wardrobe}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-wardrobe_dev_pw}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+      # pg_stat_statements は将来のクエリ観測用。今は載せない
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-wardrobe} -d ${POSTGRES_DB:-wardrobe_memory}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  postgres-data:
+    name: wardrobe-postgres-memory-data
