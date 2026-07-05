@@ -18,7 +18,9 @@ ADDF フレームワークを最新版（またはターゲットバージョン
 
 ## 前提条件
 
-- `.claude/addf-lock.json` が存在すること（なければエラー終了し `/addf-init` を案内する）
+- `.claude/addf-lock.json` が存在すること。存在しない場合は2分岐:
+  - ADDF 由来ファイル（`.claude/commands/addf-*.md` 等）も存在しない → エラー終了し `/addf-init` を案内する
+  - ADDF 由来ファイルが存在する（= lock 未生成の**部分導入**プロジェクト。手縫い導入・旧版の部分コピー） → 「lock がありませんが ADDF ファイルを検出しました。初期正規化モードで走りますか？」と提案する <!-- human-judgment -->。承認されたら `/addf-init` の「部分導入からの正規化」手順に合流する: 最新版をクローンし、既存の ADDF 由来ファイルは最新版で上書き（安全一括上書きと個別確認必須の2群に分けて扱う — 存在≠所有）・プロジェクト固有ファイル（`*.exp.md`・`Progress.md`・`CLAUDE.repo.md` 等）は保護・完了時に `addf-lock.json` を生成する。手順の実体は `addf-init.md`（外部起動導入＋読み替え）を参照する — ここには重複記述しない
 - ワーキングツリーがクリーンであること（未コミットの変更があれば中断して案内する）
 
 ## マイグレーション手順
@@ -58,7 +60,8 @@ ADDF フレームワークを最新版（またはターゲットバージョン
 
 7. 現在のロックファイルの `ref`（タグ）と最新版の間で、ADDF 管理ファイルの差分をリストアップする
 
-**マイグレーション対象ファイル:**
+**マイグレーション対象ファイル**（除外規則: `*.addf.md` に該当するファイルは対象外 — ADDF 本体専用。
+旧バージョンの配布で残っている `*.addf.md`（例: `ProgressTemplate.addf.md`、`INDEX.addf.md`）があれば削除を提案する）:
 - `.claude/commands/addf-*.md` — スキル定義
 - `.claude/agents/addf-*.md` — エージェント定義
 - `.claude/optional/` — オプトイン式スキル・エージェントの原本（適用後に `sync-optional-skills.py` の再実行を案内）
@@ -71,8 +74,7 @@ ADDF フレームワークを最新版（またはターゲットバージョン
 - `AGENTS.md` — Codex 向けブートシーケンス（上書き）
 - `CONTRIBUTING.md` — コントリビューションガイド
 - `.claudeignore` — Claude 除外設定
-- `.claude/ADDF-CHANGELOG.md` — 変更履歴
-- `.claude/ADDF-Release.addf.md` — ADDF リリース手順
+- `.claude/ADDF-CHANGELOG.md` — 変更履歴（`ADDF-Release.addf.md` は除外規則により対象外）
 - `docs/guides/` — ADDF ガイドドキュメント
 - `docs/knowhow/ADDF/` — ADDF ノウハウ
 
@@ -87,7 +89,16 @@ ADDF フレームワークを最新版（またはターゲットバージョン
 - `TODO.md`, `docs/plans/` — プロジェクトのタスク管理
 - `docs/knowhow/*.md`（ADDF/ 以外） — プロジェクトのノウハウ
 - `README.md`, `README.en.md` — プロジェクトの説明
-- `.gitignore` — プロジェクトの除外設定（変更がある場合は手動マージを案内）
+- `.gitignore` — プロジェクトの除外設定。ただし ADDF マーカーブロック（`# --- ADDF Framework` 〜 `# --- /ADDF Framework`）**のみ**はステップ 14.6 でクローン元の同ブロックによる置換を提案する。ブロック外に変更がある場合は従来どおり手動マージを案内
+
+7.5. **旧配布 `*.addf.md` の残留検出**（「7.5」は後続の番号参照を壊さないための枝番）:
+旧バージョンの配布でダウンストリームに残っている `*.addf.md` を検出する:
+```bash
+find . -name '*.addf.md' -not -path './.git/*'
+```
+検出されたファイルは ADDF 本体専用の残留物のため、Phase 4 の「削除推奨」カテゴリで削除を提案する
+（ADDF 本体で実行された場合は `*.addf.md` が正当に存在するが、そもそも本体では
+`/addf-migrate` の前提となる `addf-lock.json` の向き先が自身であり通常実行しない）
 
 ### Phase 4: 変更の確認
 
@@ -114,6 +125,10 @@ ADDF フレームワークを最新版（またはターゲットバージョン
 
 ■ 削除 (1)
   - .claude/commands/addf-deprecated.md
+
+■ 削除推奨（旧配布残留ファイル） (2)
+  - .claude/templates/ProgressTemplate.addf.md
+  - docs/knowhow/INDEX.addf.md
 
 ■ 要手動マージ (1)
   ! .gitignore (変更あり — 手動確認推奨)
@@ -170,6 +185,36 @@ ADDF フレームワークを最新版（またはターゲットバージョン
     `addf-Behavior.toml` の `[gui-test] enable` に従って配置/撤去される。改変された有効化コピーは
     削除・上書きされず WARNING になるため、表示に従って原本へ取り込んでから再実行する
 
+14.6. **`.gitignore` の ADDF マーカーブロックの更新**（「14.6」は後続の番号参照を壊さないための枝番）:
+    `.gitignore` のうち ADDF マーカーブロック（`# --- ADDF Framework (do not remove) ---` 行〜
+    `# --- /ADDF Framework ---` 行）**のみ**、クローン元の同ブロックで置換を提案する。
+    **ブロック外のプロジェクト固有記述には触れない** — ブロック外に差分がある場合は従来どおり
+    手動マージを案内する。
+
+    **置換前の必須検査**: 終了マーカーが欠落・重複していると範囲指定が EOF まで飲み込み、
+    ブロック外のプロジェクト固有記述（秘密情報の除外設定を含みうる）を破壊する。以下を
+    **すべて**満たすことを確認し、1つでも満たさなければ**置換せず手動マージへフォールバックする**:
+    ```bash
+    # (1) 開始マーカーがちょうど1つ（出力が 1 でなければ中止）
+    grep -c '^# --- ADDF Framework (do not remove) ---$' .gitignore
+    # (2) 終了マーカーがちょうど1つ（出力が 1 でなければ中止）
+    grep -c '^# --- /ADDF Framework ---$' .gitignore
+    # (3) 開始マーカーの行番号 < 終了マーカーの行番号（逆順なら中止）
+    grep -n -e '^# --- ADDF Framework (do not remove) ---$' -e '^# --- /ADDF Framework ---$' .gitignore
+    ```
+    検査を通過したら、双方のブロックを抽出して差分を確認する（差分がなければこのステップはスキップ。
+    範囲指定はマーカー行の**全文一致**で行う — 前方一致では類似行を誤って拾いうる）:
+    ```bash
+    sed -n '/^# --- ADDF Framework (do not remove) ---$/,/^# --- \/ADDF Framework ---$/p' .gitignore > <tmp-dir>/gitignore-block-current
+    sed -n '/^# --- ADDF Framework (do not remove) ---$/,/^# --- \/ADDF Framework ---$/p' <tmp-dir>/addf-latest/.gitignore > <tmp-dir>/gitignore-block-latest
+    diff -u <tmp-dir>/gitignore-block-current <tmp-dir>/gitignore-block-latest
+    ```
+    差分があればユーザーに提示し、承認を得てから現在の `.gitignore` のブロック部分を最新版の
+    ブロックで置換する。**ブロック内にダウンストリーム独自の追記があった場合、その行は diff に
+    「消える行」として現れる — 消える行が本当に ADDF 由来か必ず目視確認し、独自追記が含まれる
+    場合はブロック外への退避を案内する**（`.gitignore` にマーカーブロック自体が無い場合は
+    追記を提案する） <!-- human-judgment -->
+
 ### Phase 6: 完了
 
 15. `.claude/addf-lock.json` を更新する（旧形式の `commit` フィールドがあれば `ref` に置き換える）:
@@ -214,7 +259,7 @@ ADDF フレームワークを最新版（またはターゲットバージョン
 
 <!-- checklist-lint: skip-section（エラー時の対応表。チェックリストではない） -->
 
-- `addf-lock.json` が存在しない → 「ロックファイルが見つかりません。`/addf-init` でプロジェクトを初期化してください」
+- `addf-lock.json` が存在しない → ADDF 由来ファイルも無ければ「ロックファイルが見つかりません。`/addf-init` でプロジェクトを初期化してください」。ADDF 由来ファイルがあれば部分導入とみなし、初期正規化モードを提案する（「前提条件」参照）
 - ワーキングツリーが汚れている → 中断して案内
 - リポジトリのクローンに失敗 → ネットワーク確認を案内
 - ロックファイルの `ref` が ADDF リポジトリに存在しない → 浅いクローンを完全クローンに切り替えて再試行。それでも見つからなければ `v<version>` タグにフォールバックする（旧形式 lock の実在しないハッシュ対策）

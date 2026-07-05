@@ -1,8 +1,9 @@
 ---
 name: addf-lint
 description: |
-  ADDF フレームワークの整合性をチェックする。settings.json 構文・hooks 実行権限・
-  スキル frontmatter・Behavior.toml・knowhow INDEX 整合・テンプレート同期を検証する。
+  ADDF フレームワークの整合性をチェックする。settings.json 構文・hooks 実行権限/配線・
+  スキル frontmatter・Behavior.toml・knowhow INDEX 整合/鮮度/双方向リンク・
+  テンプレート同期・チェックリスト裏付け・オプショナルスキル同期を検証する。
   品質ゲート前、CI、設定変更後に使う。
 context: fork
 user_invocable: true
@@ -81,7 +82,7 @@ uv run --python 3.11 .claude/addfTools/lint-template-sync.py
 ```
 
 exit code: 0 = 全一致 / 1 = ERROR / 2 = WARNING のみ。
-ダウンストリームプロジェクトでは ADDF 本体固有ファイル（`.addf.md` 版・`AGENTS.md` 等）が存在しないペアは SKIP され、ペア1は `ProgressTemplate.md` を正として比較する。
+upstream/downstream の判定は明示シグナルで行う（一次根拠: `CLAUDE.repo.md` の種別宣言 / フォールバック: `.claude/addf-lock.json` の存在。ファイルの存在では判定しない — 存在≠所有）。ダウンストリームではペア1は `ProgressTemplate.md` を正として比較し（`.addf.md` 版が物理存在しても比較しない）、ペア2・ペア3は SKIP される（独自 `AGENTS.md` の誤報防止）。その他のペアも対象ファイルが存在しなければ SKIP される。
 WARNING には git log による最終更新日ヒントが併記される。**どちらを正として同期するかはエージェントが文脈で判断する**（通常は新しい側が正だが、誤編集の巻き戻しもありうる）。修正後は再実行して確認する。
 
 ## 7. Knowhow 鮮度チェック
@@ -132,6 +133,26 @@ exit code: 0 = 整合 / 1 = ERROR（`enable` が真偽値でない等の設定�
 直接編集は原本に対して行う）。`.claude/optional/` または Behavior.toml が無い場合、
 Behavior.toml が構文エラーの場合（セクション4の責務）は SKIP される。
 
+## 11. Hooks 配線チェック
+
+`.claude/hooks/*.sh` の各ファイルが `settings.json` の hooks セクションに配線されているかを
+突合する（セクション2の実行権限チェックと対: 権限があっても配線がなければ実行されない）:
+
+```bash
+uv run --python 3.11 .claude/addfTools/lint-hooks-wiring.py
+```
+
+exit code: 0 = 全配線済み / 2 = WARNING（未配線フックあり。ダウンストリームが意図的に
+外している可能性があるため ERROR にしない）。tomllib 不要のためシステム python3 でも動く。
+突合は境界チェック付き（`count.sh` が `reset-turn-count.sh` の配線にマッチする
+部分文字列誤判定を防ぐ）。`settings.local.json` のみでの配線は有効だが OK と区別して
+`NOTE: <hook> は settings.local.json 経由（他環境・CI には適用されない）` が出る（exit 0 のまま）。
+フックのコメントヘッダに `# hooks-wiring: indirect` を置くと検査対象外（NOTE 表示。
+他スクリプト経由の間接参照用エスケープハッチ）。配線例は ADDF リポジトリの
+`.claude/settings.json`（https://github.com/fruitriin/ADDF/blob/main/.claude/settings.json）を参照。
+`settings.json` 不在、`.claude/hooks/*.sh` 不在、settings.json が不正 JSON の場合
+（セクション1の責務）、settings.json が読めない場合（OSError）は SKIP される。
+
 ## 結果報告
 
 全チェックの結果を以下の形式でまとめる:
@@ -151,4 +172,5 @@ Behavior.toml が構文エラーの場合（セクション4の責務）は SKIP
 8. Knowhow リンク     ✓ / ⚠
 9. チェックリスト裏付け ✓ / ⚠
 10. オプショナルスキル同期 ✓ / ⚠
+11. Hooks 配線         ✓ / ⚠
 ```

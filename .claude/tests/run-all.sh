@@ -2,6 +2,16 @@
 # run-all.sh
 # フック・ツールの自動テストを一括実行する。
 # スキルテストは自然言語シナリオのため手動実行（.claude/tests/skills/ を参照）。
+#
+# 設計ガイドライン（ダウンストリームでテストを追加する場合も同様）:
+# - テストが依存する必須ランタイム（bun / uv / python3 等）の不在を SKIP=成功として
+#   扱わない。環境起因で実行できないことと、テストが通ったことは別物として区別する。
+#   ランタイム不在で 0 件実行のまま ✓ を返す構造にしないこと（ダウンストリーム実例:
+#   cron の PATH 落ちで bun 不在 → 74 テストが 0 件実行のまま「All passed」を返した）
+#   良い例: command -v bun >/dev/null || { echo "FAIL: bun が必要（インストールしてから再実行）"; exit 1; }
+# - 環境的に実行不能なテスト（例: macOS 専用バイナリの非 macOS 実行）を飛ばす場合は、
+#   SKIP を明示出力し、件数を Results 行に含める（例: test-tools.sh の
+#   「Results: N passed, N failed, N skipped」）。silent に読み飛ばさない
 
 set -uo pipefail
 
@@ -39,37 +49,6 @@ echo "▶ Tool Tests"
 for f in "$SCRIPT_DIR"/tools/test-*.sh; do
   [ -f "$f" ] && run_test "$f"
 done
-
-# Bun テスト（ワードローブ追加: .claude 配下の *.test.ts を一括発見）
-echo ""
-echo "▶ Bun Tests (wardrobe)"
-if command -v bun >/dev/null 2>&1; then
-  PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-  BUN_TESTS=$(find "$PROJECT_ROOT/.claude" -name '*.test.ts' -not -path '*/node_modules/*' 2>/dev/null)
-  if [ -n "$BUN_TESTS" ]; then
-    while IFS= read -r f; do
-      echo ""
-      echo "━━━ $(basename "$f") ━━━"
-      # emotion-mcp 等サブプロジェクトのテストは package.json のあるディレクトリで実行
-      pkg_dir="$(dirname "$f")"
-      while [ "$pkg_dir" != "$PROJECT_ROOT" ] && [ ! -f "$pkg_dir/package.json" ]; do pkg_dir="$(dirname "$pkg_dir")"; done
-      if [ -f "$pkg_dir/package.json" ]; then run_dir="$pkg_dir"; else run_dir="$PROJECT_ROOT"; fi
-      if (cd "$run_dir" && bun test "$f"); then
-        echo "→ $(basename "$f"): ALL PASSED"
-      else
-        echo "→ $(basename "$f"): SOME FAILED"
-        TOTAL_FAIL=$((TOTAL_FAIL + 1))
-      fi
-    done <<< "$BUN_TESTS"
-  else
-    echo "  （*.test.ts なし — SKIP）"
-  fi
-else
-  echo "  （bun 不在 — SKIP）"
-fi
-
-# メモ: memory-mcp の pytest（約4.5分、E5モデル実ロード）は重いため本ランナーには含めない。
-# 実行: cd .claude/mcps/memory-mcp && uv run pytest
 
 # スキルテスト案内
 echo ""
