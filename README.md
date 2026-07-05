@@ -4,7 +4,17 @@
 
 **wardrobe がアップストリームです。** クローンして `SOUL.md` をカスタマイズし、`claude` を起動する。あなたの環境がダウンストリームになります。
 
-[lifemate-ai/embodied-claude](https://github.com/lifemate-ai/embodied-claude) の MCP サーバー群を起源とし、その上にスキル・フック・セッション管理・人格テンプレートを加えた完成形エコシステムです。
+[lifemate-ai/embodied-claude](https://github.com/lifemate-ai/embodied-claude) の MCP サーバー群を起源とし、その上にスキル・フック・セッション管理・人格テンプレートを加えた完成形エコシステム、ワードローブ（衣装箱）です。
+
+---
+
+## オリジナル版MemmoryMCPからのマイグレーションについての注意
+ワードローブは現在のところの https://github.com/heishio/embodied-claude-rem 版のMemmoryMCPを採用しています。  
+記憶されているデータの次元数が異なるという形で互換性がありませんので、オリジナル版から引き継ぎを行う場合はバックアップを取ったうえでマイグレーションスクリプトを実施してください。  
+https://github.com/fruitriin/embodied-claude-wardrobe/blob/main/.claude/mcps/memory-mcp/scripts/migrate_embeddings_sqlite.py
+
+memmoryMCPを差し替えなくても周辺エコシステムはインターフェースさえ合わせればサブエージェントや追想システムの原理は使えるはずなので、
+その場合はLLMに頼んでいい感じに取り込んでください
 
 ---
 
