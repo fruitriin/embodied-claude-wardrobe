@@ -89,8 +89,8 @@
 ### orphaned ファイル整理
 - [ ] statusline.ts の settings.json 登録か削除（Orphaned 状態）
 - [ ] continue-check.sh の settings.json 登録か削除
-- [ ] hearing-daemon.py の削除（hearing MCP に移行済み、system-perception.md に廃止と明記）
-- [ ] heartbeat-daemon.sh の二重配置解消（.claude/hooks/ と .claude/scripts/ に同名）
+- [x] hearing-daemon.py の削除（hearing MCP に移行済み、system-perception.md に廃止と明記）
+- [x] heartbeat-daemon.sh の二重配置解消（.claude/hooks/ と .claude/scripts/ に同名）
 - [ ] sanitize スキルファイルの作成（CLAUDE.md, README.md から参照されているが不在）
 
 ### wd-project-claude-overview マッピング修正

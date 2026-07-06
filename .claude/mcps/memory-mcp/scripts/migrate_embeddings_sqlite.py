@@ -23,8 +23,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from memory_mcp.config import MemoryConfig
 from memory_mcp.embedding import E5EmbeddingFunction
-from memory_mcp.normalizer import normalize_japanese
-from memory_mcp.vector import decode_vector, encode_vector
+from memory_mcp.vector import encode_vector
 
 
 def migrate(config: MemoryConfig) -> None:

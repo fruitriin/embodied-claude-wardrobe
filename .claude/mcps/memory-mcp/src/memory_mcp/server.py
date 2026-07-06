@@ -1345,7 +1345,7 @@ Date Range:
                         steps = arguments.get("steps", [])
                         if not steps:
                             return [TextContent(type="text", text="Error: steps is required")]
-                        result = await self._memory_store.save_verb_chain(
+                        chain_result = await self._memory_store.save_verb_chain(
                             document="",
                             steps=steps,
                             emotion=arguments.get("emotion", "neutral"),
@@ -1353,32 +1353,32 @@ Date Range:
                             source="manual",
                             context=arguments.get("context", ""),
                         )
-                        return [TextContent(type="text", text=json.dumps(result, ensure_ascii=False, indent=2))]
+                        return [TextContent(type="text", text=json.dumps(chain_result, ensure_ascii=False, indent=2))]
 
                     case "search_verb_chain":
                         query = arguments.get("query", "")
                         if not query:
                             return [TextContent(type="text", text="Error: query is required")]
-                        results = await self._memory_store.search_verb_chain(
+                        chain_results = await self._memory_store.search_verb_chain(
                             query=query,
                             n_results=arguments.get("n_results", 5),
                             flow_weight=arguments.get("flow_weight", 0.6),
                         )
-                        return [TextContent(type="text", text=json.dumps(results, ensure_ascii=False, indent=2))]
+                        return [TextContent(type="text", text=json.dumps(chain_results, ensure_ascii=False, indent=2))]
 
                     case "get_memory_calendar":
-                        results = await self._memory_store.get_memory_calendar(
+                        calendar_days = await self._memory_store.get_memory_calendar(
                             date_from=arguments.get("date_from"),
                             date_to=arguments.get("date_to"),
                             limit=arguments.get("limit", 30),
                         )
-                        if not results:
+                        if not calendar_days:
                             return [TextContent(type="text", text="No daily digests found. Run consolidate_memories first to generate them.")]
                         lines = []
-                        for r in results:
-                            lines.append(f"📅 {r['date']} ({r['memory_count']} memories, avg importance: {r['avg_importance']:.1f})")
-                            lines.append(f"  {r['summary']}")
-                            lines.append(f"  categories: {r['categories']} | emotions: {r['emotions']}")
+                        for day in calendar_days:
+                            lines.append(f"📅 {day['date']} ({day['memory_count']} memories, avg importance: {day['avg_importance']:.1f})")
+                            lines.append(f"  {day['summary']}")
+                            lines.append(f"  categories: {day['categories']} | emotions: {day['emotions']}")
                             lines.append("")
                         return [TextContent(type="text", text="\n".join(lines))]
 
