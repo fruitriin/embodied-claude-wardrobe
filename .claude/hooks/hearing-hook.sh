@@ -3,12 +3,12 @@
 # このファイルは聴覚モジュールの一部です。関連ファイル:
 #   .claude/hooks/hearing-hook.sh      — 聴覚開始フック  ← このファイル
 #   .claude/hooks/hearing-stop-hook.sh — 聴覚停止フック
-#   .claude/hooks/hearing-daemon.py    — 聴覚デーモン（常駐プロセス）
 #   .claude/hooks/continue-check.sh   — 継続判定
+# （常駐プロセス本体は hearing/ ライブラリ + wifi-cam-mcp の start_listening に移行済み）
 # ──────────────────────────────────────────────────
 # hearing-hook.sh - 聴覚バッファを Claude のコンテキストに注入する UserPromptSubmit フック
 #
-# hearing-daemon.py が hearing_buffer.jsonl に蓄積した文字起こし結果を
+# hearing/ ライブラリの常駐プロセスが hearing_buffer.jsonl に蓄積した文字起こし結果を
 # UserPromptSubmit のたびに読み取り、[hearing] プレフィックス付きで stdout に出力する。
 # 読み取り後はバッファをアトミックに空にする。
 #
