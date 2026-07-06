@@ -180,6 +180,31 @@ A 案の形: Edge Function がメモリ API のゲートになり、コミット
 - ローテーション手順を runbook 化（A 案なら数分で完了する）
 - GitHub の Push Protection / Secret Scanning が使えるプランなら有効化
 
+## 設計判断 5 — 全文検索の索引設計（2026-07-06、リン承認済み）
+
+**出典**: リンの misskey PGroonga ブラッシュアップ計画（fruitriin/misskey、note 4500万行での実測込み）+ kou 氏 db-tech-showcase 2018 スライド。
+
+1. **normalized_content カラムは作らない** — PGroonga は索引時に Normalizer が正規化する。`NormalizerNFKC150("unify_kana", true, "unify_hyphen_and_prolonged_sound_mark", true, "unify_middle_dot", true, ...)` を張れば、かな・長音・中黒の揺れは content カラム1本で吸収できる（Phase 0 smoke test の「散歩/さんぽ」HIT はこれ）
+2. **reading カラムも作らない（第一候補）** — 同じ content カラムに `TokenMecab("use_reading", true)` の索引をもう1本張れば、MeCab 辞書ベースの読み仮名検索が成立する。つまり**トリプル索引の答えは「カラム3本でなく、content 1カラム + 設定違いの索引2本」**。Phase 2 の契約準拠テストで読み仮名検索の実測を取ってから確定する
+3. **ヴ行の揺れは吸収する** — 個人用途では「ヴァイオリン⇔バイオリン」を同一視するほうが便利（リン判断: ユーザー多数なら区別が効くが、個人なら吸収）。母音を保つ **`unify_katakana_v_sounds` を採用**（`unify_katakana_bu_sound` はヴァ→ブで母音が潰れ、この揺れを拾えない）
+4. **鉄則（misskey 実環境の事故・実測から輸入）**:
+   - **全索引で normalizers を完全同一にする**（不一致だと OR 検索で正規化挙動がズレる事故が実測されている）
+   - **クエリ式と索引式を一致させる**。連結式 `(coalesce(a,'')||coalesce(b,'')) &@~ :q` は列単独索引と一致せずフォールバックする（実測 6238ms）。複数カラム検索は `(a &@~ :q OR b &@~ :q)` と OR で書く
+   - 検索セッションに `SET LOCAL jit = off` を保険で入れる（索引フォールバック時に JIT だけで数百ms 溶ける）。投入後 `EXPLAIN (ANALYZE, BUFFERS)` で索引が使われていることを検証してから外してよい
+   - 部分索引などの追加最適化は**効果測定で問題が見えてから**。個人記憶の規模（数千〜数万行）では全件索引2本で足りる見込み
+
+## 設計判断 6 — 埋め込みモデルと次元数（2026-07-06）
+
+- 次元数は「賢さ」ではなくモデルの質が主。次元が効くのはストレージ・距離計算・埋め込み計算コストだが、**個人記憶の規模では実質誤差**（10万行 × 768次元 ≒ 300MB、pgvector HNSW は 2000 次元まで可）
+- 実際の判断材料は3つ: (1) **既存資産との互換** — 現行 memory-mcp と同じ multilingual-e5-base(768) を続投すれば SQLite→PG 移行で**再埋め込み不要**。モデルを変えたら次元が同じでも空間が別物で全件再埋め込み。(2) 書き込みレイテンシ — /wd-remember のたびに埋め込みが走る（e5-base は CPU で数百ms 級）。(3) `ALTER COLUMN TYPE vector(N)` は実質テーブル再作成なので**本番投入前に確定**
+- **第一候補: multilingual-e5-base（768）続投**。chiVe(300) は単語ベクトルで文埋め込みには不向き（動詞チェーン用の脇役）。PR#2 で最終確定
+
+## 設計判断 7 — ツールシグネチャは config 駆動 + 日本語 description（2026-07-06）
+
+- **ツール名は API 規約で ASCII（`a-zA-Z0-9_-`）必須**。ただしモデルがツールを選ぶ判断材料は名前でなく **description であり、そこは日本語で完全に動く**。英語名のニュアンス問題は「`remember` という札に日本語の仕立て書き（description・引数説明・enum 値）を縫い付ける」ことで解消する
+- **ツール定義は config（JSON）に外出しし、サーバーは汎用ディスパッチャにする**。最小契約11本 + 拡張契約のオン/オフが config の差し替え（+ MCP 再起動）で完結する。Python でも `FastMCP.add_tool()` を config ループで呼べば成立（デコレータ流儀が静的に見えるだけ）。TS なら listChanged 通知で再起動なしの増減も可能
+- 汎用パターンとしての詳細: `docs/knowhow/wardrobe/mcp-dynamic-tool-registry.md`
+
 ## リンに確認したいこと（残り）
 
 1. **秘密鍵の形**: A 案（能力トークン + Edge Function ゲート）でよいか。※Claude Code Web の Secret 対応有無は裏取り中——対応があればこの節ごと不要になる
