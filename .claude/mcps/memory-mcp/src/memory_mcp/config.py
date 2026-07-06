@@ -19,24 +19,42 @@ class MemoryConfig:
     enable_bm25: bool = True
     enable_composites: bool = False  # Phase 4: バウンダリー層・交差検出（重い計算）
 
+    @staticmethod
+    def _find_marker_root(start: Path) -> "Path | None":
+        """start から祖先方向に CLAUDE.md を持つ最も近いディレクトリを探す。"""
+        for candidate in (start, *start.parents):
+            if (candidate / "CLAUDE.md").exists():
+                return candidate
+        return None
+
+    @classmethod
+    def _resolve_project_dir(cls) -> Path:
+        """記憶の保存先となるプロジェクトルートを解決する。
+
+        優先順位: CLAUDE_PROJECT_DIR（cwd との整合を検証）→ cwd からの
+        CLAUDE.md マーカー探索 → ホームディレクトリ。
+        """
+        cwd = Path.cwd().resolve()
+        marker_root = cls._find_marker_root(cwd)
+        env_dir = os.getenv("CLAUDE_PROJECT_DIR")
+        if env_dir:
+            project_dir = Path(env_dir).resolve()
+            # 親プロセスから継承した CLAUDE_PROJECT_DIR が別プロジェクトを
+            # 指すことがある（例: .mcp.json の ${PWD} がエディタ起動時の
+            # 環境変数で展開されるケース）。自分の cwd がその配下になく、
+            # cwd 側にマーカーが見つかるなら、マーカーの方を信じる
+            if marker_root is not None and not cwd.is_relative_to(project_dir):
+                return marker_root
+            return project_dir
+        if marker_root is not None:
+            return marker_root
+        return Path.home()
+
     @classmethod
     def from_env(cls) -> "MemoryConfig":
         """Create config from environment variables."""
         # プロジェクトディレクトリ配下に記憶を保存する
-        # CLAUDE_PROJECT_DIR → cwd の親（memory-mcp/ から起動される場合）→ cwd
-        project_dir = os.getenv("CLAUDE_PROJECT_DIR")
-        if project_dir:
-            default_path = str(Path(project_dir) / ".claude" / "memories" / "memory.db")
-        else:
-            # CLAUDE_PROJECT_DIR がない場合、CLAUDE.md マーカーで親ディレクトリを探す
-            cwd = Path.cwd()
-            # memory-mcp/ から起動された場合、親に CLAUDE.md があればプロジェクトルート
-            if (cwd.parent / "CLAUDE.md").exists():
-                default_path = str(cwd.parent / ".claude" / "memories" / "memory.db")
-            elif (cwd / "CLAUDE.md").exists():
-                default_path = str(cwd / ".claude" / "memories" / "memory.db")
-            else:
-                default_path = str(Path.home() / ".claude" / "memories" / "memory.db")
+        default_path = str(cls._resolve_project_dir() / ".claude" / "memories" / "memory.db")
 
         return cls(
             db_path=os.getenv("MEMORY_DB_PATH", default_path),

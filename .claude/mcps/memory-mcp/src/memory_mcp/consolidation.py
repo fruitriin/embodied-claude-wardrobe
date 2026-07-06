@@ -7,7 +7,7 @@ REMフォークから移植、graph依存除去。
 from __future__ import annotations
 
 from collections import Counter
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from math import ceil
 from typing import TYPE_CHECKING, Any
@@ -398,7 +398,8 @@ class ConsolidationEngine:
 
             if best_cid is not None and best_sim >= rescue_threshold:
                 db.execute(
-                    "INSERT OR IGNORE INTO composite_members (composite_id, member_id, contribution_weight) VALUES (?,?,?)",
+                    "INSERT OR IGNORE INTO composite_members (composite_id, member_id, contribution_weight)"
+                    " VALUES (?,?,?)",
                     (best_cid, mem.id, 0.3),
                 )
                 orphans_rescued += 1

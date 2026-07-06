@@ -9,7 +9,7 @@ import sqlite3
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
@@ -24,6 +24,10 @@ from .consolidation import ConsolidationEngine
 from .embedding import E5EmbeddingFunction
 from .hopfield import HopfieldRecallResult, ModernHopfieldNetwork
 from .normalizer import get_reading, normalize_japanese
+
+if TYPE_CHECKING:
+    from .chive import ChiVeEmbedding
+
 from .predictive import (
     PredictiveDiagnostics,
     calculate_context_relevance,
@@ -40,8 +44,8 @@ from .types import (
     ScoredMemory,
     SensoryData,
 )
-from .verb_chain import VerbChain, VerbChainStore, VerbStep
 from .vector import cosine_similarity, decode_vector, encode_vector
+from .verb_chain import VerbChain, VerbChainStore, VerbStep
 from .working_memory import WorkingMemoryBuffer
 from .workspace import (
     WorkspaceCandidate,
@@ -373,7 +377,7 @@ class MemoryStore:
         self._embedding_fn = E5EmbeddingFunction(config.embedding_model)
         self._bm25_index = BM25Index()
         self._verb_chain_store: VerbChainStore | None = None
-        self._chive = None  # Lazy-loaded ChiVeEmbedding
+        self._chive: ChiVeEmbedding | None = None  # Lazy-loaded
 
     # ── Connection ──────────────────────────────
 
@@ -976,7 +980,7 @@ class MemoryStore:
                 existing = list(memory.links)
                 existing.append(new_link)
                 import json
-                links_json = json.dumps([l.to_dict() for l in existing])
+                links_json = json.dumps([link.to_dict() for link in existing])
                 await self.update_memory_fields(memory_id, links=links_json)
 
         # composite の importance を再計算
@@ -1810,13 +1814,15 @@ class MemoryStore:
             # composite_members
             for mid in member_ids:
                 db.execute(
-                    "INSERT OR IGNORE INTO composite_members (composite_id, member_id, contribution_weight) VALUES (?,?,?)",
+                    "INSERT OR IGNORE INTO composite_members (composite_id, member_id, contribution_weight)"
+                    " VALUES (?,?,?)",
                     (composite_id, mid, 1.0),
                 )
             # composite_axes (optional)
             if axis_vector is not None:
                 db.execute(
-                    "INSERT OR REPLACE INTO composite_axes (composite_id, axis_vector, explained_variance_ratio) VALUES (?,?,?)",
+                    "INSERT OR REPLACE INTO composite_axes (composite_id, axis_vector, explained_variance_ratio)"
+                    " VALUES (?,?,?)",
                     (composite_id, encode_vector(axis_vector), explained_variance_ratio),
                 )
             db.commit()
@@ -1907,7 +1913,11 @@ class MemoryStore:
     async def clear_boundary_layers(self) -> None:
         """Clear all boundary layer data."""
         db = self._ensure_connected()
-        await asyncio.to_thread(lambda: (db.execute("DELETE FROM boundary_layers"), db.commit()))
+        def _clear() -> None:
+            db.execute("DELETE FROM boundary_layers")
+            db.commit()
+
+        await asyncio.to_thread(_clear)
 
     async def fetch_all_composite_axes(self) -> dict[str, np.ndarray]:
         """Get all composite principal axes."""

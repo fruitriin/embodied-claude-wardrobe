@@ -61,7 +61,7 @@ cron / ユーザー起動
 
 | フック | timeout | 目的 |
 |---|---|---|
-| interoception.sh | 5s | 身体状態注入（time/arousal/thermal/mem_free） |
+| interoception.sh | 5s | 身体状態注入（time/day/phase/thermal/mem_free） |
 | recall-hook.sh | 5s | 想起バッファ注入 |
 | hearing-hook.sh | 5s | 聴覚バッファ注入 |
 | turn-reminder.sh | 5s | 10ターン記憶リマインダー |

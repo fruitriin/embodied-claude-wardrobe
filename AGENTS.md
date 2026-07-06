@@ -1,84 +1,61 @@
-# Repository Guidelines
+# AGENTS.md — AutomatonDevDrive Framework
 
-## Overview
+> This file enables Codex (and other AGENTS.md-compatible tools) to use ADDF.
+> For Claude Code, see CLAUDE.md (the primary instruction file).
 
-embodied-claude-wardrobe は、Claude に「身体性」を与える MCP サーバー群と自律行動システムのモノレポです。感覚（視覚・聴覚・音声）、記憶、移動、欲望システムなどを独立した Python パッケージとして提供します。
+## Boot Sequence
 
-## Project Structure
+On session start, read these files in order:
 
-各 MCP サーバーは独立した Python パッケージ（`pyproject.toml` を持つ）です。
+1. `.claude/Feedback.md` — Check for unresolved improvement actions
+   - 1.5. `.claude/Questions.md` — If the owner answered pending questions, apply the answers to plans and move them to "answered"
+   - 1.6. If `.claude/Dashboard.md` exists, present its contents first (summary of unattended autonomous work). Delete it only after the owner has acknowledged it; re-present next session otherwise
+2. `TODO.md` — Review task backlog and priorities
+3. `.claude/Progress.md` — Continue in-progress tasks or select next
+   - If the in-progress task has a diary (日記) section, read the last 3 entries to pick up the predecessor's situation, judgments, and concerns before starting (see Progress.md operating rules for the diary format)
+4. If no pending tasks:
+   - If `docs/plans/` has no plan files (first-time project): scan the project, then ask the owner to choose: (A) guided Q&A (what to build, pain points, target platform, why existing tools don't work) or (B) free-form explanation. Create 2-3 initial plan files (following `.claude/templates/PlanTemplate.md`), register in TODO.md, and generate project-specific `CLAUDE.repo.md` (as downstream "ADDF利用プロジェクト")
+   - Otherwise: ask the owner for the next task
+5. Before starting a plan, read relevant files in `docs/knowhow/` directly
 
-### MCP サーバー
-- `.claude/mcps/memory-mcp/` — 長期記憶サーバー（連想発散・予測符号化・統合機能付き）。テストあり
-- `.claude/mcps/hearing/` — 聴覚 MCP サーバー。テストあり
-- `.claude/mcps/tts-mcp/` — テキスト読み上げ MCP サーバー。テストあり
-- `.claude/mcps/wifi-cam-mcp/` — Wi-Fi PTZ カメラ制御 + 音声キャプチャ
-- `.claude/mcps/usb-webcam-mcp/` — USB ウェブカメラキャプチャ
-- `.claude/mcps/ip-webcam-mcp/` — IP ウェブカメラ MCP
-- `.claude/mcps/system-temperature-mcp/` — システム温度センサー（Python 3.12+ 必須）
-- `.claude/mcps/mobility-mcp/` — ロボット掃除機 MCP。テストあり
-- `.claude/mcps/toio-mcp/` — toio キューブ MCP。テストあり
-- `.claude/mcps/mcp-pet/` — ペットインタラクション MCP。テストあり
-- `.claude/mcps/morning-call-mcp/` — モーニングコール MCP
+## Development Process
 
-### その他のディレクトリ
-- `installer/` — PyInstaller ベースの GUI インストーラー
-- `.claude/hooks/` — Bash フック（`interoception.sh`, `recall-hook.sh` 等）
-- `.claude/scripts/` — Bun (TypeScript) で実行するユーティリティスクリプト
-- `.claude/templates/` — ユーザーカスタマイズ用の Markdown テンプレート
-- `docs/` — ドキュメントとアーキテクチャ図
-- `autonomous-action.sh` — cron で20分ごとに実行する自律行動スクリプト
-- `mcpBehavior.toml` — MCP 動作設定
+- **Plan-driven**: Review plans, not code. Good plans are accepted; AI ensures implementation quality
+- **70% rule (stop-or-go doctrine)**: Proceed when ~70% confident the direction matches the plan's intent. Below threshold, drop a question into `.claude/Questions.md` and move to another task instead of guessing or halting. See the stop-or-go doctrine section in CLAUDE.md (Japanese) for the full three-axis doctrine (trust / responsiveness / image clarity)
+- **Plans directory**: `docs/plans/` (downstream) or `docs/plans-add/` (ADDF development)
+- **Knowhow**: Implementation insights are stored in `docs/knowhow/`
+- **Quality gate**: Build/Lint/Test → Code review → Commit
 
-## Build, Test, and Development Commands
+## Commit Convention
 
-各サブプロジェクトのディレクトリ内でコマンドを実行してください。
+Write commit messages in Japanese:
 
-```bash
-# 依存関係のインストール
-cd <subproject> && uv sync
+```
+[領域] 変更内容の要約
 
-# サーバーの起動
-cd <subproject> && uv run <server-name>
-# 例: cd .claude/mcps/memory-mcp && uv run memory-mcp
-
-# テストの実行
-cd <subproject> && uv run pytest
-# 例: cd .claude/mcps/memory-mcp && uv run pytest
-#     cd .claude/mcps/toio-mcp && uv run pytest
-
-# Lint（設定済みのサブプロジェクトのみ）
-cd <subproject> && uv run ruff check .
-
-# TypeScript スクリプトの実行
-bun run .claude/scripts/<script-name>.ts
+詳細説明（必要な場合）
 ```
 
-## Coding Style & Naming Conventions
+## Codex-Specific Notes
 
-- **Python**: 3.10+ 基準（`system-temperature-mcp/` のみ 3.12+ 必須）
-- **インデント**: 4スペース
-- **命名**: `snake_case` モジュール、`test_*.py` テストファイル
-- **Ruff**: 行長 100 文字
-- **非同期**: `asyncio` スタイルを標準とする
-- **TypeScript**: Bun ランタイムで実行。Node.js API ではなく Bun ネイティブ API を優先
+This project is designed for Claude Code but can be used with Codex with limitations.
+See `docs/guides/codex-setup.md` for detailed Codex setup instructions.
 
-## Testing Guidelines
+### What works with Codex
 
-- フレームワーク: `pytest` + `pytest-asyncio`
-- テストは各サブプロジェクトの `tests/` ディレクトリに配置する
-- テストがあるパッケージ: `memory-mcp`, `hearing`, `tts-mcp`, `mobility-mcp`, `toio-mcp`, `mcp-pet`
+- Plan-driven development workflow (Markdown-based, agent-agnostic)
+- Knowhow system (`docs/knowhow/` — plain Markdown files)
+- Quality gate process (manual execution of review steps)
+- Progress tracking (`.claude/Progress.md`)
 
-## Configuration & Hardware Notes
+### Note for ADDF framework development
 
-- `.env` はコミットしない。認証情報は環境変数で渡す
-- 長期記憶データは `~/.claude/memories/` 以下に保存される
-- WSL2 環境では USB ウェブカメラに `usbipd` フォワーディングが必要
-- WSL2 ではシステム温度取得が動作しない
-- Tapo カメラはローカルカメラアカウント（TP-Link クラウドアカウントではない）と固定 IP を推奨
+This repository (ADDF itself) is primarily developed with Claude Code.
+If you're contributing to ADDF, Claude Code is recommended.
 
-## Commit & Pull Request Guidelines
+### What requires Claude Code
 
-- **Conventional Commits** を使用: `feat:`, `fix:`, `feat!:`, `docs:`, `chore:` など
-- PR にはサマリー、テスト証跡（コマンドと結果）、ハードウェア前提（USB ウェブカメラ、GPU 等）を含める
-
+- Skills (`/addf-*` commands) — Codex skills use a different format (`.agents/skills/`)
+- Hooks (turn counter, session start) — Limited Codex equivalent
+- Automated quality gate (parallel agent team) — Different subagent architecture
+- GUI testing (addfTools) — Requires macOS, not available in Codex sandbox
