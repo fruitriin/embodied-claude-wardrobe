@@ -45,14 +45,13 @@
   "mcpServers": {
     "server-name": {
       "command": "uv",
-      "args": ["run", "--directory", "my-mcp", "my-mcp"],
-      "env": {
-        "CLAUDE_PROJECT_DIR": "${PWD}"
-      }
+      "args": ["run", "--directory", "my-mcp", "my-mcp"]
     }
   }
 }
 ```
+
+> ⚠️ `env` に `"CLAUDE_PROJECT_DIR": "${PWD}"` を書くのは**禁止**。`${PWD}` はエディタから継承した環境変数で展開されることがあり、別プロジェクトのパスを掴む。詳細: [wardrobe/mcp-project-dir-resolution.md](../wardrobe/mcp-project-dir-resolution.md)
 
 ### リモートサーバー
 
@@ -120,7 +119,7 @@ mcpServers フィールドでサブエージェント専用 MCP を定義。イ�
 
 ## ワードローブ固有のメモ
 
-- `${PWD}` を CLAUDE_PROJECT_DIR として全 MCP に渡す設定を導入済み
+- ~~`${PWD}` を CLAUDE_PROJECT_DIR として全 MCP に渡す設定を導入済み~~ → **2026-07-06 撤廃**。エディタ継承の PWD で別プロジェクトの DB を掴む事故が実測されたため、サーバー側の cwd 基準解決に切り替えた（[wardrobe/mcp-project-dir-resolution.md](../wardrobe/mcp-project-dir-resolution.md)）
 - Claude Code CLI では `http` タイプを使う（`streamable-http` は別名で実質同じだが、xpoz で Parse Error が出た）
 - `claude mcp add` で .mcp.json を直接編集せずにサーバー追加可能
 - headersHelper + CLAUDE_CODE_MCP_SERVER_NAME/URL で OAuth トークンの動的取得が可能
