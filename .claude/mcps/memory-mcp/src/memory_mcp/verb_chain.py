@@ -11,15 +11,14 @@ import math
 import sqlite3
 import uuid
 from collections import defaultdict
-from datetime import datetime, timezone
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Any
 
 import numpy as np
 
 from .chive import ChiVeEmbedding
 from .vector import cosine_similarity, decode_vector, encode_vector
-
 
 # ── Types ──
 
@@ -207,7 +206,8 @@ class VerbChainStore:
                 ),
             )
             self._db.execute(
-                "INSERT OR IGNORE INTO verb_chain_embeddings (chain_id, vector, flow_vector, delta_vector) VALUES (?,?,?,?)",
+                "INSERT OR IGNORE INTO verb_chain_embeddings (chain_id, vector, flow_vector, delta_vector)"
+                " VALUES (?,?,?,?)",
                 (chain.id, encode_vector(concat_vec), encode_vector(flow_vec), encode_vector(delta_vec)),
             )
             self._db.commit()
