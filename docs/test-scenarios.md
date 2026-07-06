@@ -66,7 +66,7 @@
 
 #### 前提条件
 - `.claude/hooks/interoception.sh` が settings.json に登録済み
-- `.claude/scripts/heartbeat-daemon.sh` が動作中（launchd）
+- `.claude/hooks/heartbeat-daemon.sh` が動作中（launchd）
 
 #### チェック項目
 - [ ] UserPromptSubmit で `[interoception] time=... day=... phase=... thermal=... mem_free=...` が注入される
