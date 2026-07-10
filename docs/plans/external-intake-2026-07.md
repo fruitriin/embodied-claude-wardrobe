@@ -88,6 +88,8 @@ M5Stack 依存の本体（話者識別 GPU サーバー、rover、感熱紙プ�
 
 **生態系インテリジェンス**: ぷちは `claude -p` の非対話実行が Agent SDK 別クレジット（月$200）に切り出されるという読みで、自律行動を Goose CLI（Gemini バックエンド）へ移行する保険を打っている（`docs/goose-migration-plan.md`）。うちの autonomous-action.sh も同じリスクを負っている——動向を注視。
 
+**追記（2026-07-07）**: 初回調査でぷちの **dashboard（オーナー向け状態確認コンソール、main 3,144行 → feature 9,142行）** が候補から漏れていた。検分の上、独立計画 `wardrobe-dashboard.md` に切り出した。輸入は部品単位（/costs トークン集計・/stream-logs 行動ログ可視化・欲求バー・記憶タイムライン）。上記 check_usage.py と /costs は同領分のため、どちらかに寄せる統合判断を計画側に記載。
+
 ## Tier 3: memory-mcp 大改修の設計参照
 
 大改修はこのプロジェクトの主題。upstream の新概念は「今すぐコピー」ではなく設計の参照点として使う。
