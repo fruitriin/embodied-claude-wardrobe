@@ -136,11 +136,11 @@
       "Bash(gh pr checkout *)",
       "Bash(gh pr create *)",
       "Bash(gh api *)",
-      "Bash(bash .claude/tests/run-all.sh *)",
-      "Bash(uv run --python 3.11 .claude/addfTools/lint *)",
-      "Bash(uv run --python 3.11 .claude/addfTools/speculate-guard.py *)",
-      "Bash(uv run --python 3.11 .claude/addfTools/speculate-integrate.py *)",
-      "Bash(uv run --python 3.11 .claude/addfTools/speculate-reconcile.py *)"
+      "Bash(bash .claude/addf/tests/run-all.sh *)",
+      "Bash(uv run --python 3.11 .claude/addf/addfTools/lint *)",
+      "Bash(uv run --python 3.11 .claude/addf/addfTools/speculate-guard.py *)",
+      "Bash(uv run --python 3.11 .claude/addf/addfTools/speculate-integrate.py *)",
+      "Bash(uv run --python 3.11 .claude/addf/addfTools/speculate-reconcile.py *)"
     ],
     "ask": [
       "Bash(git push *)",

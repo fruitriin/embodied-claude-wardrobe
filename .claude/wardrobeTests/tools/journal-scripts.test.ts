@@ -1,6 +1,6 @@
 // journal-scripts.test.ts — 非退行台帳スクリプトのテスト
 // 実行: run-all.sh の Bun 自動発見（.claude 配下の *.test.ts）で拾われる。
-// 手動実行は `bun test ./.claude/tests/tools/journal-scripts.test.ts` でも可。
+// 手動実行は `bun test ./.claude/addf/tests/tools/journal-scripts.test.ts` でも可。
 //
 // v0.5.1 以降: 旧引数モード（--wanted 等の個別フィールド指定）と --allow-legacy-args は完全撤廃。
 // 受け付けるのは --json-file <path> のみ。

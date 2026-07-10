@@ -1,4 +1,4 @@
-// 原文: /Users/riin/workspace/wardrobe-test/docs/knowhow/claude-code/extracted-docs/utils/swarm/teammatePromptAddendum.ts
+// 原文: /Users/riin/workspace/wardrobe-test/.claude/addf/knowhow/claude-code/extracted-docs/utils/swarm/teammatePromptAddendum.ts
 
 /**
  * チームメンバー固有のシステムプロンプト追記。

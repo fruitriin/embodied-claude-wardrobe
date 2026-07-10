@@ -1,4 +1,4 @@
-// 原文: /Users/riin/workspace/wardrobe-test/docs/knowhow/claude-code/extracted-docs/tools/WebSearchTool/prompt.ts
+// 原文: /Users/riin/workspace/wardrobe-test/.claude/addf/knowhow/claude-code/extracted-docs/tools/WebSearchTool/prompt.ts
 import { getLocalMonthYear } from 'src/constants/common.js'
 
 export const WEB_SEARCH_TOOL_NAME = 'WebSearch'

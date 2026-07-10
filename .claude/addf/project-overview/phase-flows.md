@@ -26,7 +26,7 @@
 
 ## wd-knowhow
 
-生活の知見や実装知見を docs/knowhow/ に記録する。
+生活の知見や実装知見を .claude/addf/knowhow/ に記録する。
 
 #### Phase 1: 調査
 既存ファイルを全て読み、関連する既存ノウハウを確認
@@ -38,7 +38,7 @@
 正確性・完全性・簡潔性・実用性を再読検証
 
 #### Phase 4: インデックス更新
-docs/knowhow/INDEX.md を更新
+.claude/addf/knowhow/INDEX.md を更新
 
 ---
 
@@ -207,7 +207,7 @@ Claude Code の最新変更を追跡し knowhow に反映。
 
 ## wd-project-claude-overview
 
-エコシステム概要を docs/project-overview/ に生成。
+エコシステム概要を .claude/addf/project-overview/ に生成。
 
 ### Step 0: 前回の経験を読む
 ### Step 1: 全データ収集（並列）

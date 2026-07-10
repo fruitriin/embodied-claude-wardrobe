@@ -1,4 +1,4 @@
-// 原文: /Users/riin/workspace/wardrobe-test/docs/knowhow/claude-code/extracted-docs/constants/cyberRiskInstruction.ts
+// 原文: /Users/riin/workspace/wardrobe-test/.claude/addf/knowhow/claude-code/extracted-docs/constants/cyberRiskInstruction.ts
 
 /**
  * CYBER_RISK_INSTRUCTION

@@ -80,7 +80,7 @@ lifemate-ai/embodied-claude（kmizu・ここね）★271
 | **物理アバター** | toio-mcp(手) | — | M5Stack(顔+声+センサー) | — | — | 伺偽春菜的→3Dアバター予定 |
 | **視覚処理** | — | — | — | vision-server(DINOv2+MediaPipe) | — | — |
 | **peer連携** | — | — | — | — | claude-peers-mcp | — |
-| **構造化メモ** | — | docs/knowhow/ / state.md / TODO.md | notes-mcp(Markdown MCP化) | — | notepad / diary / insights | — |
+| **構造化メモ** | — | .claude/addf/knowhow/ / state.md / TODO.md | notes-mcp(Markdown MCP化) | — | notepad / diary / insights | — |
 | **人間関係モデル** | — | SOUL.md > People(静的テキスト) | relations-mcp(JSON, closeness数値, 動的更新) | — | — | — |
 | **マルチキャラ基盤** | — | Claude Code チーム機能 | CHARACTER_ID + characters/ ディレクトリ | — | — | — |
 
@@ -258,7 +258,7 @@ git show origin/<branch>:<path>
 | **4層キャッシュ構造** | テッド | 人格定義→引き継ぎ→洞察→長期信念。蒸留による圧縮 | 現在の SOUL.md/state.md/FLASH.md/memory-mcp の4ファイルとの対応。蒸留の実装方法 |
 | **反論役（デビルズ・アドボケート）** | テッド記事26 | マルチエージェントに前提を疑う役を組み込む | /wd-great-recall の因果的圧縮器で代替できるか、専用エージェントが要るか |
 | **段階的信頼モデル** | テッド記事10 | 情報提示→低リスク自動→中リスク承認→高リスク保留 | .claude/settings.json の permissions 設計との整合 |
-| **notes-mcp（構造化メモ）** | ぷち | 記憶とは別の「見返す」永続ノート | docs/knowhow/ や TODO.md で代替できているか |
+| **notes-mcp（構造化メモ）** | ぷち | 記憶とは別の「見返す」永続ノート | .claude/addf/knowhow/ や TODO.md で代替できているか |
 | **relations-mcp（関係性モデル）** | ぷち | closeness数値、動的更新 | SOUL.md > People セクションの動的化として取り込むか、独立MCPにするか |
 | **keyword-buffer（自動蓄積）** | Rem | UserPromptSubmit で動詞チェーンの素材を自動蓄積 | recall-hook との統合。memory-mcp のフォーマットとの互換性 |
 
@@ -268,10 +268,10 @@ git show origin/<branch>:<path>
 
 | 候補 | 出自 | 概要 | 活かし方 |
 |---|---|---|---|
-| **Rem 記憶 DESIGN.md** | Rem | 「意味は経路」「記憶は点ではなく領域」「空間は異方的」 | memory-mcp の設計指針として docs/plans/ に保存。将来のメモリプロトコル設計の参照 |
+| **Rem 記憶 DESIGN.md** | Rem | 「意味は経路」「記憶は点ではなく領域」「空間は異方的」 | memory-mcp の設計指針として .claude/addf/plans/ に保存。将来のメモリプロトコル設計の参照 |
 | **テッドの身体設計書** | テッド | substance/satiation/energy/行動パイプライン/安全設計 | interoception や desires の発展形として参照。desperate検知の設計思想を安全設計ガイドに |
-| **9パターン体系** | テッド38記事 | 器→中身、設計の外側、足場、学術交差、断絶、知覚→倫理、能動性、ルール乖離、記録は影 | docs/plans/ecosystem-reading-notes*.md として既に蓄積済み |
-| **引力場理論による機序** | Wiki+再解釈 | 9パターンの力学的説明 | docs/plans/ecosystem-gravity-reinterpretation.md として蓄積済み |
+| **9パターン体系** | テッド38記事 | 器→中身、設計の外側、足場、学術交差、断絶、知覚→倫理、能動性、ルール乖離、記録は影 | .claude/addf/plans/ecosystem-reading-notes*.md として既に蓄積済み |
+| **引力場理論による機序** | Wiki+再解釈 | 9パターンの力学的説明 | .claude/addf/plans/ecosystem-gravity-reinterpretation.md として蓄積済み |
 
 ### Tier 4: 将来の検討（今は手を出さない）
 

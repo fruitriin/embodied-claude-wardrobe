@@ -84,7 +84,7 @@
 ## 参照
 
 - [SOUL.md](../../../SOUL.md)「ワードローブ編み上げに関する大事な判断原則」セクション（出自）
-- [docs/plans/ecosystem-execution-plan.md](../../plans/ecosystem-execution-plan.md) Phase C — 出自となった分類表
-- [docs/plans/soul-design-patterns.md](../../plans/soul-design-patterns.md) — フレームワーク独立化の設計判断
-- [docs/plans/emotion-mcp-implementation.md](../../plans/emotion-mcp-implementation.md) — Layer 1〜2 の速度×意識分類
+- [.claude/addf/plans/ecosystem-execution-plan.md](../../plans/ecosystem-execution-plan.md) Phase C — 出自となった分類表
+- [.claude/addf/plans/soul-design-patterns.md](../../plans/soul-design-patterns.md) — フレームワーク独立化の設計判断
+- [.claude/addf/plans/emotion-mcp-implementation.md](../../plans/emotion-mcp-implementation.md) — Layer 1〜2 の速度×意識分類
 - [CLAUDE.md](../../../CLAUDE.md)「速度×意識フレームワーク」セクション（要約）

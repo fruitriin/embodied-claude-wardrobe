@@ -8,8 +8,8 @@
 ### スキル
 - **wd-read** — Web ページをリーダーモードで読み取る。Readability ライブラリで本文抽出。AI 要約なしの生テキスト。1ページずつ読み、感情と予測を書く「読書体験」
 - **wd-slide-watch** — スライドを聴衆として1ページずつ体験する。PDF → マークダウン変換（sonnet サブエージェント）後、separator モードで逐次体験。[体感][気になる][間] の3要素で反応
-- **wd-knowhow** — 再利用可能な知見を docs/knowhow/ に記録。Phase 1（調査）→ Phase 2（記録）→ Phase 3（自己ブラッシュアップ）→ Phase 4（インデックス更新）
-- **wd-knowhow-index** — docs/knowhow/INDEX.md の参照と再構築。wardrobe/（アップストリーム還元対象）と Personal の2セクション
+- **wd-knowhow** — 再利用可能な知見を .claude/addf/knowhow/ に記録。Phase 1（調査）→ Phase 2（記録）→ Phase 3（自己ブラッシュアップ）→ Phase 4（インデックス更新）
+- **wd-knowhow-index** — .claude/addf/knowhow/INDEX.md の参照と再構築。wardrobe/（アップストリーム還元対象）と Personal の2セクション
 - **wd-knowhow-filter** — タスクや計画に関連するノウハウだけをフィルタリングして返す
 - **wd-cc-tracker** — Claude Code の changelog と公式ドキュメントを突き合わせ、hooks/subagents/skills/MCP/agent-teams の5領域の変更を knowhow に反映
 
@@ -17,8 +17,8 @@
 - **reader.ts** — Readability + linkedom で Web ページの本文を抽出。`--page N` でページ分割、`--info` でメタ情報のみ、`--sep` でカスタムセパレーター分割
 
 ### ファイル
-- **docs/knowhow/** — 知見ベース。`wardrobe/`（アップストリーム還元対象）と個人知識
-- **docs/knowhow/INDEX.md** — 知見のインデックス。ファイルパス・要約・キーワード
+- **.claude/addf/knowhow/** — 知見ベース。`wardrobe/`（アップストリーム還元対象）と個人知識
+- **.claude/addf/knowhow/INDEX.md** — 知見のインデックス。ファイルパス・要約・キーワード
 
 ## 設計思想
 
@@ -44,7 +44,7 @@ CLAUDE.md の「読書・外部コンテンツ」と knowhow の記載に基づ�
 ### 知見の記録
 ```
 /wd-knowhow "PreToolUse の reason ベースブロック"
-  → Phase 1: docs/knowhow/ の既存ファイルを調査
+  → Phase 1: .claude/addf/knowhow/ の既存ファイルを調査
   → Phase 2: 新規作成 or 既存に統合
   → Phase 3: 再読して正確性・完全性・実用性を検証
   → Phase 4: INDEX.md を更新
@@ -53,7 +53,7 @@ CLAUDE.md の「読書・外部コンテンツ」と knowhow の記載に基づ�
 ### Claude Code 追跡
 ```
 /wd-cc-tracker
-  → docs/knowhow/claude-code/ の既存知見を読む
+  → .claude/addf/knowhow/claude-code/ の既存知見を読む
   → changelog 取得（最新3バージョン）
   → 5領域に分類
   → 公式ドキュメントと突き合わせ

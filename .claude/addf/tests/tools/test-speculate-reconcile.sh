@@ -101,7 +101,7 @@ write_worktrees_md() {
     for pair in "$@"; do
       echo "| ../wt | ${pair%% *} | test | ${pair#* } | $TODAY |"
     done
-  } > "$repo/.claude/Worktrees.md"
+  } > "$repo/.claude/addf/Worktrees.md"
 }
 
 # a: worktree あり・origin あり・未マージ / b: worktree なし・origin あり・未マージ
@@ -193,7 +193,7 @@ write_worktrees_md "speculative/b 開発中"
 out="$(run_reconcile clean --today $TODAY --delete speculative/b)"; code=$?
 check "「開発中」は削除不可の ERROR" 1 "$code" "$out" "状態「開発中」"
 assert "開発中の b は消えていない" test -n "$(g branch --list speculative/b)"
-rm "$repo/.claude/Worktrees.md"
+rm "$repo/.claude/addf/Worktrees.md"
 out="$(run_reconcile clean --today $TODAY --delete speculative/b)"; code=$?
 check "Worktrees.md 自体が無ければ記録なし ERROR" 1 "$code" "$out" "記録を確認できない"
 
@@ -207,7 +207,7 @@ check_absent "WARNING が出ない" "$out" "WARNING:"
 assert "b が消えている" test -z "$(g branch --list speculative/b)"
 
 echo "Test 11: clean --delete --force-delete — 記録なしでも突合をスキップして削除できる"
-rm -f "$repo/.claude/Worktrees.md"
+rm -f "$repo/.claude/addf/Worktrees.md"
 out="$(run_reconcile clean --today $TODAY --delete speculative/done --force-delete)"; code=$?
 check "--force-delete で突合スキップ" 0 "$code" "$out" "removed=branch:speculative/done"
 assert "done が消えている" test -z "$(g branch --list speculative/done)"
@@ -277,7 +277,7 @@ out="$(cd "$repo2" && python3 "$RECONCILE" --today $TODAY 2>&1)"; code=$?
 check "remote 無し check は exit 0" 0 "$code" "$out" "SKIP: remote なし"
 check "origin は unknown 扱い" 0 "$code" "$out" "branch=speculative/x worktree=no origin=unknown merged_hint=no"
 mkdir -p "$repo2/.claude"
-printf '| ../wt | speculative/x | test | 放棄 | %s |\n' "$TODAY" > "$repo2/.claude/Worktrees.md"
+printf '| ../wt | speculative/x | test | 放棄 | %s |\n' "$TODAY" > "$repo2/.claude/addf/Worktrees.md"
 out="$(cd "$repo2" && python3 "$RECONCILE" clean --today $TODAY --delete speculative/x 2>&1)"; code=$?
 check "remote 無し clean は exit 0" 0 "$code" "$out" "SKIP: remote なし"
 check "「放棄」記載でローカルブランチは削除される" 0 "$code" "$out" "removed=branch:speculative/x"

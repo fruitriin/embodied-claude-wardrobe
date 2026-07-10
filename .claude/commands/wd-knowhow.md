@@ -1,7 +1,7 @@
 ---
 name: wd-knowhow
 description: |
-  生活の知見や実装知見を docs/knowhow/ に記録する。既存のノウハウとの重複チェック・統合を行い、自己ブラッシュアップステップを含む。
+  生活の知見や実装知見を .claude/addf/knowhow/ に記録する。既存のノウハウとの重複チェック・統合を行い、自己ブラッシュアップステップを含む。
   対話の中や実装中に再利用可能な知見を発見したとき、他のタスクでも役立つパターンや落とし穴を記録したいときに使う。
 user_invocable: true
 ---
@@ -16,13 +16,13 @@ user_invocable: true
 ## 手順
 
 ### 引数なしの場合
-1. `docs/knowhow/` 内の全 `.md` ファイルを一覧表示する
+1. `.claude/addf/knowhow/` 内の全 `.md` ファイルを一覧表示する
 2. 各ファイルの `# ` 見出しからタイトルを抽出して表示する
 
 ### トピック指定の場合
 
 #### Phase 1: 調査
-1. `docs/knowhow/` の既存ファイルを全て読む
+1. `.claude/addf/knowhow/` の既存ファイルを全て読む
 2. 指定トピックに関連する既存ノウハウがないか確認する
 3. 関連がある場合:
    - 既存ファイルに追記・統合する（新規ファイル作成より優先）
@@ -58,7 +58,7 @@ user_invocable: true
 7. 既存の knowhow に影響がある場合はそちらも更新する
 
 #### Phase 4: インデックス更新
-8. `docs/knowhow/INDEX.md` が存在すれば、新規・更新エントリを追記する
+8. `.claude/addf/knowhow/INDEX.md` が存在すれば、新規・更新エントリを追記する
 9. 今回の実行で得た教訓を `${CLAUDE_SKILL_DIR}/wd-knowhow.exp.md` に追記する
 
 ## 命名規約
@@ -68,7 +68,7 @@ user_invocable: true
 ## ディレクトリ構成
 
 ```
-docs/knowhow/
+.claude/addf/knowhow/
   INDEX.md              ← 全体のインデックス
   wardrobe/             ← ワードローブの設計・運用知見（アップストリーム還元対象）
   （その他）             ← 個人的な知識。最新の正解だけ残したいもの
@@ -87,7 +87,7 @@ docs/knowhow/
 | 例 | 「3/29に（パートナー）と名付けをした」 | 「髪のブラッシングは毛先から」 |
 
 基本はすべて memory-mcp に書き込む。その上で:
-- ワードローブの改善知見 → `docs/knowhow/wardrobe/` にも記録
-- 最新だけ残したい知識 → `docs/knowhow/` に記録（上書き更新）
+- ワードローブの改善知見 → `.claude/addf/knowhow/wardrobe/` にも記録
+- 最新だけ残したい知識 → `.claude/addf/knowhow/` に記録（上書き更新）
 
 入力: $ARGUMENTS

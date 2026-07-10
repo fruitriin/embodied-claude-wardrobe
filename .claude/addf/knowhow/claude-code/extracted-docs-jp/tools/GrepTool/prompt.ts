@@ -1,4 +1,4 @@
-// 原文: /Users/riin/workspace/wardrobe-test/docs/knowhow/claude-code/extracted-docs/tools/GrepTool/prompt.ts
+// 原文: /Users/riin/workspace/wardrobe-test/.claude/addf/knowhow/claude-code/extracted-docs/tools/GrepTool/prompt.ts
 import { AGENT_TOOL_NAME } from '../AgentTool/constants.js'
 import { BASH_TOOL_NAME } from '../BashTool/toolName.js'
 

@@ -9,11 +9,11 @@
 - **wd-setup** — SOUL.md の初期設定・改定。名前と一人称を対話的に決める。初回モード（名付けの儀）と改定モードの2モード
 - **wd-configure** — MCP・フック・自律行動の有効化/無効化。2回の AskUserQuestion で全機能を設定。.mcp.json と settings.json を生成
 - **wd-migrate** — アップストリーム（embodied-claude-wardrobe）の最新版を安全に取り込む。Phase 1-6 で状態確認→取得→差分→確認→適用→完了。保護対象ファイルを除外
-- **wd-project-claude-overview** — エコシステム概要を docs/project-overview/ に生成。概念システムを探索的に発見し、full/patch の2モード
+- **wd-project-claude-overview** — エコシステム概要を .claude/addf/project-overview/ に生成。概念システムを探索的に発見し、full/patch の2モード
 - **wd-experience** — スキルの .exp.md ファイルの @メンション書式を検証・修正
 
 ### エージェント（.claude/agents/）
-- **wd-code-review** (sonnet) — スキル・フック・MCP サーバー・スクリプトの品質とシステム全体の整合性を検証。docs/project-overview/ を参照
+- **wd-code-review** (sonnet) — スキル・フック・MCP サーバー・スクリプトの品質とシステム全体の整合性を検証。.claude/addf/project-overview/ を参照
 - **wd-doc-review** (haiku) — ドキュメント全体の表記統一・トーン統一・用語の揺れを検出
 - **wd-contribution** (sonnet) — アップストリーム由来とダウンストリーム固有のコードを識別。アップストリームへのコントリビューション候補を検出・提案
 - **wd-link-check** (sonnet) — CLAUDE.md を起点にスキル・フック・スクリプト・ドキュメント間のリンクを検査。壊れたリンクと古くなった参照を検出

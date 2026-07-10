@@ -220,7 +220,7 @@ def calculate_time_decay(
     # TypeError 対策、2026-07-03）。naive な既存データは「UTC とみなして」解釈する
     # ため、修正以前に JST ローカル時刻で保存された記憶は最大9時間古く評価される
     # （half_life=30日に対して軽微、既知のトレードオフ）。厳密化するなら既存データの
-    # 一括マイグレーションが必要。経緯: docs/knowhow/wardrobe/timestamp-policy.md
+    # 一括マイグレーションが必要。経緯: .claude/addf/knowhow/wardrobe/timestamp-policy.md
     if now is None:
         now = datetime.now(timezone.utc)
     elif now.tzinfo is None:

@@ -7,7 +7,7 @@ Answer が書かれたら、エージェントは次のセッション開始時�
 重い議論はここでせず、Issue や Plan に切り出すこと。
 このファイル（Questions.md）はオーナーとの共有チャンネルのため、リポジトリにコミットされる。
 
-書式は `.claude/Questions.example.md` を参照。
+書式は `.claude/addf/Questions.example.md` を参照。
 
 ## 未回答
 

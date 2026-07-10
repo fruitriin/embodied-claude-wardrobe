@@ -71,7 +71,7 @@ BOOT_SHUTDOWN.md のシャットダウン手順に追加:
 ```
 5. アップストリーム還元チェック:
    - 今回のセッションで変更されたアップストリーム管理対象ファイルがあれば
-   - wd-contribution の軽量版（git diff のみ、docs/project-overview は読まない）を実行
+   - wd-contribution の軽量版（git diff のみ、.claude/addf/project-overview は読まない）を実行
    - フィードバックがあれば .claude/upstream-backlog.jsonl に追記
    - セッションカウンタをインクリメント
    - 閾値に達したら「Issue を送りますか？」と提案

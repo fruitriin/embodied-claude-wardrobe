@@ -203,7 +203,7 @@ A 案の形: Edge Function がメモリ API のゲートになり、コミット
 
 - **ツール名は API 規約で ASCII（`a-zA-Z0-9_-`）必須**。ただしモデルがツールを選ぶ判断材料は名前でなく **description であり、そこは日本語で完全に動く**。英語名のニュアンス問題は「`remember` という札に日本語の仕立て書き（description・引数説明・enum 値）を縫い付ける」ことで解消する
 - **ツール定義は config（JSON）に外出しし、サーバーは汎用ディスパッチャにする**。最小契約11本 + 拡張契約のオン/オフが config の差し替え（+ MCP 再起動）で完結する。Python でも `FastMCP.add_tool()` を config ループで呼べば成立（デコレータ流儀が静的に見えるだけ）。TS なら listChanged 通知で再起動なしの増減も可能
-- 汎用パターンとしての詳細: `docs/knowhow/wardrobe/mcp-dynamic-tool-registry.md`
+- 汎用パターンとしての詳細: `.claude/addf/knowhow/wardrobe/mcp-dynamic-tool-registry.md`
 
 ## リンに確認したいこと（残り）
 
@@ -212,7 +212,7 @@ A 案の形: Edge Function がメモリ API のゲートになり、コミット
 
 ## 参照
 
-- `docs/plans/memory-mcp-enhancements.md` — 既存の Memory-MCP 圏計画（本計画で互換性契約を改定）
-- `docs/plans/external-intake-2026-07.md` — エンジン層の輸入候補（specificity damping / echo / energy LTP は Postgres 化後も有効）
-- `docs/knowhow/wardrobe/speed-consciousness-framework.md` — 配置判断の基準
+- `.claude/addf/plans/memory-mcp-enhancements.md` — 既存の Memory-MCP 圏計画（本計画で互換性契約を改定）
+- `.claude/addf/plans/external-intake-2026-07.md` — エンジン層の輸入候補（specificity damping / echo / energy LTP は Postgres 化後も有効）
+- `.claude/addf/knowhow/wardrobe/speed-consciousness-framework.md` — 配置判断の基準
 - upstream auto-recall HTTP 同居パターン: `tmp/repos/embodied-claude/memory-mcp/src/memory_mcp/server.py`

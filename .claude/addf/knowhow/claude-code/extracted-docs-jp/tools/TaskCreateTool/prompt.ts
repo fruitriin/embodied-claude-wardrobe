@@ -1,4 +1,4 @@
-// 原文: /Users/riin/workspace/wardrobe-test/docs/knowhow/claude-code/extracted-docs/tools/TaskCreateTool/prompt.ts
+// 原文: /Users/riin/workspace/wardrobe-test/.claude/addf/knowhow/claude-code/extracted-docs/tools/TaskCreateTool/prompt.ts
 import { isAgentSwarmsEnabled } from '../../utils/agentSwarmsEnabled.js'
 
 export const DESCRIPTION = 'タスクリストに新しいタスクを作成する'

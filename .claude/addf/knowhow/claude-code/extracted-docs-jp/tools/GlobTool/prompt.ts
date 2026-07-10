@@ -1,4 +1,4 @@
-// 原文: /Users/riin/workspace/wardrobe-test/docs/knowhow/claude-code/extracted-docs/tools/GlobTool/prompt.ts
+// 原文: /Users/riin/workspace/wardrobe-test/.claude/addf/knowhow/claude-code/extracted-docs/tools/GlobTool/prompt.ts
 export const GLOB_TOOL_NAME = 'Glob'
 
 export const DESCRIPTION = `- どんな規模のコードベースでも動作する高速ファイルパターンマッチングツール

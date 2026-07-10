@@ -1,4 +1,4 @@
-// 原文: /Users/riin/workspace/wardrobe-test/docs/knowhow/claude-code/extracted-docs/services/SessionMemory/prompts.ts
+// 原文: /Users/riin/workspace/wardrobe-test/.claude/addf/knowhow/claude-code/extracted-docs/services/SessionMemory/prompts.ts
 
 import { readFile } from 'fs/promises'
 import { join } from 'path'

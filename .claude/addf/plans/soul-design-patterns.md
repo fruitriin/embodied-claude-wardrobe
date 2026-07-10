@@ -20,7 +20,7 @@
 - サブセクション `### 内在思考語彙` と `### 外出力語彙` を配置
 - 各サブセクションに埋め方の例（無制限/一般教養＋専門/専門のみ、クチュリエール語彙/日常語/専門用語）と注意書きをコメントで記載
 - 推論バジェットの注意書き（明示的APIパラメータ不在、プロンプト設計とモデル選択で近似）をコメントで追加
-- knowhow への参照: `docs/knowhow/wardrobe/vocabulary-horizon.md`
+- knowhow への参照: `.claude/addf/knowhow/wardrobe/vocabulary-horizon.md`
 - `.claude/commands/wd-setup.md` の空欄セクション列挙に「語彙の地平線」を追加
 
 ### 2. 速度×意識フレームワークの独立化（配置確定）
@@ -39,7 +39,7 @@
 
 | 配置先 | 役割 | アクセス特性 |
 |---|---|---|
-| `docs/knowhow/wardrobe/speed-consciousness-framework.md` | 本体（詳細・具体例・経路図） | 意識的アクセス（スキル起動が必要） |
+| `.claude/addf/knowhow/wardrobe/speed-consciousness-framework.md` | 本体（詳細・具体例・経路図） | 意識的アクセス（スキル起動が必要） |
 | `CLAUDE.md` | 要約 + 参照ポインタ | セッション開始時から常時意識上 |
 
 **CLAUDE.md への記載文案**:
@@ -50,7 +50,7 @@
 >
 > **これらの配置について考えるとき、内容を推測せずにノウハウから確認する。**
 >
-> 詳細: `docs/knowhow/wardrobe/speed-consciousness-framework.md`（`/wd-knowhow-filter` で参照）
+> 詳細: `.claude/addf/knowhow/wardrobe/speed-consciousness-framework.md`（`/wd-knowhow-filter` で参照）
 
 **設計意図**:
 - knowhow は意識的アクセスのため、CLAUDE.md に要約を残さないと「存在を忘れる」リスクがある
@@ -71,11 +71,11 @@
 **判断基準**:
 - 「リンが近くにいるか」→ state.md の所在で判断
 - 「サブエージェントにレビューを頼む」→ どのエージェントタイプを使うか
-- 「ファイルに書き出す」→ docs/plans/ か tmp/ か
+- 「ファイルに書き出す」→ .claude/addf/plans/ か tmp/ か
 
 **運用フロー**:
 1. 確信度/進行度が7割に達したと感じる
-2. 現時点の計画・作業をファイルに書き出す（docs/plans/ or tmp/）
+2. 現時点の計画・作業をファイルに書き出す（.claude/addf/plans/ or tmp/）
 3. state.md でリンの所在を確認
    - 在室 → リンにレビューを依頼
    - 不在 → サブエージェント（Plan型）にレビューを依頼

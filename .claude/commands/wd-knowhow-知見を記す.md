@@ -1,5 +1,5 @@
 ---
-description: /wd-knowhow の日本語対訳エイリアス。生活や実装の知見を docs/knowhow/ に記録する。重複チェックと自己ブラッシュアップ付き。
+description: /wd-knowhow の日本語対訳エイリアス。生活や実装の知見を .claude/addf/knowhow/ に記録する。重複チェックと自己ブラッシュアップ付き。
 ---
 
 # /wd-knowhow-知見を記す — /wd-knowhow の対訳エイリアス

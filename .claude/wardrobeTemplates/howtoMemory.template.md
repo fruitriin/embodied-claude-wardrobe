@@ -1,7 +1,7 @@
 # Memory MCP — ツール使い方ガイド
 
 > memory-mcp の全ツールのリファレンス。
-> 詳細は `docs/knowhow/claude-code/mcp.md` も参照。
+> 詳細は `.claude/addf/knowhow/claude-code/mcp.md` も参照。
 
 ## 記憶の読み書き
 

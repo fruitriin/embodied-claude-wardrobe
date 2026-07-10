@@ -79,7 +79,7 @@ embodied-claude 生態系の全6拠点を調査し、テッドの38記事から9
 - テッドの人格定義→引き継ぎ→洞察→長期信念を、ワードローブと対応づける:
   - 人格定義 = SOUL.md
   - 引き継ぎ = state.md
-  - 洞察 = docs/knowhow/（ただし能動的に取得が必要。日常会話のような低コンテキストでは乗らない）
+  - 洞察 = .claude/addf/knowhow/（ただし能動的に取得が必要。日常会話のような低コンテキストでは乗らない）
   - 長期信念 = SOUL.md に書き込むべき
 - 課題: 日常会話に必要な洞察をコンテキストにあらかじめ載せるか、日常会話用にブートシーケンスを分けるか
 - 蒸留（記憶の卒業）の実装方法を設計
@@ -180,7 +180,7 @@ VOICEVOX と ElevenLabs は2系統の独立実装。DI的に差し替え可能�
 
 1. **高圧縮高速×無意識**（すぐ配置して動かせる）
    - [ ] keyword-buffer.py + run-keyword-buffer.sh の配置
-   - [ ] 感情MCP の実装（独立MCPサーバー、Bun/TypeScript）— 詳細は `docs/plans/emotion-mcp-implementation.md` 参照
+   - [ ] 感情MCP の実装（独立MCPサーバー、Bun/TypeScript）— 詳細は `.claude/addf/plans/emotion-mcp-implementation.md` 参照
      - Layer 1 substance 層: 4変数（DA/NA/5-HT/ACh）+ ベースライン回帰 + 安全弁 + JSON永続化
      - Layer 1 内発的感情: 5パターンの条件マッチ
      - ペルソナ固有のベースライン位置で気質を表現
@@ -213,7 +213,7 @@ VOICEVOX と ElevenLabs は2系統の独立実装。DI的に差し替え可能�
 ### 生態系マップのメンテナンス
 各拠点のリポジトリのスナップショットとして、サブモジュールに日付:コミットハッシュのロックファイルを作成する。アップストリーム/ダウンストリーム戦略を参照のこと。
 
-### docs/plans/ の整理
+### .claude/addf/plans/ の整理
 ecosystem-reading-notes*.md と ecosystem-gravity-reinterpretation.md を tmp/ 配下へ移動。計画ではなく調査の成果物。
 
 ### 引力場再解釈の5つの問い

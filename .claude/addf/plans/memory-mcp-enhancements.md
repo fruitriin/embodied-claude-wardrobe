@@ -99,4 +99,4 @@ memory-mcp の記憶 → 意識的に「これは SOUL.md に卒業すべきか�
 
 ## desires 連携
 
-→ 感情MCP計画 `docs/plans/emotion-mcp-implementation.md` に移動。感情がdesiresの増加率を修正する連携は感情MCP側の責務。
+→ 感情MCP計画 `.claude/addf/plans/emotion-mcp-implementation.md` に移動。感情がdesiresの増加率を修正する連携は感情MCP側の責務。

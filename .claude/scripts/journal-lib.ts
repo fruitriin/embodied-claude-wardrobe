@@ -20,7 +20,7 @@ export function makeId(prefix: string): string {
 // タイムスタンプ方針: journal 系は「人間が読み返す台帳」のため、意図的にローカル
 // タイムゾーン付き ISO（例: 2026-07-03T21:30:00+09:00）を使う。演算に使う
 // memory-mcp / emotion-mcp は UTC 統一（naive/aware 混在バグ対策）で、これとは別方針。
-// 使い分けの経緯: docs/knowhow/wardrobe/timestamp-policy.md
+// 使い分けの経緯: .claude/addf/knowhow/wardrobe/timestamp-policy.md
 export function localIsoTimestamp(date: Date = new Date()): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   const offsetMin = -date.getTimezoneOffset();

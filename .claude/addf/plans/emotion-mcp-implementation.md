@@ -48,7 +48,7 @@
 
 自己生成は重く見えるが、**生成は1回だけ**で以後は JSON 参照になる。Layer 2 までフラットに高圧縮高速で動く。
 
-詳細は `docs/knowhow/wardrobe/speed-consciousness-framework.md`。
+詳細は `.claude/addf/knowhow/wardrobe/speed-consciousness-framework.md`。
 
 ## Layer 1: substance 層
 
@@ -200,7 +200,7 @@ echo "[interoception] ... emotion=${INTRINSIC}"
 
 ### Memory-MCP 圏との連携
 
-詳細は別計画 `docs/plans/memory-mcp-enhancements.md`:
+詳細は別計画 `.claude/addf/plans/memory-mcp-enhancements.md`:
 - keyword-buffer 配置（Rem ベース継続キャッチアップ）
 - `/wd-remember` での感情タグ付与（substance スナップショット + 内発的感情ラベル）
 - FLASH.md への感情インデックス追記
@@ -208,7 +208,7 @@ echo "[interoception] ... emotion=${INTRINSIC}"
 
 ### TTS 感情上乗せ
 
-詳細は別計画 `docs/plans/tts-emotion-overlay.md`。VOICEVOX と ElevenLabs の2系統並列実装。最寄り感情ラベルから speed/pitch/intonation を変換。
+詳細は別計画 `.claude/addf/plans/tts-emotion-overlay.md`。VOICEVOX と ElevenLabs の2系統並列実装。最寄り感情ラベルから speed/pitch/intonation を変換。
 
 ### desires 連携（感情修正係数）
 
@@ -235,7 +235,7 @@ substance / 内発的感情が欲望の増加率を修正する。
 | `.claude/mcps/emotion-mcp/index.ts` | MCPサーバー本体（Bun/TypeScript） | tracked |
 | `.claude/mcps/emotion-mcp/intrinsic-patterns.json` | 内発的感情の条件マッチ定義 | tracked |
 | `.claude/mcps/emotion-mcp/desire-modifiers.json` | 感情→欲望増加率の修正テーブル | tracked |
-| `.claude/templates/emotion-persona/` | ペルソナプロファイル3点のテンプレート | tracked |
+| `.claude/addf/templates/emotion-persona/` | ペルソナプロファイル3点のテンプレート | tracked |
 | `.claude/mcps/emotion-mcp/personas/<id>/*.json` | ペルソナ別設定（自己生成含む） | not tracked（ダウンストリーム固有） |
 | `.claude/mcps/emotion-mcp/substance_state.json` | 現在状態スナップショット | not tracked |
 | `.mcp.json` への追記 | emotion-mcp の登録 | tracked |
@@ -300,4 +300,4 @@ substance / 内発的感情が欲望の増加率を修正する。
 - `.claude/mcps/emotion-mcp/personas/` → .gitignore に追加（ペルソナ固有プロファイル全体）
 - `.claude/mcps/emotion-mcp/intrinsic-patterns.json` → git 管理対象（条件マッチ定義は共有資産）
 - `.claude/mcps/emotion-mcp/desire-modifiers.json` → git 管理対象（テーブルは共有資産、ペルソナで上書きしたい場合は personas/ 内に置く）
-- `.claude/templates/emotion-persona/` → ペルソナプロファイルのテンプレート3点。git 管理対象。立ち上がりやすさのため
+- `.claude/addf/templates/emotion-persona/` → ペルソナプロファイルのテンプレート3点。git 管理対象。立ち上がりやすさのため

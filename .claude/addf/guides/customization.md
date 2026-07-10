@@ -99,7 +99,7 @@ wardrobe はテンプレートベース。カスタマイズしたファイル�
 |---|---|
 | `.claude/commands/*.md` | `SOUL.md` |
 | `.claude/hooks/*.sh` | `BOOT_SHUTDOWN.md` |
-| `.claude/templates/*.md` | `ROUTINES.md`, `FLASH.md` |
+| `.claude/addf/templates/*.md` | `ROUTINES.md`, `FLASH.md` |
 | `CLAUDE.md` | `state.md`, `TODO.md` |
 
 `/wd-migrate` でアップストリームの更新を取り込むとき、ダウンストリームのファイルは保護される。

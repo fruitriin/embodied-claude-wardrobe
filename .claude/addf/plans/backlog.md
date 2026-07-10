@@ -5,7 +5,7 @@
 ## 仕掛中
 
 ### wd- プレフィックスリネームの残作業
-- [x] docs/project-overview/ 全域のリネーム漏れ修正（15件）→ `/wd-project-claude-overview` 再実行で解決
+- [x] .claude/addf/project-overview/ 全域のリネーム漏れ修正（15件）→ `/wd-project-claude-overview` 再実行で解決
 - [x] docs/test-scenarios.md 内の旧スキル名更新
 - [x] wd-recall.md, wd-rebuild-index.md の `.exp.md` パス修正（`wd-` なし → `wd-` あり）
 - [x] wd-recall.md, wd-look.md, wd-rebuild-index.md, wd-great-recall.md 内のプレフィックスなし参照修正
@@ -26,7 +26,7 @@
 ## 計画済み・未着手
 
 ### アップストリームコントリビューションフロー
-- 計画: `docs/plans/upstream-contribution-flow.md`
+- 計画: `.claude/addf/plans/upstream-contribution-flow.md`
 - [ ] バックログファイル（.claude/upstream-backlog.jsonl）の実装
 - [ ] セッションカウンタの実装
 - [ ] wd-contribution の `--quick` モード
@@ -34,7 +34,7 @@
 - [ ] Issue 送信スクリプト（gh issue create ラッパー）
 
 ### SessionEnd フック
-- 知見: `docs/knowhow/wardrobe/session-end-hook-design.md`
+- 知見: `.claude/addf/knowhow/wardrobe/session-end-hook-design.md`
 - [ ] SessionEnd hook の実装（nohup + バックグラウンド Claude 起動）
 - [ ] memory-mcp への要約書き込み
 - [ ] FLASH.md 自動更新

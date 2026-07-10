@@ -1,4 +1,4 @@
-// 原文: /Users/riin/workspace/wardrobe-test/docs/knowhow/claude-code/extracted-docs/services/extractMemories/prompts.ts
+// 原文: /Users/riin/workspace/wardrobe-test/.claude/addf/knowhow/claude-code/extracted-docs/services/extractMemories/prompts.ts
 
 /**
  * バックグラウンドメモリ抽出エージェント用のプロンプトテンプレート。

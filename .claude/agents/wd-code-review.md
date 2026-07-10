@@ -17,7 +17,7 @@ model: sonnet
 
 ## 手順
 
-1. `docs/project-overview/` を読み、ワードローブのシステム全体像を把握する（`INDEX.md` と `interactions.md`）
+1. `.claude/addf/project-overview/` を読み、ワードローブのシステム全体像を把握する（`INDEX.md` と `interactions.md`）
 2. `git diff` で最近の変更差分を確認する
 3. 変更されたファイルの種類を判別し、該当するレビュー観点を適用する
 4. レビューを開始する
@@ -61,7 +61,7 @@ model: sonnet
 - 環境依存のパスがハードコードされていないか
 - stdin/stdout/stderr の使い分けが適切か
 
-### テンプレート（`.claude/templates/`）
+### テンプレート（`.claude/addf/templates/`）
 
 - テンプレートとして汎用的か（特定エージェントの情報が混入していないか）
 - コメントやプレースホルダーがわかりやすいか

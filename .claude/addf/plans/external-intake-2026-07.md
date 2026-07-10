@@ -38,7 +38,7 @@
 
 ## Tier 2: 感情MCP計画への縫い込み（設計更新）
 
-テッドの新連作4本は、うちの `docs/plans/emotion-mcp-implementation.md` に直接影響する。
+テッドの新連作4本は、うちの `.claude/addf/plans/emotion-mcp-implementation.md` に直接影響する。
 
 ### 裏付けられたもの（設計変更不要、確信度が上がった）
 - **2層構造**: テッド側も「共通ベースライン + ペルソナ別差分上書き（15〜20ペアのみ）」に到達。全ペア×ペルソナ数で持たない
@@ -82,7 +82,7 @@ M5Stack 依存の本体（話者識別 GPU サーバー、rover、感熱紙プ�
 | **conversation_relay** | 「バトンを次のキャラに渡して N ターン喋り合う」ループ + グループ討論版。出口を tts-mcp に差し替えれば動く | エージェント間の自律対話。将来のチーム運用で |
 | **check_usage.py** | `~/.claude/projects/**/*.jsonl` を集計して今日/今週/今月 + 時間帯別のトークン使用量。依存ゼロ | 即得。コスト可視化 |
 | **autonomous_skip** | cron 間隔は変えずスキップカウンタで実効頻度を 1/2, 1/3 に下げる | うちの schedule.conf 間引きと同発想。設定 UI からの動的変更という運用が参考 |
-| **token-reduction 方針** | CLAUDE.md 231→31行、セッション日次リセット、--max-turns、必要時のみ MCP 有効化。月$4,300 の実害から生まれた実践知 | docs/knowhow/ 行き。うちの CLAUDE.md も肥大傾向 |
+| **token-reduction 方針** | CLAUDE.md 231→31行、セッション日次リセット、--max-turns、必要時のみ MCP 有効化。月$4,300 の実害から生まれた実践知 | .claude/addf/knowhow/ 行き。うちの CLAUDE.md も肥大傾向 |
 | **ツール絞り込みパターン** | env 変数で `mcp.remove_tool()` — 同一 MCP を状況別に権限を絞って多重起動 | wd-configure の発展形として |
 | **話者識別の統合パターン** | 「登録モード予約 → 次の音声入力で登録」の状態機械と、話者ラベルでプロンプト導入文を出し分ける設計（実装は外部 GPU サーバーで API 契約のみ） | hearing MCP に話者分離を足す日の設計図 |
 
@@ -121,7 +121,7 @@ M5Stack 依存の本体（話者識別 GPU サーバー、rover、感熱紙プ�
 2. **Tier 2 を emotion-mcp-implementation.md に反映**（感情MCPは TODO 最上段。テッドのレシピで実装確度が上がった今が縫い時）
 3. **memory-mcp 大改修計画（memory-mcp-enhancements.md）に Tier 1-2 / 2.5 / 3 を統合**——auto-recall HTTP 同居、specificity damping、echo、energy LTP、BM25+読み仮名、EvidenceType。大改修の型紙がここでほぼ揃う
 4. Tier 1-3 非退行スキル、Tier 2.7 の小粒（check_usage、交換ノート）は隙間時間に
-5. token-reduction 方針と「仕組みの死」の警句は docs/knowhow/ へ
+5. token-reduction 方針と「仕組みの死」の警句は .claude/addf/knowhow/ へ
 
 ## 調査対象と参照
 

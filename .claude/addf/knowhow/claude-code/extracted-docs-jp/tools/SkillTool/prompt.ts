@@ -1,4 +1,4 @@
-// 原文: /Users/riin/workspace/wardrobe-test/docs/knowhow/claude-code/extracted-docs/tools/SkillTool/prompt.ts
+// 原文: /Users/riin/workspace/wardrobe-test/.claude/addf/knowhow/claude-code/extracted-docs/tools/SkillTool/prompt.ts
 import { memoize } from 'lodash-es'
 import type { Command } from 'src/commands.js'
 import {

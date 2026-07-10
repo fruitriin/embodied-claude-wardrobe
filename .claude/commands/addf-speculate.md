@@ -18,7 +18,7 @@ TODO に着手可能なタスクがないとき、黙って止まる代わりに
 ### 1. 発動ガード
 
 ```bash
-uv run --python 3.11 .claude/addfTools/speculate-guard.py
+uv run --python 3.11 .claude/addf/addfTools/speculate-guard.py
 ```
 
 uv が無い環境では `python3` で直接実行する（Python 3.11+ が必要。旧い Python では tomllib 欠如の ERROR となり投機は開始できない — フェイルセーフ）。
@@ -26,7 +26,7 @@ uv が無い環境では `python3` で直接実行する（Python 3.11+ が必�
 - `enable=false`（exit 0）→ **何もせず終了**し、「投機は無効（オプトインは addf-Behavior.toml の
   `[speculation].enable`）」と報告する
 - exit 1（型不正等の ERROR）→ 投機せず、エラー内容をオーナーに報告する
-- exit 2（上限到達 WARNING）→ 新規投機はせず、`.claude/Worktrees.md` に「上限で待機」を記録して終了する
+- exit 2（上限到達 WARNING）→ 新規投機はせず、`.claude/addf/Worktrees.md` に「上限で待機」を記録して終了する
 - exit 0 かつ `enable=true` → 次へ（`slots` が今回起こせる worktree の残り枠）
 
 ### 1.5. モード確認（interactive のみ）
@@ -37,10 +37,10 @@ uv が無い環境では `python3` で直接実行する（Python 3.11+ が必�
 
 ### 1.7. 再構築と掃除（サイクル冒頭）
 
-git を真実源として、`.claude/Worktrees.md`（git から再構築可能なビュー）との整合を取る:
+git を真実源として、`.claude/addf/Worktrees.md`（git から再構築可能なビュー）との整合を取る:
 
 ```bash
-python3 .claude/addfTools/speculate-reconcile.py
+python3 .claude/addf/addfTools/speculate-reconcile.py
 ```
 
 （tomllib 不要のためシステム python3 でそのまま動く。`rm -rf` された stale worktree の
@@ -77,7 +77,7 @@ python3 .claude/addfTools/speculate-reconcile.py
 選定元の優先順位:
 
 1. 既存の計画ファイルに記録済みの軽微な残課題（Low/Info 等。分解済み・独立性が高く・低リスク）
-2. `.claude/Questions.md` の未回答質問の最有力解釈による投機
+2. `.claude/addf/Questions.md` の未回答質問の最有力解釈による投機
 3. オーナー常設リクエスト（TODO 末尾等）から導出できる独立作業
 
 ルール:
@@ -128,7 +128,7 @@ git -C ../<repo名>-spec-<concept> checkout -- .claude 2>/dev/null || true
 
 ### 5. Worktrees.md への記録
 
-`.claude/Worktrees.md`（.gitignore 対象の実行時状態ファイル）に全投機を記録する。
+`.claude/addf/Worktrees.md`（.gitignore 対象の実行時状態ファイル）に全投機を記録する。
 **打ち切った投機も silent に消さず記録する**。
 
 書式:
@@ -149,7 +149,7 @@ git -C ../<repo名>-spec-<concept> checkout -- .claude 2>/dev/null || true
 1本の integration ブランチに squash 統合し、動作確認を一括する:
 
 ```bash
-uv run --python 3.11 .claude/addfTools/speculate-integrate.py speculative/<concept1> speculative/<concept2> ...
+uv run --python 3.11 .claude/addf/addfTools/speculate-integrate.py speculative/<concept1> speculative/<concept2> ...
 # uv が無ければ python3 で直接実行（Python 3.11+ が必要）
 ```
 
@@ -196,7 +196,7 @@ integration **ブランチ**は使い捨てのため origin へ push しない�
 
 ### 8. Dashboard への書き分け
 
-unattended 自走（`dashboard_report: true`）では `.claude/Dashboard.md`（書式: `.claude/Dashboard.example.md`）に
+unattended 自走（`dashboard_report: true`）では `.claude/addf/Dashboard.md`（書式: `.claude/addf/Dashboard.example.md`）に
 結果を書き分ける。基準は「オーナーの採否判断の対象かどうか」:
 
 - **「投機ブランチ（採否判断待ち）」**: integration の動作確認（手順7「Stage 2」）まで通過した feature のみ。
@@ -220,7 +220,7 @@ fi
   （認証・reject・ネットワーク断）は SKIP 扱いにせず、失敗として報告する
 - コンテナ実行（Claude Code on the Web 等）ではセッション終了で worktree もローカルブランチも
   失われるため、**push が投機を残す唯一の手段**。省略しないこと
-- push したブランチから PR を作成する場合は、本文を `docs/guides/pr-format.md` の規約に従って書く
+- push したブランチから PR を作成する場合は、本文を `.claude/addf/guides/pr-format.md` の規約に従って書く
 
 ### 10. 完了処理
 
@@ -249,20 +249,20 @@ cron / `/loop` 等から /addf-dev を**経由せず単独実行**された場�
 1. 状態を走査する:
 
    ```bash
-   python3 .claude/addfTools/speculate-reconcile.py
+   python3 .claude/addf/addfTools/speculate-reconcile.py
    ```
 
-2. `.claude/Worktrees.md` で状態が「昇格済み」「放棄」のブランチを確認する
+2. `.claude/addf/Worktrees.md` で状態が「昇格済み」「放棄」のブランチを確認する
    （スクリプトの `merged_hint` はヒントにすぎない — 削除の根拠は Worktrees.md の記録に置く）
 3. 確定済みブランチを明示指定して削除する:
 
    ```bash
-   python3 .claude/addfTools/speculate-reconcile.py clean --delete speculative/<concept> [--delete ...]
+   python3 .claude/addf/addfTools/speculate-reconcile.py clean --delete speculative/<concept> [--delete ...]
    ```
 
    - `--delete` は**削除専用**であり、main への統合（昇格）は一切しない（昇格は後述の
      「昇格手順」で行う — オーナー承認必須）
-   - スクリプトは削除前に `.claude/Worktrees.md` の記録と突合し、対象の状態が「昇格済み」
+   - スクリプトは削除前に `.claude/addf/Worktrees.md` の記録と突合し、対象の状態が「昇格済み」
      「放棄」でなければ**何も消さずに ERROR で中断する**（記録なし・ファイルなしも同様。
      不可逆な削除だけは記録との突合をスクリプトが強制する — 「検出=スクリプト/解釈=エージェント」
      の意図的な例外。突合を承知でスキップするなら `--force-delete`）
@@ -305,7 +305,7 @@ cron / `/loop` 等から /addf-dev を**経由せず単独実行**された場�
 4. 昇格後テストとして、プロジェクトの Stage 1（ビルド・Lint・テスト）と同じコマンドを main 上で
    実行する。失敗したら squash コミットを revert し、原因を feature ブランチ側で直してから
    再昇格する（main に壊れた状態を残さない）
-5. `.claude/Worktrees.md` の該当行を状態「昇格済み」に更新する
+5. `.claude/addf/Worktrees.md` の該当行を状態「昇格済み」に更新する
 6. `/addf-speculate clean`（`clean --delete speculative/<concept>`）で後始末する
    （worktree・ローカルブランチ・origin 側の残骸が消える。スクリプトはステップ5で
    記録した「昇格済み」と突合してから削除する — 記録の更新を飛ばすと ERROR になる）

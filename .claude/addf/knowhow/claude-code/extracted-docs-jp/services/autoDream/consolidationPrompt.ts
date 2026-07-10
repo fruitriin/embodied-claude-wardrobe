@@ -1,4 +1,4 @@
-// 原文: /Users/riin/workspace/wardrobe-test/docs/knowhow/claude-code/extracted-docs/services/autoDream/consolidationPrompt.ts
+// 原文: /Users/riin/workspace/wardrobe-test/.claude/addf/knowhow/claude-code/extracted-docs/services/autoDream/consolidationPrompt.ts
 
 // dream.ts から分離して抽出済み。これにより auto-dream が KAIROS フィーチャーフラグに依存せず
 // 独立して動作できる（dream.ts は feature() でゲートされた require の背後にある）。

@@ -23,4 +23,4 @@
 
 - `.claude/mcps/memory-mcp/src/memory_mcp/store.py` の `calculate_time_decay`（UTC 統一側の実装とコメント）
 - `.claude/scripts/journal-lib.ts` の `localIsoTimestamp`（ローカル TZ 側の実装とコメント）※speculative/nonregression-skills
-- `docs/plans/external-intake-2026-07.md` Tier 1-1（tz-aware 罠の出自）
+- `.claude/addf/plans/external-intake-2026-07.md` Tier 1-1（tz-aware 罠の出自）

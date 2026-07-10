@@ -1,4 +1,4 @@
-// 原文: /Users/riin/workspace/wardrobe-test/docs/knowhow/claude-code/extracted-docs/utils/claudeInChrome/prompt.ts
+// 原文: /Users/riin/workspace/wardrobe-test/.claude/addf/knowhow/claude-code/extracted-docs/utils/claudeInChrome/prompt.ts
 
 export const BASE_CHROME_PROMPT = `# Claude in Chrome ブラウザ自動化
 

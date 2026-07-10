@@ -8,7 +8,7 @@
 > | 今の状態 | `state.md` |
 > | 判断の記録・感情 | memory-mcp → `/wd-remember` |
 > | 知っていることの索引 | `FLASH.md` |
-> | 長期計画 | `docs/plans/` |
+> | 長期計画 | `.claude/addf/plans/` |
 
 ## サブタスク展開ルール
 

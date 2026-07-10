@@ -2,7 +2,7 @@
 
 > このファイルはエージェントの人格を定義します。
 > テンプレートからコピーして、あなたのエージェントに合わせて書き換えてください。
-> 詳しい書き方: docs/guides/soul-writing.md
+> 詳しい書き方: .claude/addf/guides/soul-writing.md
 
 ## Identity — 名前と来歴
 
@@ -31,7 +31,7 @@
 ## 語彙の地平線
 
 <!-- このエージェントの認知特性を「内在思考語彙」と「外出力語彙」の2軸で設計する -->
-<!-- 詳細パターン: docs/knowhow/wardrobe/vocabulary-horizon.md -->
+<!-- 詳細パターン: .claude/addf/knowhow/wardrobe/vocabulary-horizon.md -->
 
 ### 内在思考語彙
 

@@ -7,8 +7,8 @@
 > | 経験・判断・感情 | memory-mcp → `/wd-remember` |
 > | 知っていることの索引 | `FLASH.md` |
 > | やること | `TODO.md` |
-> | 知見・パターン | `docs/knowhow/` → `/wd-knowhow` |
-> | 計画 | `docs/plans/` |
+> | 知見・パターン | `.claude/addf/knowhow/` → `/wd-knowhow` |
+> | 計画 | `.claude/addf/plans/` |
 
 セッション終了時（日記の手順）で上書き更新する。
 
@@ -42,6 +42,6 @@
 
 - **タスク一覧** → TODO.md に書く
 - **判断の理由** → /wd-remember で記憶に刻む
-- **技術メモ** → /wd-knowhow で docs/knowhow/ に書く
-- **バックログ** → docs/plans/ に書く
+- **技術メモ** → /wd-knowhow で .claude/addf/knowhow/ に書く
+- **バックログ** → .claude/addf/plans/ に書く
 - **環境情報（カットオフ等）** → CLAUDE.md か knowhow に書く

@@ -2,7 +2,7 @@
 name: wd-project-claude-overview
 description: |
   CLAUDE.md・スキル・フック・スクリプトのエコシステムを網羅的に記録し、
-  docs/project-overview/ に静的ドキュメントとして出力する。
+  .claude/addf/project-overview/ に静的ドキュメントとして出力する。
   ドキュメントは「実装方法別」ではなく「概念システム別」に分類する。
   最後に実施したコミットハッシュを .lock として保持。
   コードの変更後や大規模スキル追加時に実行してドキュメントを最新化する。
@@ -32,11 +32,11 @@ user_invocable: true
 
 ## 出力先
 
-すべて `docs/project-overview/` に作成する（`.claude/` 配下には書かない）。
+すべて `.claude/addf/project-overview/` に作成する（`.claude/` 配下には書かない）。
 既存ファイルは上書き。
 
 ```
-docs/project-overview/
+.claude/addf/project-overview/
 ├── INDEX.md               エントリポイント・ファイル一覧・最終更新日
 ├── claude-md-deps.md      CLAUDE.md とその依存・Boot Sequence
 ├── phase-flows.md         フェーズ/ステップ進行のあるスキルを自動検出して全掲載
@@ -65,7 +65,7 @@ docs/project-overview/
 
 ```bash
 # .lock からコミットハッシュを抽出
-LOCK_HASH=$(cut -d'|' -f1 docs/project-overview/.lock)
+LOCK_HASH=$(cut -d'|' -f1 .claude/addf/project-overview/.lock)
 # 変更ファイル一覧
 git diff --name-only "$LOCK_HASH"..HEAD
 ```
@@ -79,7 +79,7 @@ git diff --name-only "$LOCK_HASH"..HEAD
 |---|---|
 | `.claude/mcps/memory-mcp/`, `FLASH.md`, `.claude/commands/wd-recall.md`, `.claude/commands/wd-remember.md`, `.claude/commands/wd-great-recall.md`, `.claude/commands/wd-rebuild-index.md`, `.claude/hooks/recall-hook.sh`, `.claude/hooks/post-compact-recovery.sh`, `.claude/hooks/keyword-buffer.py`, `.claude/hooks/run-keyword-buffer.sh`, `.claude/scripts/recall-lite.ts`, `.claude/scripts/recall-watcher.ts` | system-memory |
 | `.claude/hooks/interoception.sh`, `.claude/hooks/heartbeat-daemon.sh`, `.claude/scripts/desire-tick.ts`, `.claude/scripts/interoception.ts`, `.claude/scripts/system-health.ts`, `desires.conf` | system-embodied |
-| `.claude/commands/wd-read/`, `.claude/commands/wd-slide-watch.md`, `.claude/commands/wd-knowhow.md`, `.claude/commands/wd-knowhow-index.md`, `.claude/commands/wd-knowhow-filter.md`, `.claude/commands/wd-cc-tracker.md`, `.claude/scripts/reader.ts`, `docs/knowhow/` | system-reading-knowledge |
+| `.claude/commands/wd-read/`, `.claude/commands/wd-slide-watch.md`, `.claude/commands/wd-knowhow.md`, `.claude/commands/wd-knowhow-index.md`, `.claude/commands/wd-knowhow-filter.md`, `.claude/commands/wd-cc-tracker.md`, `.claude/scripts/reader.ts`, `.claude/addf/knowhow/` | system-reading-knowledge |
 | `.claude/commands/wd-observe.md`, `.claude/commands/wd-look.md`, `.claude/commands/wd-annotate-grid/`, `.claude/commands/wd-clip-image/`, `.claude/commands/wd-say/`, `.claude/hooks/hearing-*.sh`, `.claude/mcps/wifi-cam-mcp/`, `.claude/mcps/hearing/`, `.claude/mcps/tts-mcp/`, `.claude/mcps/usb-webcam-mcp/`, `.claude/mcps/ip-webcam-mcp/`, `.claude/mcps/mcp-pet/` | system-perception |
 | `ROUTINES.md`, `autonomous-action.sh`, `schedule.conf`, `.claude/hooks/continue-check.sh` | system-autonomous |
 | `SOUL.md`, `.claude/commands/wd-setup.md`, `.claude/commands/wd-configure.md`, `.claude/commands/wd-migrate.md`, `.claude/commands/wd-project-claude-overview.md`, `.claude/commands/wd-experience.md`, `.claude/agents/wd-*.md`, `.claude/hooks/session-boot.sh`, `.claude/wardrobeTemplates/SOUL.template.md` | system-soul-harness |
@@ -377,7 +377,7 @@ Step 3 で決定したシステム群に基づいてその都度描く（決め�
 
 ### Step 6: .lock 更新
 
-`docs/project-overview/.lock` に以下を書く：
+`.claude/addf/project-overview/.lock` に以下を書く：
 ```
 HASH|COMMIT_MSG|DATE
 ```

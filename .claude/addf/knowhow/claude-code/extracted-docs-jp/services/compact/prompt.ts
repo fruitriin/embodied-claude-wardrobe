@@ -1,4 +1,4 @@
-// 原文: /Users/riin/workspace/wardrobe-test/docs/knowhow/claude-code/extracted-docs/services/compact/prompt.ts
+// 原文: /Users/riin/workspace/wardrobe-test/.claude/addf/knowhow/claude-code/extracted-docs/services/compact/prompt.ts
 
 import { feature } from 'bun:bundle'
 import type { PartialCompactDirection } from '../../types/message.js'

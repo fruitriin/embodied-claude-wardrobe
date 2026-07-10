@@ -1,4 +1,4 @@
-// 原文: /Users/riin/workspace/wardrobe-test/docs/knowhow/claude-code/extracted-docs/services/MagicDocs/prompts.ts
+// 原文: /Users/riin/workspace/wardrobe-test/.claude/addf/knowhow/claude-code/extracted-docs/services/MagicDocs/prompts.ts
 
 import { join } from 'path'
 import { getClaudeConfigHomeDir } from '../../utils/envUtils.js'

@@ -3,14 +3,14 @@ title: 同期 lint の設計 — 検出はツール、解釈と修復はエー�
 created: 2026-06-10
 last_verified: 2026-07-03
 depends_on:
-  - .claude/addfTools/lint-template-sync.py
-  - .claude/tests/tools/test-template-sync.sh
+  - .claude/addf/addfTools/lint-template-sync.py
+  - .claude/addf/tests/tools/test-template-sync.sh
   - .claude/commands/addf-init.md
   - .claude/commands/addf-migrate.md
   - .claude/commands/addf-knowhow-index.md
-  - .claude/addfTools/sync-optional-skills.py
-  - .claude/addfTools/speculate-guard.py
-  - .claude/addfTools/lint-toml.py
+  - .claude/addf/addfTools/sync-optional-skills.py
+  - .claude/addf/addfTools/speculate-guard.py
+  - .claude/addf/addfTools/lint-toml.py
 status: active
 ---
 
@@ -41,7 +41,7 @@ status: active
 
 ### addfTools はダウンストリーム配布を前提に「欠如 = SKIP」で設計する
 
-`.claude/addfTools/` はダウンストリームに配布される。ADDF 本体固有ファイル（`ProgressTemplate.addf.md`・`AGENTS.md` 等）をハードコード参照すると、ダウンストリームで必ず ERROR になる。設計ルール:
+`.claude/addf/addfTools/` はダウンストリームに配布される。ADDF 本体固有ファイル（`ProgressTemplate.addf.md`・`AGENTS.md` 等）をハードコード参照すると、ダウンストリームで必ず ERROR になる。設計ルール:
 
 - ADDF 本体固有ファイルの欠如は **SKIP（exit 0 相当）** として扱う。欠如はドリフトではない
 - 両環境に存在するファイルはフォールバックで対応する（例: テンプレートは `.addf.md` 版がなければ無印版を正とする）
@@ -53,15 +53,15 @@ status: active
 
 「欠如 = SKIP」原則の**逆ケース**。ダウンストリーム実運用初日に3件同時に顕在化した（Plan 0033）:
 
-1. **`.addf.md` は配布によりダウンストリームにも物理存在しうる**。addf-init が `.claude/templates/` を丸ごとコピーしていたため、`ProgressTemplate.addf.md` の存在を「ADDF 本体」のシグナルに使っていたペア1は**全ダウンストリームで誤検知**した。同型の欠陥が addf-knowhow-index の「`INDEX.addf.md` が存在すればそちらを優先」にもあった。存在は所有の証明にならない
+1. **`.addf.md` は配布によりダウンストリームにも物理存在しうる**。addf-init が `.claude/addf/templates/` を丸ごとコピーしていたため、`ProgressTemplate.addf.md` の存在を「ADDF 本体」のシグナルに使っていたペア1は**全ダウンストリームで誤検知**した。同型の欠陥が addf-knowhow-index の「`INDEX.addf.md` が存在すればそちらを優先」にもあった。存在は所有の証明にならない
 2. **配布ファイル名はダウンストリームの同名無関係ファイルと衝突しうる**。実例: Misskey 由来の独自 `AGENTS.md` を持つプロジェクトで、ペア3が「ブートシーケンス見出しなし」を誤報した。ファイル名が一致しても中身が ADDF 由来とは限らない
-3. **所有判定は明示シグナルで行う**: 一次根拠 = `CLAUDE.repo.md` のプロジェクト種別宣言（「ADDF 開発プロジェクト」/「ADDF 利用プロジェクト」。@メンション1段を解決し、コードブロック内の書き換え例は除外）、フォールバック = `.claude/addf-lock.json` の存在（addf-init / addf-migrate と同じアンカー）。ADDF 本体自身も lock を持つため、**lock 単独では本体をダウンストリームと誤判定する** — 宣言を先に見る順序が重要
+3. **所有判定は明示シグナルで行う**: 一次根拠 = `CLAUDE.repo.md` のプロジェクト種別宣言（「ADDF 開発プロジェクト」/「ADDF 利用プロジェクト」。@メンション1段を解決し、コードブロック内の書き換え例は除外）、フォールバック = `.claude/addf/lock.json` の存在（addf-init / addf-migrate と同じアンカー）。ADDF 本体自身も lock を持つため、**lock 単独では本体をダウンストリームと誤判定する** — 宣言を先に見る順序が重要
 
 根治策はシグナル判定と併せて**発生源を断つ**こと: addf-init / addf-migrate の配布対象から `*.addf.md` を除外し、ダウンストリームに `.addf.md` を物理的に置かない（分離規約）。判定ロジックの防御と配布規約の根治はセットで行う — 片方だけでは旧バージョン配布済みの環境や持ち込みファイルで再発する。
 
 補足2点（Plan 0033 ペルソナ並列レビューで追加）:
 
-- **ペア4（development-process.md）は同型リスクを持つが据え置き**。配布された `docs/guides/development-process.md` をダウンストリームが独自にリライトすれば、ペア3 と同じ「同名無関係ファイル」誤報になりうる。ただし実運用でのリライト報告がないため分岐を先回りしない — 報告が出たら pair3 と同じ repo_kind 分岐に入れる
+- **ペア4（development-process.md）は同型リスクを持つが据え置き**。配布された `.claude/addf/guides/development-process.md` をダウンストリームが独自にリライトすれば、ペア3 と同じ「同名無関係ファイル」誤報になりうる。ただし実運用でのリライト報告がないため分岐を先回りしない — 報告が出たら pair3 と同じ repo_kind 分岐に入れる
 - **種別宣言の判定仕様**: 宣言マッチは太字マーカー込みの厳密一致（`**ADDF 開発プロジェクト**` / `**ADDF 利用プロジェクト**`）で、地の文の言及（否定文・沿革の記述）に誤爆しない。upstream/downstream の**両方**がヒットしたら判定不能（安全側）として lock フォールバックへ委ねる — 無条件の upstream 優先はしない。コードフェンス（``` / ~~~）内は除外されるが、**インラインコードスパン（単一バッククオート）内の言及は除外されない** — 宣言文言を CLAUDE.repo.md 内で引用説明する際はフェンスを使う運用。判定不能（宣言なし・lock なし = 旧配布ダウンストリームの可能性）は upstream と同一視せず、ペア1/ペア3 の ERROR を WARNING に格下げして種別宣言/lock の整備を促す。downstream / 判定不能で検査を切り替えたら `[N] SKIP: <理由（repo_kind）>` を必ず出力する（本体が誤って downstream 判定に裏返ったとき SKIP 表示で気づけるフェイルセーフ。実リポジトリテストで「SKIP が無いこと」を固定）
 
 macOS システム python3 は 3.9.6 で `tomllib`（Python 3.11+ stdlib）が無く、素の `import tomllib` は Traceback で落ちる（2026-07-03、pull 後の整合確認で発見）。import ガードで受け、**スクリプトの責務ごとに exit code を選ぶ**:
@@ -90,7 +90,7 @@ Plan 0022 で追加したペア5は、テキスト一致ではなく**参照の�
 
 ### 列挙の陳腐化は「列挙を持たない」設計で構造的に排除できる
 
-addf-init の .gitignore マージ手順は、当初ブロック内容をハードコード列挙しており、本体 .gitignore の変更（`.claude/Dashboard.md` 追加等）に追従できず腐っていた。リストの鮮度を lint で守る前に、**そもそも列挙を持たず「クローン元（`<tmp>/addf-source/.gitignore`）の同ブロックをそのままコピーする」と指示する**ことでドリフトの発生源自体を消せた。同期ペアを増やす（機械化）より、単一ソース化（構造的排除）が上策。lint は単一ソース化できない箇所にだけ張る。
+addf-init の .gitignore マージ手順は、当初ブロック内容をハードコード列挙しており、本体 .gitignore の変更（`.claude/addf/Dashboard.md` 追加等）に追従できず腐っていた。リストの鮮度を lint で守る前に、**そもそも列挙を持たず「クローン元（`<tmp>/addf-source/.gitignore`）の同ブロックをそのままコピーする」と指示する**ことでドリフトの発生源自体を消せた。同期ペアを増やす（機械化）より、単一ソース化（構造的排除）が上策。lint は単一ソース化できない箇所にだけ張る。
 
 ### lint のテストは mktemp サンドボックスにドリフトを注入する
 
@@ -99,7 +99,7 @@ addf-init の .gitignore マージ手順は、当初ブロック内容をハー�
 ```bash
 box="$(mktemp -d)"
 # 対象ファイルを相対レイアウトを保ってコピー
-mkdir -p "$box/.claude/templates" "$box/docs/guides"
+mkdir -p "$box/.claude/addf/templates" "$box/.claude/addf/guides"
 cp ... # 必要ファイル
 # ドリフトを注入（行削除・番号書き換え・ファイル削除）
 grep -v '^15\. コミットする' ... / sed 's/^4\. /44. /' ... / rm -f "$box/AGENTS.md"
@@ -111,7 +111,7 @@ grep -v '^15\. コミットする' ... / sed 's/^4\. /44. /' ... / rm -f "$box/A
 ## 関連ノウハウ
 
 - [アップストリーム / ダウンストリーム分離パターン](upstream-downstream-separation.md) — `.addf.md` サフィックス等、本知見の SKIP 設計が前提とする分離規約
-- [スキル設計パターン（Anthropic 社内知見ベース）](skill-design-patterns.md) — スクリプトを `.claude/addfTools/` に同梱する Progressive Disclosure 構成
+- [スキル設計パターン（Anthropic 社内知見ベース）](skill-design-patterns.md) — スクリプトを `.claude/addf/addfTools/` に同梱する Progressive Disclosure 構成
 - [Plan 着手前の実態突合](plan-status-drift-check.md) — ペア5（Plan 0022）の発端となった残差分切り出しの経緯
 - [チェックリスト裏付け lint](checklist-backing-lint.md) — 本設計の直系。手順書の「確認」項目に実行チェック/human-judgment マーカーの裏付けを要求する
 - [オプトイン式スキルの退避＋有効化コピー設計](optional-skill-optin.md) — SKIP 設計・列挙の陳腐化検査の応用先。gitignore 列挙との突き合わせで孤児コピーを検出する

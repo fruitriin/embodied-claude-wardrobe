@@ -6,7 +6,7 @@
 
 ## オプトイン
 
-投機はデフォルト無効。`.claude/addf-Behavior.toml` で明示的に有効化する:
+投機はデフォルト無効。`.claude/addf/Behavior.toml` で明示的に有効化する:
 
 ```toml
 [speculation]
@@ -44,7 +44,7 @@ max_worktrees = 7  # 同時に「開発中」にできる speculative worktree �
 **昇格 = `speculative/<concept>` → `main`**。integration は昇格の経路に入らない。
 昇格は常にオーナーの明示承認が起点であり、エージェントが自動で本流へマージする経路は存在しない。
 
-進行状態は `.claude/Worktrees.md` に記録され、`/addf-speculate` の reconcile（check）で
+進行状態は `.claude/addf/Worktrees.md` に記録され、`/addf-speculate` の reconcile（check）で
 実態（worktree・ローカル/origin ブランチ）との突合ができる。
 
 ## 掃除（clean）の原則
