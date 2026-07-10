@@ -27,7 +27,7 @@ wardrobe は標準ではシングルペルソナ（1 つの SOUL.md = 1 人の�
 ### PERSONA.template.md を使う
 
 ```bash
-cp .claude/templates/PERSONA.template.md PERSONA-<name>.md
+cp .claude/wardrobeTemplates/PERSONA.template.md PERSONA-<name>.md
 ```
 
 ペルソナごとに以下を定義する:

@@ -82,7 +82,7 @@ git diff --name-only "$LOCK_HASH"..HEAD
 | `.claude/commands/wd-read/`, `.claude/commands/wd-slide-watch.md`, `.claude/commands/wd-knowhow.md`, `.claude/commands/wd-knowhow-index.md`, `.claude/commands/wd-knowhow-filter.md`, `.claude/commands/wd-cc-tracker.md`, `.claude/scripts/reader.ts`, `docs/knowhow/` | system-reading-knowledge |
 | `.claude/commands/wd-observe.md`, `.claude/commands/wd-look.md`, `.claude/commands/wd-annotate-grid/`, `.claude/commands/wd-clip-image/`, `.claude/commands/wd-say/`, `.claude/hooks/hearing-*.sh`, `.claude/mcps/wifi-cam-mcp/`, `.claude/mcps/hearing/`, `.claude/mcps/tts-mcp/`, `.claude/mcps/usb-webcam-mcp/`, `.claude/mcps/ip-webcam-mcp/`, `.claude/mcps/mcp-pet/` | system-perception |
 | `ROUTINES.md`, `autonomous-action.sh`, `schedule.conf`, `.claude/hooks/continue-check.sh` | system-autonomous |
-| `SOUL.md`, `.claude/commands/wd-setup.md`, `.claude/commands/wd-configure.md`, `.claude/commands/wd-migrate.md`, `.claude/commands/wd-project-claude-overview.md`, `.claude/commands/wd-experience.md`, `.claude/agents/wd-*.md`, `.claude/hooks/session-boot.sh`, `.claude/templates/SOUL.template.md` | system-soul-harness |
+| `SOUL.md`, `.claude/commands/wd-setup.md`, `.claude/commands/wd-configure.md`, `.claude/commands/wd-migrate.md`, `.claude/commands/wd-project-claude-overview.md`, `.claude/commands/wd-experience.md`, `.claude/agents/wd-*.md`, `.claude/hooks/session-boot.sh`, `.claude/wardrobeTemplates/SOUL.template.md` | system-soul-harness |
 | `CLAUDE.md`, `.claude/settings.json`, `.claude/settings.local.json` | claude-md-deps |
 
 **マッピングに該当しないファイルの変更**（docs/, tests/, memory-mcp のソース変更等）は無視してよい。

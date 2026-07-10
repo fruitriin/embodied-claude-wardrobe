@@ -136,7 +136,7 @@ MCP とフックが連動するグループ。聴覚 MCP を選ぶと聴覚フ�
 
 選択された MCP サーバーだけを含む `.mcp.json` を生成/更新する。
 
-- `.claude/templates/mcp.json.template` を参考にエントリの書式を合わせる
+- `.claude/wardrobeTemplates/mcp.json.template` を参考にエントリの書式を合わせる
 - 環境変数が必要なもの（カメラ URL、API キー等）はテンプレート値（`your-xxx`）を入れる
 - 既存の `.mcp.json` がある場合: 選択されたものを追加、選択解除されたものを削除、既存の設定値は保持
 
@@ -160,9 +160,9 @@ MCP とフックが連動するグループ。聴覚 MCP を選ぶと聴覚フ�
 
 ### 3c. 自律行動（有効にした場合のみ）
 
-- `autonomous-action.sh` が存在しなければ `.claude/templates/autonomous-action.template.sh` からコピー＋実行権限付与
-- `desires.conf` が存在しなければ `.claude/templates/desires.template.conf` からコピー
-- `schedule.conf` が存在しなければ `.claude/templates/schedule.template.conf` からコピー
+- `autonomous-action.sh` が存在しなければ `.claude/wardrobeTemplates/autonomous-action.template.sh` からコピー＋実行権限付与
+- `desires.conf` が存在しなければ `.claude/wardrobeTemplates/desires.template.conf` からコピー
+- `schedule.conf` が存在しなければ `.claude/wardrobeTemplates/schedule.template.conf` からコピー
 - `.claude/commands/sleep.md` が存在しなければ `.claude/wardrobeOptions/skills/sleep.md` へのシンボリックリンク作成
 - `.claude/commands/awake.md` が存在しなければ `.claude/wardrobeOptions/skills/awake.md` へのシンボリックリンク作成
 

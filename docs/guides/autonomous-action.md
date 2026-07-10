@@ -56,7 +56,7 @@ weekday_1-5 hour_9-22 = 1
 weekday_0,6 hour_10-20 = 1
 ```
 
-テンプレート: `.claude/templates/schedule.template.conf`
+テンプレート: `.claude/wardrobeTemplates/schedule.template.conf`
 
 ### desires.conf — 何をしたくなるか
 
@@ -71,7 +71,7 @@ read = 48          # 何か読みたくなる
 
 間隔を過ぎると欲望が蓄積し、自律行動時に発火する。
 
-テンプレート: `.claude/templates/desires.template.conf`
+テンプレート: `.claude/wardrobeTemplates/desires.template.conf`
 
 ### ROUTINES.md — 定期タスク
 
@@ -86,7 +86,7 @@ read = 48          # 何か読みたくなる
 
 自律行動時に ROUTINES.md を確認し、間隔が空いたタスクを実行する。
 
-テンプレート: `.claude/templates/ROUTINES.template.md`
+テンプレート: `.claude/wardrobeTemplates/ROUTINES.template.md`
 
 ---
 

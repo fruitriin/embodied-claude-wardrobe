@@ -126,7 +126,7 @@ TODO.md
 .claude/commands/addf-dev.md
 .claude/templates/ProgressTemplate.md
 .claude/Progress.md
-.claude/templates/Feedback.md
+.claude/wardrobeTemplates/Feedback.md
 
 # Cron runtime artifacts
 .claude/scheduled_tasks.lock

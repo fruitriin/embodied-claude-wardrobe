@@ -8,7 +8,7 @@
 
 ## 2段防御
 
-1. **`.mcp.json` で `${PWD}` に依存しない** — `CLAUDE_PROJECT_DIR: "${PWD}"` のような env 注入を撤去する。サーバー側が自分の cwd からプロジェクトルートを解決できるなら env は不要。**下流へ配られる `.claude/templates/mcp.json.template` が感染経路だった**ため、テンプレートからも全撤去済み（2026-07-06）。CLAUDE_PROJECT_DIR を読むのは memory-mcp のみで、他の MCP には元々不要な env だった
+1. **`.mcp.json` で `${PWD}` に依存しない** — `CLAUDE_PROJECT_DIR: "${PWD}"` のような env 注入を撤去する。サーバー側が自分の cwd からプロジェクトルートを解決できるなら env は不要。**下流へ配られる `.claude/wardrobeTemplates/mcp.json.template` が感染経路だった**ため、テンプレートからも全撤去済み（2026-07-06）。CLAUDE_PROJECT_DIR を読むのは memory-mcp のみで、他の MCP には元々不要な env だった
 2. **サーバー側 config で `CLAUDE_PROJECT_DIR` を無条件に信じない** — 以下の優先順位で解決する:
    - env が指すディレクトリの**配下に自分の cwd があるか**を検証。なければその env は継承汚染とみなす
    - 汚染時・env 欠落時は、cwd から祖先方向に `CLAUDE.md` マーカーを探索してプロジェクトルートとする
