@@ -91,7 +91,7 @@ make_feature() {
 
 # Worktrees.md を行指定で書く（各引数 = 「ブランチ 状態」のペア）
 write_worktrees_md() {
-  mkdir -p "$repo/.claude"
+  mkdir -p "$repo/.claude/addf"
   {
     echo "# Worktrees（投機の進行状態）"
     echo ""
@@ -276,7 +276,7 @@ g2 checkout -q main
 out="$(cd "$repo2" && python3 "$RECONCILE" --today $TODAY 2>&1)"; code=$?
 check "remote 無し check は exit 0" 0 "$code" "$out" "SKIP: remote なし"
 check "origin は unknown 扱い" 0 "$code" "$out" "branch=speculative/x worktree=no origin=unknown merged_hint=no"
-mkdir -p "$repo2/.claude"
+mkdir -p "$repo2/.claude/addf"
 printf '| ../wt | speculative/x | test | 放棄 | %s |\n' "$TODAY" > "$repo2/.claude/addf/Worktrees.md"
 out="$(cd "$repo2" && python3 "$RECONCILE" clean --today $TODAY --delete speculative/x 2>&1)"; code=$?
 check "remote 無し clean は exit 0" 0 "$code" "$out" "SKIP: remote なし"

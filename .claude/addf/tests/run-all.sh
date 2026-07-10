@@ -16,6 +16,7 @@
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 TOTAL_PASS=0
 TOTAL_FAIL=0
 
@@ -50,6 +51,13 @@ for f in "$SCRIPT_DIR"/tools/test-*.sh; do
   [ -f "$f" ] && run_test "$f"
 done
 
+# ワードローブ固有ツールテスト（.claude/addf/ 占有空間外に退避済み）
+echo ""
+echo "▶ Tool Tests (wardrobe)"
+for f in "$PROJECT_ROOT"/.claude/wardrobeTests/tools/test-*.sh; do
+  [ -f "$f" ] && run_test "$f"
+done
+
 # Bun バイナリの実体を検証する（PATH 汚染攻撃対策）
 # 戻り値: 0=本物 / 1=偽者（PATH 上の別実行ファイル） / 2=不在
 verify_bun() {
@@ -68,7 +76,6 @@ verify_bun() {
 # Bun テスト（ワードローブ追加: .claude 配下の *.test.ts を一括発見）
 echo ""
 echo "▶ Bun Tests (wardrobe)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 BUN_TESTS=$(find "$PROJECT_ROOT/.claude" -name '*.test.ts' -not -path '*/node_modules/*' 2>/dev/null)
 BUN_STATUS=""
 BUN_PASS=0

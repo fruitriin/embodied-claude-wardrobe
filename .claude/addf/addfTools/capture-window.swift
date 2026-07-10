@@ -17,7 +17,7 @@ import ScreenCaptureKit
 // MARK: - GUI テスト有効チェック
 do {
     let scriptDir = URL(fileURLWithPath: CommandLine.arguments[0]).deletingLastPathComponent().path
-    let configPath = scriptDir + "/../addf-Behavior.toml"
+    let configPath = scriptDir + "/../Behavior.toml"
     if let contents = try? String(contentsOfFile: configPath, encoding: .utf8) {
         for line in contents.components(separatedBy: .newlines) {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
