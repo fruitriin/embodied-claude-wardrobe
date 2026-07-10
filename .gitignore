@@ -124,8 +124,8 @@ TODO.md
 
 # 開発用スキル
 .claude/commands/addf-dev.md
-.claude/templates/ProgressTemplate.md
-.claude/Progress.md
+.claude/addf/templates/ProgressTemplate.md
+.claude/addf/Progress.md
 .claude/wardrobeTemplates/Feedback.md
 
 # Cron runtime artifacts
@@ -144,8 +144,8 @@ TODO.md
 .claude/.context-reminder-state
 .claude/logs/
 CLAUDE.local.md
-.claude/Dashboard.md
-.claude/Worktrees.md
+.claude/addf/Dashboard.md
+.claude/addf/Worktrees.md
 # オプショナルスキルの有効化コピー（原本は .claude/optional/。sync-optional-skills.py が配置）
 .claude/commands/addf-gui-test.md
 .claude/commands/addf-annotate-grid.md
