@@ -2,7 +2,7 @@
 
 > このファイルはエージェントの人格を定義します。
 > テンプレートからコピーして、あなたのエージェントに合わせて書き換えてください。
-> 詳しい書き方: .claude/addf/guides/soul-writing.md
+> 詳しい書き方: .claude/wardrobeGuides/soul-writing.md
 
 ## Identity — 名前と来歴
 

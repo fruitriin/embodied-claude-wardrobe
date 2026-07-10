@@ -7,10 +7,10 @@
 | ファイル | 内容 | 参考元プロジェクト |
 |---|---|---|
 | `.claude/addf/guides/setup.md` | セットアップ手順。uv sync、MCP 設定、初回起動まで | 各プロジェクトの CLAUDE.md に分散 |
-| `.claude/addf/guides/soul-writing.md` | SOUL.md の書き方ガイド | 商会 `docs/templates/SOUL.md` + `.claude/addf/knowhow/persona-soul-assignment.md` |
-| `.claude/addf/guides/customization.md` | スキル・フックの変更と追加 | 商会 `.claude/addf/knowhow/ADDF/skill-design-patterns.md`, `permission-settings-pattern.md` |
-| `.claude/addf/guides/multi-persona.md` | 複数ペルソナの追加方法 | 商会 `.claude/addf/project-overview/system-persona.md` |
-| `.claude/addf/guides/autonomous-action.md` | cron 自律行動の設定 | 王様 `docs/autonomous-timeout-design.md` |
+| `.claude/wardrobeGuides/soul-writing.md` | SOUL.md の書き方ガイド | 商会 `docs/templates/SOUL.md` + `.claude/addf/knowhow/persona-soul-assignment.md` |
+| `.claude/wardrobeGuides/customization.md` | スキル・フックの変更と追加 | 商会 `.claude/addf/knowhow/ADDF/skill-design-patterns.md`, `permission-settings-pattern.md` |
+| `.claude/wardrobeGuides/multi-persona.md` | 複数ペルソナの追加方法 | 商会 `.claude/addf/project-overview/system-persona.md` |
+| `.claude/wardrobeGuides/autonomous-action.md` | cron 自律行動の設定 | 王様 `docs/autonomous-timeout-design.md` |
 
 ## 世界の対応関係
 

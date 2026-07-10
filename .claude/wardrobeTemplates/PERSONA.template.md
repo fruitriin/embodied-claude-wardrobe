@@ -2,7 +2,7 @@
 
 > マルチペルソナ拡張を行う場合に使用します。
 > 単一ペルソナで運用する場合、このファイルは不要です。
-> 詳しい手順: .claude/addf/guides/multi-persona.md
+> 詳しい手順: .claude/wardrobeGuides/multi-persona.md
 
 ## ペルソナ定義
 

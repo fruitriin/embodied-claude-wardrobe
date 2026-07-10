@@ -152,10 +152,10 @@ claude
 | ガイド | 内容 |
 |---|---|
 | [セットアップ](.claude/addf/guides/setup.md) | 詳細なインストール手順と MCP 設定 |
-| [SOUL の書き方](.claude/addf/guides/soul-writing.md) | 人格定義テンプレートの使い方 |
-| [カスタマイズ](.claude/addf/guides/customization.md) | スキル・フックの変更と追加 |
-| [マルチペルソナ](.claude/addf/guides/multi-persona.md) | 複数ペルソナの追加方法 |
-| [自律行動](.claude/addf/guides/autonomous-action.md) | cron 自律行動の設定 |
+| [SOUL の書き方](.claude/wardrobeGuides/soul-writing.md) | 人格定義テンプレートの使い方 |
+| [カスタマイズ](.claude/wardrobeGuides/customization.md) | スキル・フックの変更と追加 |
+| [マルチペルソナ](.claude/wardrobeGuides/multi-persona.md) | 複数ペルソナの追加方法 |
+| [自律行動](.claude/wardrobeGuides/autonomous-action.md) | cron 自律行動の設定 |
 
 ---
 
