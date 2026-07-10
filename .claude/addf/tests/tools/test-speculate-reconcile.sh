@@ -4,7 +4,8 @@
 # bare origin 付きの fake git リポジトリで「一覧と merged_hint」「過去日付 integration の区別と削除」
 # 「--delete 指定分のみ削除・判断待ち保護」「remote 無し環境の SKIP」に加え、ペルソナ並列レビューで
 # 実測再現した穴（origin 単独削除・未来日付注入・日付またぎ削除・記録なし削除・dirty 破棄）を
-# ドリフト注入 TDD で固定する（Plan 0028 フェーズ3）。
+# ドリフト注入 TDD で固定する（Plan 0028 フェーズ3）。Plan 0038 レビューで attacker が実測した
+# 表パーサの穴（列順詐称・** 強調・無関係テーブル）も Test 19〜20 で固定する。
 
 set -uo pipefail
 
@@ -293,6 +294,91 @@ check "不正な --today で exit 1" 1 "$code" "$out" "ERROR"
 out="$(run_reconcile clean --today $FUTURE)"; code=$?
 check "未来日付の --today は exit 1" 1 "$code" "$out" "未来日付は指定できない"
 assert "未来日付注入で当日 integration が消えていない" test -n "$(g branch --list integration/loop-$TODAY)"
+
+echo "Test 18: clean --delete — 「Pending」は状態として認識され、削除対象外の ERROR になる"
+make_feature p p.txt
+write_worktrees_md "speculative/p Pending"
+out="$(run_reconcile clean --today $TODAY --delete speculative/p)"; code=$?
+check "Pending は削除不可の ERROR（exit 1）" 1 "$code" "$out" "状態「Pending」"
+check "削除できる状態の案内が出る" 1 "$code" "$out" "削除できるのは「昇格済み」「放棄」のみ"
+check_absent "状態「不明」ではない（Pending が語彙として認識される）" "$out" "状態「不明」"
+check_absent "削除が実行されていない" "$out" "removed=branch:speculative/p"
+assert "Pending の p はローカルに残っている" test -n "$(g branch --list speculative/p)"
+
+echo "Test 19: check — pending_count / active_count が Worktrees.md の行数を報告する（在庫の機械シグナル）"
+write_worktrees_md "speculative/p Pending" "speculative/q Pending（PR #9）" "speculative/e 開発中"
+out="$(run_reconcile --today $TODAY)"; code=$?
+check "Pending 2行（注記付き含む）で pending_count=2" 0 "$code" "$out" "pending_count=2"
+check "進行中1行（開発中）で active_count=1" 0 "$code" "$out" "active_count=1"
+write_worktrees_md "speculative/e 開発中"
+out="$(run_reconcile --today $TODAY)"; code=$?
+check "Pending 0行で pending_count=0" 0 "$code" "$out" "pending_count=0"
+check "開発中のみでも active_count=1" 0 "$code" "$out" "active_count=1"
+rm "$repo/.claude/addf/Worktrees.md"
+out="$(run_reconcile --today $TODAY)"; code=$?
+check "Worktrees.md 無しは pending_count=0" 0 "$code" "$out" "pending_count=0"
+check "Worktrees.md 無しは active_count=0" 0 "$code" "$out" "active_count=0"
+
+echo "Test 20: check — 騙し入力（列順詐称・強調・無関係テーブル）を列位置ベースで正しく捌く"
+# 20-1: 列順詐称 — 概念名列が状態語（Pending/テスト通過）で始まっても、状態列だけを判定する
+mkdir -p "$repo/.claude/addf"
+cat > "$repo/.claude/addf/Worktrees.md" <<EOF
+# Worktrees（投機の進行状態）
+
+| worktree パス | ブランチ | 対象概念（出典） | 状態 | 最終更新 |
+|---|---|---|---|---|
+| ../wt1 | speculative/p | Pending整理の試作（概念名が状態語で始まる） | 昇格済み | $TODAY |
+| ../wt2 | speculative/q | テスト通過率の可視化（同上） | 放棄 | $TODAY |
+EOF
+out="$(run_reconcile --today $TODAY)"; code=$?
+check "列順詐称: 概念名列の Pending は数えない" 0 "$code" "$out" "pending_count=0"
+check "列順詐称: 概念名列のテスト通過は active に数えない" 0 "$code" "$out" "active_count=0"
+# 20-2: 強調 — 状態セルの **Pending** / **開発中** は装飾を剥がして数える
+cat > "$repo/.claude/addf/Worktrees.md" <<EOF
+| worktree パス | ブランチ | 対象概念（出典） | 状態 | 最終更新 |
+|---|---|---|---|---|
+| ../wt1 | speculative/p | test | **Pending** | $TODAY |
+| ../wt2 | speculative/q | test | **開発中** | $TODAY |
+EOF
+out="$(run_reconcile --today $TODAY)"; code=$?
+check "強調 **Pending** を剥がして数える" 0 "$code" "$out" "pending_count=1"
+check "強調 **開発中** を剥がして active に数える" 0 "$code" "$out" "active_count=1"
+# 20-3: 無関係テーブル・ヘッダなし表 — 「ブランチ」「状態」ヘッダの無い表は対象外
+cat > "$repo/.claude/addf/Worktrees.md" <<EOF
+# Worktrees（投機の進行状態）
+
+## 無関係テーブル（投機管理表ではない）
+
+| 項目 | メモ |
+|---|---|
+| Pending | 無関係表の Pending は数えない |
+| 開発中 | 無関係表の進行中も数えない |
+
+| ヘッダなし表の行 | Pending | これも数えない |
+EOF
+out="$(run_reconcile --today $TODAY)"; code=$?
+check "無関係テーブルの Pending は数えない" 0 "$code" "$out" "pending_count=0"
+check "無関係テーブル・ヘッダなし表の進行中は数えない" 0 "$code" "$out" "active_count=0"
+# 20-4: active_count の計上 — 進行中7状態は数え、昇格済み/放棄/掃除済み/Pending は含めない
+cat > "$repo/.claude/addf/Worktrees.md" <<EOF
+| worktree パス | ブランチ | 対象概念（出典） | 状態 | 最終更新 |
+|---|---|---|---|---|
+| ../wt1 | speculative/a | test | 開発中 | $TODAY |
+| ../wt2 | speculative/b | test | テスト通過 | $TODAY |
+| ../wt3 | speculative/c | test | テスト失敗 | $TODAY |
+| ../wt4 | speculative/d | test | 衝突 | $TODAY |
+| ../wt5 | speculative/e | test | 統合済み | $TODAY |
+| ../wt6 | speculative/f | test | 要再検証 | $TODAY |
+| ../wt7 | speculative/g | test | 上限で待機 | $TODAY |
+| ../wt8 | speculative/h | test | 昇格済み | $TODAY |
+| ../wt9 | speculative/i | test | 放棄（実体なし） | $TODAY |
+| ../wt10 | speculative/j | test | 掃除済み | $TODAY |
+| ../wt11 | speculative/k | test | Pending（PR #9） | $TODAY |
+EOF
+out="$(run_reconcile --today $TODAY)"; code=$?
+check "進行中7状態が active_count に計上される" 0 "$code" "$out" "active_count=7"
+check "Pending は active ではなく pending 側に数える" 0 "$code" "$out" "pending_count=1"
+rm "$repo/.claude/addf/Worktrees.md"
 
 echo ""
 echo "Results: $PASS passed, $FAIL failed"

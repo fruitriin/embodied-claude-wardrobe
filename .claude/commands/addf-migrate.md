@@ -1,7 +1,7 @@
 ---
 name: addf-migrate
 description: |
-  ADDF フレームワークを最新版にアップグレードする。addf-lock.json のバージョンと
+  ADDF フレームワークを最新版にアップグレードする。.claude/addf/lock.json のバージョンと
   最新版の差分を算出し、安全にマイグレーションする。
   ADDF のアップデート・バージョンアップ・マイグレーションを行いたいときに使う。
 user_invocable: true
@@ -18,16 +18,19 @@ ADDF フレームワークを最新版（またはターゲットバージョン
 
 ## 前提条件
 
-- `.claude/addf/lock.json` が存在すること。存在しない場合は2分岐:
+- `.claude/addf/lock.json` が存在すること。無ければ**旧位置フォールバック**として
+  `.claude/addf-lock.json`（v0.6.0 未満の配布位置）を探し、あればそれを正として読む <!-- residual-path: allow -->
+  （Phase 2.5 のディレクトリ大移行で新位置へ移動される）。どちらにも存在しない場合は2分岐:
   - ADDF 由来ファイル（`.claude/commands/addf-*.md` 等）も存在しない → エラー終了し `/addf-init` を案内する
-  - ADDF 由来ファイルが存在する（= lock 未生成の**部分導入**プロジェクト。手縫い導入・旧版の部分コピー） → 「lock がありませんが ADDF ファイルを検出しました。初期正規化モードで走りますか？」と提案する <!-- human-judgment -->。承認されたら `/addf-init` の「部分導入からの正規化」手順に合流する: 最新版をクローンし、既存の ADDF 由来ファイルは最新版で上書き（安全一括上書きと個別確認必須の2群に分けて扱う — 存在≠所有）・プロジェクト固有ファイル（`*.exp.md`・`Progress.md`・`CLAUDE.repo.md` 等）は保護・完了時に `addf-lock.json` を生成する。手順の実体は `addf-init.md`（外部起動導入＋読み替え）を参照する — ここには重複記述しない
+  - ADDF 由来ファイルが存在する（= lock 未生成の**部分導入**プロジェクト。手縫い導入・旧版の部分コピー） → 「lock がありませんが ADDF ファイルを検出しました。初期正規化モードで走りますか？」と提案する <!-- human-judgment -->。承認されたら `/addf-init` の「部分導入からの正規化」手順に合流する: 最新版をクローンし、既存の ADDF 由来ファイルは最新版で上書き（安全一括上書きと個別確認必須の2群に分けて扱う — 存在≠所有）・プロジェクト固有ファイル（`*.exp.md`・`Progress.md`・`CLAUDE.repo.md` 等）は保護・完了時に `.claude/addf/lock.json` を生成する。手順の実体は `addf-init.md`（外部起動導入＋読み替え）を参照する — ここには重複記述しない
 - ワーキングツリーがクリーンであること（未コミットの変更があれば中断して案内する）
 
 ## マイグレーション手順
 
 ### Phase 1: 状態確認
 
-1. `.claude/addf/lock.json` を読み、現在の `ref`（`vX.Y.Z` タグ名）と `version` を記録する
+1. `.claude/addf/lock.json`（無ければ旧位置 `.claude/addf-lock.json` — 「前提条件」の <!-- residual-path: allow -->
+   旧位置フォールバック）を読み、現在の `ref`（`vX.Y.Z` タグ名）と `version` を記録する
    - **旧形式の後方互換**: `ref` がなく `commit` フィールドがある lock（v0.3.0 以前の形式）は、`v<version>` タグを起点として扱う（記録されたハッシュはリリースプロセスの都合で実在しない場合があるため、タグを正とする）
 2. `git status` でワーキングツリーがクリーンか確認する
    - クリーンでなければ: 「未コミットの変更があります。コミットまたはスタッシュしてから再実行してください」と案内して終了
@@ -56,6 +59,145 @@ ADDF フレームワークを最新版（またはターゲットバージョン
    git -C <tmp-dir>/addf-latest rev-parse HEAD
    ```
 
+### Phase 2.5: ディレクトリ大移行（v0.6.0 新構造・ワンショット）
+
+（「2.5」は後続のフェーズ番号を壊さないための枝番。以降のステップ 6.1〜6.10 は
+Phase 2 のステップ6とは独立した、このフェーズ専用の枝番）
+
+> この Phase は**本ファイルの新版（v0.6.0 以降）を読んでいる場合のみ機能する**。
+> 旧版（v0.5.0 以前）の addf-migrate.md で `/addf-migrate` を開始した場合、この Phase は
+> 存在せず1周目ではディレクトリ移行されない — 復旧: Phase 5 のスキル上書きで本ファイルが
+> 新版になった後、**もう一度 `/addf-migrate` を実行**すれば Phase 2.5 が発動する。
+
+v0.6.0 で ADDF 管理ファイルの配置が全面的に変わった（docs/ の明け渡しと `.claude/addf/` への
+集約 — 旧→新の全対応と背景は `.claude/addf/CHANGELOG.md` の [0.6.0] 移行ガイド参照）。
+本フェーズは**構造の差分で発動する** — バージョン番号のハードコードではないため、
+0.4.x 以前から v0.6.0 以降へ直行するバージョン跨ぎでも漏れず、移行済みプロジェクトでは
+発動しない（Phase 6 のステップ 16.5 と同じ差分連動の型）。
+
+発動した場合は**一発通し切り**を推奨する: 6.2〜6.7 を中断なしで通し切る（git mv と参照
+書き換えの間で止まった main が最も危険なため。ADDF 本体は Plan 0037 でオーナー同席・
+単一セッションで実施した）。途中で想定外が出たら粘らず 6.9 で巻き戻す。
+
+6.1. **発動判定**: ターゲットが新構造で、ローカルが未移行のときだけ 6.2 以降を実施する:
+    ```bash
+    # 判定パス .claude/addf は paths.toml の [meta].new_root と手動同期（変更時は両方直す）
+    if [ -f <tmp-dir>/addf-latest/.claude/addf/addfTools/paths.toml ] && [ ! -d .claude/addf ]; then
+      echo "MIGRATION-REQUIRED: Phase 2.5 を実施する"
+    else
+      echo "SKIP: Phase 2.5 は不要（Phase 3 へ進む）"
+    fi
+    ```
+    **セカンダリチェック（部分適用の検出）**: `.claude/addf` が存在しても、旧位置
+    （`.claude/addfTools`・`docs/plans` 等）にファイルが残る場合は以前の移行の**部分適用** <!-- residual-path: allow -->
+    （apply/rewrite の途中失敗）の可能性がある。上の判定が SKIP でも、次で MOVE が
+    1件以上出るなら Phase 2.5 を実施する（ツールが未導入なら 6.2 の手順で導入してから実行する）:
+    ```bash
+    TOOL=.claude/addf/addfTools/migrate-paths.py
+    [ -f "$TOOL" ] || TOOL=.claude/addfTools/migrate-paths.py  # residual-path: allow（旧位置フォールバック）
+    uv run --python 3.11 "$TOOL" check | grep '^MOVE' || echo "MOVE なし（部分適用ではない）"
+    ```
+
+6.2. **道具の導入**: 移行前のプロジェクトには移行ツールがまだ無いため、クローンした最新版から
+    取得し、単独コミットする（作業ツリーを clean に保つ — apply は dirty を拒否する）:
+    ```bash
+    mkdir -p .claude/addfTools  # residual-path: allow（旧位置への意図的な配置）
+    cp <tmp-dir>/addf-latest/.claude/addf/addfTools/migrate-paths.py \
+       <tmp-dir>/addf-latest/.claude/addf/addfTools/lint-residual-paths.py \
+       <tmp-dir>/addf-latest/.claude/addf/addfTools/paths.toml \
+       .claude/addfTools/  # residual-path: allow
+    git add .claude/addfTools && git commit -m "[移行] v0.6.0 ディレクトリ移行ツールを導入"  # residual-path: allow
+    ```
+    （ツールは旧位置 `.claude/addfTools/` に置く — paths.toml は旧位置をフォールバック探索し、 <!-- residual-path: allow -->
+    apply がツール自身も新位置へ移動する。コピー先に同名ファイルが既にある場合は
+    プロジェクト独自ファイルの可能性があるため、上書きせず先に別の場所へ退避する）
+
+6.3. **プリフライト（check・読み取り専用）**: 移動計画・移動先の衝突・旧パス参照の全数と、
+    rewrite の射程外候補の警告を確認する:
+    ```bash
+    uv run --python 3.11 .claude/addfTools/migrate-paths.py check  # residual-path: allow
+    ```
+    （uv が無ければ `python3 .claude/addfTools/migrate-paths.py check`。Python 3.11+ が必要） <!-- residual-path: allow -->
+    - exit 1（ブロッカーあり）の場合は表示に従って解消してから再実行する
+    - **存在≠所有**: docs/ は ADDF 管理サブディレクトリ（plans / plans-add / knowhow / guides /
+      project-overview）単位でのみ移動する。docs/ 直下のプロジェクト固有ファイル
+      （GitHub Pages コンテンツ等）は移動リストに現れず、ツールは一切触れない —
+      check の移動リストにプロジェクト固有ファイルが**含まれていない**ことを目視確認する <!-- human-judgment -->
+    - **ディレクトリ丸ごと移動の混在確認**: docs/ と違い、`.claude/addfTools`・`.claude/templates`・ <!-- residual-path: allow -->
+      `.claude/tests`・`.claude/optional` は**ディレクトリ単位で丸ごと** `.claude/addf/` 占有空間へ <!-- residual-path: allow -->
+      移動される（存在≠所有の識別はディレクトリ移動には効かない）。プロジェクト独自ファイルが
+      混在していると占有空間に引き込まれ、**将来の migrate（Phase 5「その他のファイル」の
+      addfTools・tests 上書き）で消えうる**。クローン元との差分で独自ファイルの有無を確認し、
+      あれば移行前に別の場所（`.claude/` 直下や `scripts/` 等の占有空間外）へ退避する <!-- human-judgment -->:
+      ```bash
+      for d in addfTools templates tests optional; do
+        diff -rq ".claude/$d" "<tmp-dir>/addf-latest/.claude/addf/$d" 2>/dev/null | grep '^Only in \.claude/'
+      done
+      ```
+      （`Only in .claude/<dir>` の行 = クローン元に無いローカル固有ファイル。ADDF 由来の
+      経験ファイル等ではなくプロジェクト独自のものが出たら退避する）
+    - check の出力をユーザーに提示し、大移行の実施承認を得る <!-- human-judgment -->
+
+6.4. **apply（git mv）→ 単独コミット**: backup ref（`refs/backup/pre-0037-migration`）が
+    自動作成され、git mv が一括実行される。**git mv だけをコミットする**（参照書き換えと
+    混ぜない — revert 一発で戻せる原子性）:
+    ```bash
+    uv run --python 3.11 .claude/addfTools/migrate-paths.py apply  # residual-path: allow
+    git add -A && git commit -m "[移行] v0.6.0 ディレクトリ大移行 (1/2): git mv"
+    ```
+
+6.5. **rewrite（参照書き換え）→ 別コミット**: apply でツール自身も移動済みのため、
+    **新位置**のコマンドラインで実行する（旧位置のコピペは No such file になる。
+    apply の完了メッセージにも新位置のコマンドが表示される）:
+    ```bash
+    uv run --python 3.11 .claude/addf/addfTools/migrate-paths.py rewrite
+    git add -A && git commit -m "[移行] v0.6.0 ディレクトリ大移行 (2/2): 参照書き換え"
+    ```
+
+6.6. **残存参照ゼロの確認（完了ゲート）**: 旧パス参照の残存を検査する。ERROR が出たら
+    移行は未完了（apply / rewrite の部分適用の可能性もある — check で状態を確認する）:
+    ```bash
+    uv run --python 3.11 .claude/addf/addfTools/lint-residual-paths.py
+    ```
+    exit 2 は docs/ への逆流検出の WARNING（移行直後の一発実施では通常発生しない。
+    恒久検査として再実行したときに docs/ へ ADDF ファイルが再侵入した場合のシグナル）
+
+6.7. **プロジェクト自身のビルド・テストを実行する**: lint ゼロだけでは完了にしない。
+    `.claude/addf/tests/run-all.sh` が存在しないプロジェクト（部分導入・軽量導入）では
+    下のコマンドをスキップし、プロジェクト固有のビルド・テストのみ実行する。
+    rewrite は「フルパス文字列のリテラル出現」しか書き換えられないため、以下の
+    **射程外4類型**はここで初めて露見する（ADDF 本体の移行実測では、移行直後に
+    テスト 19 スイート中 18 が失敗し、原因は全てこの類型だった）:
+    ```bash
+    bash .claude/addf/tests/run-all.sh   # ＋ CLAUDE.repo.md 記載のプロジェクト固有のビルド・Lint・テスト
+    ```
+    失敗したら以下を疑って修正し、再実行する（修正は追加コミットでよい）:
+    1. **相対階層参照**: `SCRIPT_DIR/../../..` 等 — ディレクトリが深くなり全てのルート算出がずれる
+    2. **分割断片**: `os.path.join(dir, '.claude', 'addf-Behavior.toml')` 等の組み立てパス。
+       コンパイル済みバイナリ内の断片はソース修正＋再ビルド＋checksums 更新まで必要
+    3. **書き込み先の親 mkdir**: テストのサンドボックス構築等で、書き込みパスだけ書き換わり
+       `mkdir -p` / `cp` の準備側が旧構造のまま残る
+    4. **Markdown 相対リンク**: `../../` 等 — ファイル自身の階層が変わるとリンク先がずれる
+       （テストにかからず、レンダリング時にしか壊れない）
+
+6.8. **射程外の手動確認**: rewrite 完了メッセージの案内（と check の射程外候補警告）に従い、
+    テストで露見しない残りを点検する <!-- human-judgment -->:
+    - git 追跡外ファイル（`.claude/settings.local.json` の許可ルール等）に残る旧パス
+    - Markdown 相対リンクの解決（上記類型4 — 全 Markdown を一度リンクチェックする。
+      例: `grep -rn '](\.\./' --include='*.md' .` で相対リンクを列挙して目視する）
+    - 上記4類型のうちテストにかからなかったもの
+    - 移動先 `.claude/addf/` 配下に、元々のプロジェクト独自ファイルが混入していないか
+      （6.3 の混在確認の再点検 — 混入したまま残すと将来の migrate の上書きで消えうる） <!-- human-judgment -->
+
+6.9. **失敗時の巻き戻し**: 途中で想定外が出たら粘らず backup ref へ戻す（「直しながら進む」
+    より、巻き戻して原因を解消してからの再実行を優先する — main に中途半端な状態を残さない）:
+    ```bash
+    git reset --hard refs/backup/pre-0037-migration
+    ```
+    （backup ref は 6.2 の道具導入コミットを含む「git mv 直前」を指す）
+
+6.10. 本フェーズ完了後、Phase 3 以降は新構造のパスで続行する（本書のパス表記はすべて新構造）
+
 ### Phase 3: 差分算出
 
 7. 現在のロックファイルの `ref`（タグ）と最新版の間で、ADDF 管理ファイルの差分をリストアップする
@@ -74,7 +216,7 @@ ADDF フレームワークを最新版（またはターゲットバージョン
 - `AGENTS.md` — Codex 向けブートシーケンス（上書き）
 - `CONTRIBUTING.md` — コントリビューションガイド
 - `.claudeignore` — Claude 除外設定
-- `.claude/addf/CHANGELOG.md` — 変更履歴（`ADDF-Release.addf.md` は除外規則により対象外）
+- `.claude/addf/CHANGELOG.md` — 変更履歴（`Release.addf.md` は除外規則により対象外）
 - `.claude/addf/guides/` — ADDF ガイドドキュメント
 - `.claude/addf/knowhow/ADDF/` — ADDF ノウハウ
 
@@ -98,7 +240,7 @@ find . -name '*.addf.md' -not -path './.git/*'
 ```
 検出されたファイルは ADDF 本体専用の残留物のため、Phase 4 の「削除推奨」カテゴリで削除を提案する
 （ADDF 本体で実行された場合は `*.addf.md` が正当に存在するが、そもそも本体では
-`/addf-migrate` の前提となる `addf-lock.json` の向き先が自身であり通常実行しない）
+`/addf-migrate` の前提となる `.claude/addf/lock.json` の向き先が自身であり通常実行しない）
 
 ### Phase 4: 変更の確認
 
@@ -173,7 +315,10 @@ find . -name '*.addf.md' -not -path './.git/*'
     - 自動マージが困難な場合は diff を表示して手動マージを案内する
 
 14. **その他のファイル**:
-    - hooks、addfTools、tests は上書き
+    - hooks、addfTools、tests は上書き。ただし**上書きは ADDF 由来ファイルのみ** —
+      ADDF のファイルリスト（クローン側の同ディレクトリ内容）に存在しないファイルは
+      プロジェクト独自ファイルの可能性があるため削除・上書きしない（Phase 2.5 の
+      ディレクトリ丸ごと移動で独自ファイルが `.claude/addf/` に混在した場合の保護）
     - .claude/addf/knowhow/ADDF/ は上書き（ADDF 由来のノウハウのみ）
 
 14.5. **オプショナルスキルの同期**（「14.5」は後続の番号参照を壊さないための枝番）:
@@ -233,6 +378,17 @@ find . -name '*.addf.md' -not -path './.git/*'
     rm -rf <tmp-dir>
     ```
 
+16.5. **バージョン差分連動のワンショット手順**（「16.5」は後続の番号参照を壊さないための枝番）:
+    Phase 4 の差分プレビューで「新規追加」に `.claude/commands/addf-plan-audit.md` が
+    含まれていた場合（= 本スキルを初めて含むバージョンを跨いだ更新）、マイグレーション
+    完了後に `/addf-plan-audit` を1回実行し、過去 Plan の「完了扱いだが未完了タスクが
+    残っている計画」を掘り起こす。手順の実体はスキル本体を参照する（ここには
+    埋め込まない — 二重実装＝同期ペアの温床を避ける）。差分にスキルが現れたときだけ
+    案内されるため「マイグレーションのたびに実施」にはならない。ただし一回きりの
+    厳密な保証ではない — ローカル削除等で本スキルが再度「新規追加」に現れた場合は
+    再案内される。実施済みならその旨を答えてスキップしてよい。検出結果への処置は
+    オーナー判断 <!-- human-judgment -->
+
 17. 完了レポートを表示する:
     ```
     ✓ ADDF マイグレーション完了
@@ -253,13 +409,13 @@ find . -name '*.addf.md' -not -path './.git/*'
 
 - **`rm -rf` の権限**: Phase 6 の一時ディレクトリ削除に `rm -rf` を使用する。`settings.json` のテンプレートには破壊的操作を含めない方針のため、この操作で権限確認が発生する。これは意図的な設計であり、ユーザーが一時ディレクトリの削除を明示的に承認する
 - **CLAUDE.md のマージ**: CLAUDE.md はダウンストリームが追記している可能性がある。ADDF のテンプレート部分（ブートシーケンス等）のみ更新し、`@CLAUDE.repo.md` 行以降のプロジェクト固有部分は保持する。自動判定が困難な場合（構造が大幅に変更されている等）は diff を表示して手動マージを案内する
-- **リポジトリ URL**: `addf-lock.json` の `repository` フィールドが正確であることが前提。URL が変更された場合は手動で `addf-lock.json` を更新する必要がある
+- **リポジトリ URL**: `.claude/addf/lock.json` の `repository` フィールドが正確であることが前提。URL が変更された場合は手動で `.claude/addf/lock.json` を更新する必要がある
 
 ## エラーケース
 
 <!-- checklist-lint: skip-section（エラー時の対応表。チェックリストではない） -->
 
-- `addf-lock.json` が存在しない → ADDF 由来ファイルも無ければ「ロックファイルが見つかりません。`/addf-init` でプロジェクトを初期化してください」。ADDF 由来ファイルがあれば部分導入とみなし、初期正規化モードを提案する（「前提条件」参照）
+- `.claude/addf/lock.json`（旧: `.claude/addf-lock.json`）が存在しない → ADDF 由来ファイルも無ければ「ロックファイルが見つかりません。`/addf-init` でプロジェクトを初期化してください」。ADDF 由来ファイルがあれば部分導入とみなし、初期正規化モードを提案する（「前提条件」参照） <!-- residual-path: allow -->
 - ワーキングツリーが汚れている → 中断して案内
 - リポジトリのクローンに失敗 → ネットワーク確認を案内
 - ロックファイルの `ref` が ADDF リポジトリに存在しない → 浅いクローンを完全クローンに切り替えて再試行。それでも見つからなければ `v<version>` タグにフォールバックする（旧形式 lock の実在しないハッシュ対策）
