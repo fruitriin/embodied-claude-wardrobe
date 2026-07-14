@@ -521,9 +521,10 @@ A 案の形: Edge Function がメモリ API のゲートになり、コミット
 理由: HotReload のしやすさ。emotion-mcp（既に Bun/TypeScript で計画中）とのランタイム統一。
 
 **移植時の課題（要検討・未確定）**:
-- chiVe（gensim word2vec, 300次元）・multilingual-e5-base 埋め込み計算の TS 側代替手段（ONNX Runtime 等での推論、または埋め込み計算だけ Python/Edge Function に残す分離案も検討余地）
-- numpy 依存の行列演算（異方的距離の主成分軸計算等）を TS でどう再現するか
-- PGroonga 採用でテキスト検索・正規化の相当部分は DB 側に移るため、TS 側が担う計算量は「動詞チェーンのベクトル計算」「波動位相モデル系の状態更新」に絞られる見込み——後述の Daemon 化と合わせて Phase 1 のスキーマ設計時に負荷を見積もる
+- ~~multilingual-e5-base 埋め込み計算の TS 側代替手段~~ → **2026-07-15 解決・実測済み**: `@huggingface/transformers`（旧 `@xenova/transformers`、v4.2.0）+ `Xenova/multilingual-e5-base`（ONNX変換済み公式モデル）で Bun 上に実装。`tmp/embedding-verify/`（gitignore対象）で実際に動かして確認: 768次元、レイテンシはコールド42.9ms・ウォーム13.8ms（SQLite版Pythonのsentence-transformers、CPU数百ms級より高速）。GitHub Issue（[huggingface/transformers.js#267](https://github.com/huggingface/transformers.js/issues/267)、multilingual-e5系が`token_type_ids`不足でpipeline実行時にエラーになる既知バグ）を懸念して事前検証したが、v4.2.0では再現しなかった（モデル側のトークナイザーファイル構成が更新されたためと推測、要因の完全特定はせず「現行バージョンで動く」事実だけ確定）
+- chiVe（gensim word2vec, 300次元）の TS 側代替手段は未検証（動詞チェーン系はPhase1でスコープ外と決定済みのため優先度低）
+- numpy 依存の行列演算（異方的距離の主成分軸計算等）を TS でどう再現するかは未検討（wave_recall 等の波動系アルゴリズム移植時の課題）
+- PGroonga 採用でテキスト検索・正規化の相当部分は DB 側に移るため、TS 側が担う計算量は「動詞チェーンのベクトル計算」「波動位相モデル系の状態更新」に絞られる見込み——Phase2 のストア層実装で負荷を見積もる
 
 ## 設計判断 10 — MCP ではなく常駐 Daemon 化、接続層は交換可能に（2026-07-14 リン方針、待受方式は同日確定）
 
