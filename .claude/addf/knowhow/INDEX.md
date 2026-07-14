@@ -15,3 +15,4 @@
 | wardrobe/vocabulary-horizon.md | 語彙の地平線 — 内在思考・推論バジェット・外出力の3軸で認知特性を設計 | 語彙の地平線, SOUL.md, 認知アーキテクチャ, 内在思考語彙, 外出力語彙, 推論バジェット, 専門家型, パートナー型, 特化型 |
 | wardrobe/speed-consciousness-framework.md | 速度×意識フレームワーク — 実装判断の共通基準（速度4分類×意識2分類×経路分離） | 速度, 意識, 経路分離, 高圧縮高速, 高圧縮中速, 無意識, 意識的, 一時留保, 共鳴と採点 |
 | wardrobe/timestamp-policy.md | タイムスタンプ方針 — 演算系は UTC 統一、台帳系はローカル TZ 付き ISO の使い分け | タイムスタンプ, UTC, タイムゾーン, naive, aware, memory-mcp, journal, TypeError, decay |
+| wardrobe/postgres-persona-schema-separation.md | マルチペルソナで Postgres を共有するときはスキーマ単位で分離する | Postgres, ペルソナ分離, スキーマ, CREATE SCHEMA, persona_id, PGroonga, pgvector, マルチエージェント, keyword-buffer |
