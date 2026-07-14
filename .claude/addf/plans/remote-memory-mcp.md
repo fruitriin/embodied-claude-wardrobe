@@ -214,11 +214,143 @@ wardrobe現行25ツール・upstream本家27ツール・Rem `wave-exp`（12ツ�
 **結論（Phase 1設計への申し送り）**: wave-exp は「想起・統合（consolidate）・波動系の内部アルゴリズム」の参照元として有効。ただし「記憶リンク・エピソード化・カメラ位置検索・working memory」はupstream本家またはwardrobe現行実装をベースにする必要がある——**設計判断8は「全面的にwave-exp」ではなく「機能ごとに参照元を選ぶハイブリッド」に訂正する**。
 - ~~ここでリンのレビューを挟む~~ → **2026-07-14 リン承認済み。Phase 0 完全クローズ**
 
-### Phase 1: Postgres スキーマ + ストア層
-- スキーマ設計: memories / embeddings(pgvector) / links / episodes / coactivation / flash_index
-- PGroonga インデックス（content, tags）+ HNSW（embedding）
-- SQLite → Postgres 移行スクリプト（既存記憶の全件移行、非破壊）
-- ペルソナ分離: DB or スキーマ単位（keyword-buffer のペルソナ分離と同じ思想）
+### Phase 1: Postgres スキーマ + ストア層（2026-07-14 着手、朔設計）
+
+現行 SQLite スキーマ（`.claude/mcps/memory-mcp/src/memory_mcp/store.py` の `_DDL` + `types.py`）を実読して棚卸しした上での設計。PGroonga・pgvector の索引構文は Web 検索で裏取り済み（出典は各所に記載）。
+
+#### DDL（ペルソナ1名分。ペルソナ分離方針は後述）
+
+```sql
+CREATE EXTENSION IF NOT EXISTS pgroonga;
+CREATE EXTENSION IF NOT EXISTS vector;
+
+CREATE TABLE episodes (
+    id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    title            text NOT NULL,
+    start_time       timestamptz NOT NULL,
+    end_time         timestamptz,
+    memory_ids       uuid[] NOT NULL DEFAULT '{}',
+    participants     text[] NOT NULL DEFAULT '{}',
+    location_context text,
+    summary          text NOT NULL DEFAULT '',
+    emotion          text NOT NULL DEFAULT 'neutral',
+    importance       smallint NOT NULL DEFAULT 3 CHECK (importance BETWEEN 1 AND 5)
+);
+-- memory_ids は memories.episode_id との二重管理（SQLite版から踏襲、双方向の非正規化）
+
+CREATE TABLE memories (
+    id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    content          text NOT NULL,
+    timestamp        timestamptz NOT NULL DEFAULT now(),
+    emotion          text NOT NULL DEFAULT 'neutral',
+    importance       smallint NOT NULL DEFAULT 3 CHECK (importance BETWEEN 1 AND 5),
+    category         text NOT NULL DEFAULT 'daily',
+    access_count     integer NOT NULL DEFAULT 0,
+    last_accessed    timestamptz,
+    episode_id       uuid REFERENCES episodes(id) ON DELETE SET NULL,
+    sensory_data     jsonb NOT NULL DEFAULT '[]'::jsonb,
+    camera_position  jsonb,
+    tags             text[] NOT NULL DEFAULT '{}',
+    novelty_score    real NOT NULL DEFAULT 0.0,
+    prediction_error real NOT NULL DEFAULT 0.0,
+    activation_count integer NOT NULL DEFAULT 0,
+    last_activated   timestamptz,
+    freshness        real NOT NULL DEFAULT 1.0
+);
+-- SQLite版からの変更点:
+--   normalized_content 列を削除 → PGroonga索引が正規化を肩代わり（設計判断5）
+--   reading 列を削除 → PGroonga索引2本目（TokenMecab use_reading）が肩代わり（設計判断5）
+--   linked_ids / links 列を削除 → memory_links テーブルに統合（下記、統合調査でリンGO済み）
+--   カンマ区切りTEXT（tags）→ text[] に正規化
+
+CREATE INDEX idx_memories_emotion    ON memories(emotion);
+CREATE INDEX idx_memories_category   ON memories(category);
+CREATE INDEX idx_memories_timestamp  ON memories(timestamp);
+CREATE INDEX idx_memories_importance ON memories(importance);
+
+-- PGroonga 全文検索: content 1カラム + 設定違いの索引2本（設計判断5の結論そのまま）
+CREATE INDEX idx_memories_content_normalized ON memories
+  USING pgroonga (content)
+  WITH (normalizers='NormalizerNFKC150("unify_kana", true, "unify_hyphen_and_prolonged_sound_mark", true, "unify_middle_dot", true, "unify_katakana_v_sounds", true)');
+
+CREATE INDEX idx_memories_content_reading ON memories
+  USING pgroonga (content)
+  WITH (tokenizer='TokenMecab("use_reading", true)');
+-- 出典: https://pgroonga.github.io/reference/create-index-using-pgroonga.html
+--       https://groonga.org/docs/reference/tokenizers/token_mecab.html
+
+-- tags（text[]）は要素単位の用語検索用オペレータクラスを使う
+CREATE INDEX idx_memories_tags ON memories
+  USING pgroonga (tags pgroonga_text_array_term_search_ops_v2);
+-- 出典: https://github.com/pgroonga/pgroonga/issues/19
+
+CREATE TABLE embeddings (
+    memory_id uuid PRIMARY KEY REFERENCES memories(id) ON DELETE CASCADE,
+    embedding vector(768) NOT NULL  -- multilingual-e5-base 768次元（設計判断6。PR#2で最終確定待ち、確定したらここを変更）
+);
+
+CREATE INDEX idx_embeddings_hnsw ON embeddings
+  USING hnsw (embedding vector_cosine_ops)
+  WITH (m = 16, ef_construction = 64);
+-- 出典: https://supabase.com/docs/guides/ai/vector-indexes/hnsw-indexes
+
+-- linked_ids（自動類似・無向・型なし）+ links（明示的因果・有向・型付き）を統合
+-- （linked_ids/links統合調査、2026-07-14 リンGO）
+CREATE TABLE memory_links (
+    source_id  uuid NOT NULL REFERENCES memories(id) ON DELETE CASCADE,
+    target_id  uuid NOT NULL REFERENCES memories(id) ON DELETE CASCADE,
+    link_type  text NOT NULL,  -- 'caused_by' | 'leads_to' | 'related' | 'similar' | 'similar_auto'
+    created_at timestamptz NOT NULL DEFAULT now(),
+    note       text,
+    PRIMARY KEY (source_id, target_id, link_type),
+    CHECK (source_id <> target_id)
+);
+CREATE INDEX idx_memory_links_source ON memory_links(source_id);
+CREATE INDEX idx_memory_links_target ON memory_links(target_id);
+CREATE INDEX idx_memory_links_type   ON memory_links(link_type);
+-- 無向な自動類似リンク（旧linked_ids相当）は type='similar_auto' で双方向に2行挿入
+--   （旧 _add_bidirectional_link のロジックをそのまま踏襲）
+-- トラバースは get_causal_chain を汎用化した1関数に統合（link_typeフィルタなし=旧get_memory_chain相当）
+
+CREATE TABLE coactivation (
+    source_id uuid NOT NULL REFERENCES memories(id) ON DELETE CASCADE,
+    target_id uuid NOT NULL REFERENCES memories(id) ON DELETE CASCADE,
+    weight    real NOT NULL CHECK (weight BETWEEN 0.0 AND 1.0),
+    PRIMARY KEY (source_id, target_id)
+);
+CREATE INDEX idx_coactivation_source ON coactivation(source_id);
+CREATE INDEX idx_coactivation_target ON coactivation(target_id);
+-- SQLite版と同じUPSERT構文がそのまま使える:
+--   INSERT ... ON CONFLICT (source_id, target_id) DO UPDATE SET weight = EXCLUDED.weight
+
+-- FLASH.md の具現化元（新設計・SQLite版に対応物なし・要リン確認）
+CREATE TABLE flash_index (
+    id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    week_start  date NOT NULL,     -- ISO週の月曜
+    day_label   text NOT NULL,     -- '火(夜)' 等、現行 FLASH.md の表記をそのまま踏襲
+    keywords    text NOT NULL,     -- スペース区切りキーワード（現行と同じ粒度）
+    memory_ids  uuid[] DEFAULT '{}',
+    created_at  timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_flash_index_week ON flash_index(week_start);
+```
+
+**スコープ外（Phase1では設計しない）**: `verb_chains` / `verb_chain_embeddings` / `composite_members` / `composite_embeddings` / `composite_axes` / `boundary_layers` / `template_biases` / `composite_intersections` / `daily_digest` の9テーブルは棚卸しで存在を確認したが、対応ツール（`save_verb_chain`/`search_verb_chain`）は契約14ツールに含まれない（Phase0で「Phase2で契約準拠テストを書く段になったら個別に要否判断」と決定済み）。Postgres化もその判断を待つ——今回のスキーマには含めない。
+
+#### ペルソナ分離方針（提案）: スキーマ単位
+
+keyword-buffer の「ペルソナごとに `$PROJECT_DIR/.claude/` 配下で分離」という思想を Postgres に翻訳すると、**ペルソナごとに Postgres スキーマを分ける**（`CREATE SCHEMA saku;` のように、上記 DDL をペルソナ名スキーマの中で実行）のが最も近い。
+
+- **DB単位（Supabaseプロジェクトごと）は不採用**: ペルソナが増えるたびにプロジェクト・秘密鍵・接続先が増える運用負荷が大きい。動機（設計判断1）にある「朔・シロエ・王・商会が同時に記憶を触れる」というマルチペルソナ同時接続の要件とも噛み合わない
+- **共有テーブル+persona_idカラムは不採用**: 実装は最も軽いが、クエリ側のフィルタ漏れ1箇所で他ペルソナの記憶が露出するリスクを常に抱える。PGroonga/pgvector拡張はデータベース単位でのインストールでスキーマ間で共有できるため、スキーマ分離でも拡張の二重インストールコストは発生しない
+- **スキーマ単位が中間解**: 名前空間として物理的に分離されるため誤クエリでの越境リスクが構造的に低い。単一 Supabase プロジェクト・単一DB接続のまま複数ペルソナを収容できる。DDL はテンプレート化してペルソナごとに `search_path` を切り替えて適用すればよい
+
+#### SQLite → Postgres 移行スクリプト方針
+
+- **非破壊**: SQLite側は読み取り専用アクセスのみ。削除・変更しない。移行完了後も当面バックアップとして残す（${PWD}汚染事件の教訓——救出経路は多重に残す）
+- 変換対応: TEXT timestamp → `timestamptz` / カンマ区切り tags・participants・memory_ids → `text[]`・`uuid[]` / `linked_ids`(CSV) + `links`(JSON) → `memory_links` 行（`similar_auto` 双方向2行 + 既存 `links` の型付き行）/ embeddings BLOB（numpy float32）→ `vector(768)`
+- 検証: 移行後に件数一致・embeddings次元一致・PGroonga/pgvector検索のサンプルクエリ実行、を移行スクリプト自体に組み込む
+- 実装言語は設計判断9（Bun/TypeScript）に合わせるか、移行専用スクリプトとして Python(uv) を使い切って捨てるかは Phase2 着手時に判断（一回きりのツールなので言語統一の優先度は低い）
 
 ### Phase 2: memory-pg-daemon（Bun/TypeScript 常駐プロセス、設計判断9・10反映）
 - 既存 memory-mcp のツール面を契約通りに再実装（Rem `wave-exp` のアルゴリズムを TS へ移植。設計判断8）
