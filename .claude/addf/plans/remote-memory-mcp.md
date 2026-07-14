@@ -255,13 +255,16 @@ CREATE TABLE memories (
     prediction_error real NOT NULL DEFAULT 0.0,
     activation_count integer NOT NULL DEFAULT 0,
     last_activated   timestamptz,
-    freshness        real NOT NULL DEFAULT 1.0
+    freshness        real NOT NULL DEFAULT 1.0,
+    flash_keywords   text
 );
 -- SQLite版からの変更点:
 --   normalized_content 列を削除 → PGroonga索引が正規化を肩代わり（設計判断5）
 --   reading 列を削除 → PGroonga索引2本目（TokenMecab use_reading）が肩代わり（設計判断5）
 --   linked_ids / links 列を削除 → memory_links テーブルに統合（下記、統合調査でリンGO済み）
 --   カンマ区切りTEXT（tags）→ text[] に正規化
+--   flash_keywords 列を新設 → FLASH.md 相当の逆引きキーワード（下記 flash_index ビュー参照）。
+--     remember ツール呼び出し時に任意パラメータとして一緒に渡す想定（別ツール呼び出し不要）
 
 CREATE INDEX idx_memories_emotion    ON memories(emotion);
 CREATE INDEX idx_memories_category   ON memories(category);
@@ -323,17 +326,24 @@ CREATE INDEX idx_coactivation_target ON coactivation(target_id);
 -- SQLite版と同じUPSERT構文がそのまま使える:
 --   INSERT ... ON CONFLICT (source_id, target_id) DO UPDATE SET weight = EXCLUDED.weight
 
--- FLASH.md の具現化元（新設計・SQLite版に対応物なし・要リン確認）
-CREATE TABLE flash_index (
-    id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    week_start  date NOT NULL,     -- ISO週の月曜
-    day_label   text NOT NULL,     -- '火(夜)' 等、現行 FLASH.md の表記をそのまま踏襲
-    keywords    text NOT NULL,     -- スペース区切りキーワード（現行と同じ粒度）
-    memory_ids  uuid[] DEFAULT '{}',
-    created_at  timestamptz NOT NULL DEFAULT now()
-);
-CREATE INDEX idx_flash_index_week ON flash_index(week_start);
+-- FLASH.md の具現化元（2026-07-14 テーブル案からビュー案に訂正、リン指摘反映）
+-- memories.flash_keywords から動的に集約する。書き込みは remember 呼び出し1回で完結し、
+-- 「つながり(memory_ids)」の集約は LLM が意識せず GROUP BY が肩代わりする
+CREATE VIEW flash_index AS
+SELECT
+    date_trunc('week', timestamp)::date AS week_start,
+    to_char(timestamp, 'Dy')            AS day_label,
+    string_agg(flash_keywords, ' ' ORDER BY timestamp) AS keywords,
+    array_agg(id ORDER BY timestamp)                   AS memory_ids
+FROM memories
+WHERE flash_keywords IS NOT NULL AND flash_keywords <> ''
+GROUP BY week_start, day_label
+ORDER BY week_start DESC, min(timestamp) DESC;
 ```
+
+**設計の訂正理由（2026-07-14、リン指摘）**: 当初 `flash_index` を独立テーブルとして設計したが、これだと `remember` 呼び出しのたびに「今週の該当曜日の行があれば追記、なければ新規行」という upsert 判断を**別のツール呼び出しとして LLM に強いる**ことになり、現行の Markdown 直接編集（Edit 1回で完結）より退化する。リンの要求は「複数一括の挿入・編集・削除が自由」「つながりの検出を LLM が意識しなくて済む」の2点——これを満たすには**テーブルではなくビュー**にして、書き込みを `memories.flash_keywords` 列への1回の書き込み（`remember` 呼び出しに乗せる）に一本化し、週・曜日・`memory_ids` の集約は全て `GROUP BY`/`array_agg` に任せるのが筋が良い。`memories` への通常の UPDATE/DELETE がそのままビューに反映されるため、`flash_index` 側の整合性維持コードも不要になる。
+
+**残る検討点**: `day_label` は曜日のみ自動導出（`to_char(timestamp, 'Dy')`）。現行 FLASH.md にある「(夜)」「(未明)」等の時間帯注記は機械的な閾値判断が難しいため自動化せず、必要なら `flash_keywords` 文字列側に含める運用を踏襲する（現行と同じ）。タイムゾーンは `timestamp-policy.md`（UTC統一）に従うため、`date_trunc('week', ...)` の週区切りが日本時間の体感と数時間ズレる可能性がある——Phase2実装時に実測確認する。
 
 **スコープ外（Phase1では設計しない）**: `verb_chains` / `verb_chain_embeddings` / `composite_members` / `composite_embeddings` / `composite_axes` / `boundary_layers` / `template_biases` / `composite_intersections` / `daily_digest` の9テーブルは棚卸しで存在を確認したが、対応ツール（`save_verb_chain`/`search_verb_chain`）は契約14ツールに含まれない（Phase0で「Phase2で契約準拠テストを書く段になったら個別に要否判断」と決定済み）。Postgres化もその判断を待つ——今回のスキーマには含めない。
 
