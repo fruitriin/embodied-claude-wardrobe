@@ -1,7 +1,7 @@
 # リモートメモリーMCP — Postgres 再実装とバックエンド・オプトイン計画
 
 > 2026-07-03 リン発案。Claude Code Web からも記憶に触れるようにするための memory-mcp 再設計。
-> ステータス: **ドラフト（リンのレビュー待ち）**
+> ステータス: **Phase 0 完了・リン承認済み（2026-07-14）。Phase 1 着手中**
 
 ## 動機 — Claude Code Web の制約
 
@@ -212,7 +212,7 @@ wardrobe現行25ツール・upstream本家27ツール・Rem `wave-exp`（12ツ�
 **D. 「diary系」の実体**: `diary`（remember+visual+audio+動詞チェーンの統合入口）・`update_diary`（非破壊訂正）・`diary-wave.py`フック（PostToolUseで波動位相グラフへ学習させる連携）。MCPツール2本＋hooks連携1本のセット。
 
 **結論（Phase 1設計への申し送り）**: wave-exp は「想起・統合（consolidate）・波動系の内部アルゴリズム」の参照元として有効。ただし「記憶リンク・エピソード化・カメラ位置検索・working memory」はupstream本家またはwardrobe現行実装をベースにする必要がある——**設計判断8は「全面的にwave-exp」ではなく「機能ごとに参照元を選ぶハイブリッド」に訂正する**。
-- **ここでリンのレビューを挟む**（互換性契約の改定は確定事項の変更なので）
+- ~~ここでリンのレビューを挟む~~ → **2026-07-14 リン承認済み。Phase 0 完全クローズ**
 
 ### Phase 1: Postgres スキーマ + ストア層
 - スキーマ設計: memories / embeddings(pgvector) / links / episodes / coactivation / flash_index
