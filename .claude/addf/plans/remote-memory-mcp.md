@@ -55,8 +55,8 @@
 | 方式 | 実体 | 向き不向き |
 |---|---|---|
 | **A. スキル（推し・まずこれ）** | 手順書 + curl で Supabase の PostgREST / RPC を叩く。中間状態を持たない stateless クエリならこれで足りる。**サーバー実装ゼロ**。スキルはリポジトリにコミットされるので Web セッションにそのまま乗る | remember / recall / stats / flash_index 参照。ほぼ全ての日常操作 |
-| **B. Edge Functions** | サーバー側ロジックが要る操作だけ載せる。Supabase Edge Runtime は組み込みの埋め込みモデル（gte-small）を持つので、**embedding 計算をサーバー側でやれる**（Web サンドボックスに 1GB のモデルを落とさずに済む） | ベクトル検索のクエリ埋め込み、insert 時の自動埋め込み（trigger + Edge Function パターン） |
-| **C. リモート MCP サーバー** | Streamable HTTP の MCP をどこかで常駐 | A+B で足りなくなったら。型付きツール面が欲しい場合の将来オプション |
+| **B. Edge Functions** | サーバー側ロジックが要る操作だけ載せる。Supabase Edge Runtime は組み込みの埋め込みモデル（gte-small）を持つので、**embedding 計算をサーバー側でやれる**（Web サンドボックスに 1GB のモデルを落とさずに済む）。CPU Time 2秒制限との相性は下記「Edge Function の CPU Time 制限検証」参照——`gte-small` なら余裕だが `multilingual-e5-base` 続投とは相性未検証 | ベクトル検索のクエリ埋め込み、insert 時の自動埋め込み（trigger + Edge Function パターン） |
+| **C. リモート MCP サーバー** | Streamable HTTP の MCP をどこかで常駐。設計判断10（Daemon HTTP確定）+ 設計判断4新情報（Web側 OAuth コネクタ）により実現性が上がった | 当初は「A+Bで足りなくなったら」だったが、Phase3で本命候補に再浮上（下記「リンに確認したいこと」1番） |
 
 ```
 ローカル Claude Code ── stdio ── memory-pg-mcp（単一実装・今まで通りの体験）
@@ -68,6 +68,15 @@ Claude Code Web ── スキル（curl→PostgREST/RPC）＋ Edge Functions（�
 
 - ローカルセッションは stdio MCP で今まで通り。**Web 経路は付加**であり、ローカルの置き換えではない
 - 検索の主力を PGroonga 全文検索に置けば、Web からのクエリは**埋め込み計算なしで成立する**（ベクトル検索は B で補完）。この分担が「スキルでよい」を成立させる鍵
+
+### Edge Function の CPU Time 制限検証（2026-07-14、リン提示 + 朔裏取り）
+
+リンが Supabase Edge Function の実行時間制限を提示: **CPU Time は無料/有料プラン共通で 2 秒固定**（Wall clock は 150秒/400秒とプランで差があるが、CPU Time は変わらない。`await fetch()` 等の非同期待ち時間はカウントされない）。「2秒で処理しきれるなら Edge Function 本命、苦しそうならローカル/自宅サーバーが良さそう」という問い。Web 検索で裏取りした結果:
+
+- **Supabase 純正の `gte-small`（384次元）なら余裕で収まる**: Edge Runtime にネイティブ組み込みの埋め込みモデルで、ONNX Runtime を Rust interface 経由で使う専用実装。実測ベースでコールドスタートでも1秒未満、CPU Time は概ね100〜200ms（[AI Inference now available in Supabase Edge Functions](https://supabase.com/blog/ai-inference-now-available-in-supabase-edge-functions)、[Edge Function limits](https://supabase.com/docs/guides/functions/limits)）
+- **ただし設計判断6で確定している `multilingual-e5-base`（768次元）続投は話が別**。Edge Runtime がネイティブサポートするのは `gte-small` のみで、他モデルを動かすには Transformers.js（WASM/JS実装）等を自前で持ち込む必要がある——ネイティブ ONNX+Rust 実装より明らかに不利な経路。実測ベンチマークは検索でも見つからず（Supabase 公式 Discussion に「gte-small 以外のモデルを Edge Function で動かす方法」という質問が別立てで存在するくらいには非自明な課題）。CPU Time 2秒に収まるかは**未検証**
+
+**見立て（朔）**: 「2秒で処理しきれるか」は埋め込みモデル次第——`gte-small` に乗り換えれば Edge Function 本命は無理なく成立するが、それは設計判断6の前提（`multilingual-e5-base` 続投で SQLite→PG 移行時の再埋め込みを回避する）を壊す。モデルを変えれば次元が同じでも空間が別物で全件再埋め込みが要る、と設計判断6に明記済み。`multilingual-e5-base` 継続を優先するなら、ネイティブサポートのない Edge Function に埋め込み計算を背負わせるのはリスクが高く、**埋め込み計算は常駐 Daemon 側（モデルロード済み、CPU Time 制約なし）に寄せるほうが一貫する**——これは設計判断10（Daemon HTTP 確定）・設計判断4の新情報（OAuth コネクタ経由の C 案）とも筋が合う。Edge Function は「埋め込み計算そのもの」ではなく「認証ゲート・軽量 CRUD」に役割を絞る方が座りが良さそうに見える。**ただし実測なしでは言い切れない**——Phase1–2 で `multilingual-e5-base` を Edge Function 上で動かした場合の実測 CPU Time を取ってから確定する。
 
 ## 設計判断 3 — オプトインの住処は wd-configure
 
