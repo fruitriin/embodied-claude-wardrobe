@@ -141,9 +141,23 @@ external-intake の Tier 3 候補「BM25+読み仮名ハイブリッド移植」
 Postgres移植では上記14ツールを優先実装し、未使用11ツールは「Phase 2 で契約準拠テストを書く段になったら個別に要否判断」とする（動詞チェーン系はRem由来のアルゴリズム資産で将来輸入予定のため完全に切り捨てない）。
 
 **設計上の注意点（移植時に踏むべき地雷）:**
-- `get_memory_chain`（`Memory.linked_ids` を辿る）と `get_causal_chain`（`Memory.links`/`MemoryLink` の `link_type` を辿る）は**別々のデータモデルで同じような役割を果たしている**。great-recall は `get_causal_chain` のみ使用。Postgres移植を機に統合するか、2系統を維持するかは設計判断が必要
+- `get_memory_chain`（`Memory.linked_ids` を辿る）と `get_causal_chain`（`Memory.links`/`MemoryLink` の `link_type` を辿る）は**別々のデータモデルで同じような役割を果たしている**。great-recall は `get_causal_chain` のみ使用。Postgres移植を機に統合するか、2系統を維持するかは設計判断が必要 → **調査結果と推奨案は下記「`linked_ids`/`links` 統合調査」節を参照**
 - 現行ツールの返り値は全て `list[TextContent]`（人間可読テキスト or `json.dumps` 文字列）。構造化レスポンス（JSON schema）にするかどうかは移植時の設計判断点
 - `Memory` 型（`types.py`）は SQLite 特有のフィールドが少なく、素直に Postgres の列/JSONB へ移せる形
+
+#### `linked_ids`/`links` 統合調査（2026-07-14、朔調査）
+
+`store.py` を実際に読むと、2系統は**役割そのものが違う**——「同じ役割を別モデルで実装している」のではなく「別の性質のリンクを別モデルで実装している」。
+
+| | `linked_ids`（`Memory.linked_ids`） | `links`（`Memory.links` / `MemoryLink`） |
+|---|---|---|
+| 生成契機 | `remember` 時に埋め込み類似度で**自動**（`save_with_auto_link`, 閾値0.8, 最大5件）+ consolidate の coactivation 経由 | `link_memories` ツールで**明示的**に張る（+ consolidate 内で `link_type="related"` として自動追加される経路もある。`add_causal_link` 呼び出し, `store.py:1106-1111`） |
+| 方向性 | 無向・双方向（`_add_bidirectional_link` で両側に書く） | 有向（`source→target`、`link_type` で意味づけ） |
+| 型情報 | なし（類似というだけ） | `caused_by` / `leads_to` / `related` / `similar`（`LinkType` enum） |
+| メタデータ | なし | `created_at` / `note` |
+| 呼び出し元 | `get_memory_chain`（未使用ツール） | `get_causal_chain`（great-recall の因果的圧縮器が使用） |
+
+**推奨案（Phase1のスキーマ確定前にリン確認）**: ストレージは**単一の edge テーブルに統合**する（`memory_links(source_id, target_id, link_type, created_at, note)` 相当）。`linked_ids` の自動類似リンクは `link_type='similar_auto'`（または既存の `similar` を流用）として同テーブルに書き込む形に寄せれば、無向性は「両方向に1行ずつ挿入」で表現でき、`_add_bidirectional_link` のロジックはそのまま使える。トラバース側は `get_causal_chain` を汎用化した1関数に統合できる——`link_type` フィルタなし（全件）なら現行 `get_memory_chain` 相当、`{caused_by}`/`{leads_to}` フィルタなら現行 `get_causal_chain` 相当。**`get_memory_chain` 自体は契約14ツールに含まれていない（呼び出し元なし）ため、Postgres版で独立ツールとして残す必要はなく、トラバースロジックの共通化だけで足りる**。
 
 ### Rem / 本家との差分表（2026-07-14 完了）
 
@@ -330,6 +344,7 @@ Rem実装（`wave-exp`）の `wave_recall` は `lt_sentences`（長期記憶全�
 1. **秘密鍵の形**: A 案（能力トークン + Edge Function ゲート）でよいか。※Claude Code Web の Secret 対応有無は裏取り中——対応があればこの節ごと不要になる
 2. ~~感情MCP実装との順序~~ → **2026-07-14 確定: メモリMCP改修を優先**
 3. **Daemon 化の具体的な待受方式**: HTTP か Unix ソケットか（ローカル専用なら Unix ソケットが軽量だが、将来 Web 経路と共通化するなら HTTP に寄せる選択肢もある）— Phase 1–2 で検討
+4. **`linked_ids`/`links` の統合方針**: 上記「`linked_ids`/`links` 統合調査」節の推奨案（単一 edge テーブルへの統合、`get_memory_chain` は独立ツールとして残さない）でよいか — Phase 1 のスキーマ確定前に
 
 ## 参照
 
