@@ -409,12 +409,22 @@ keyword-buffer の「ペルソナごとに `$PROJECT_DIR/.claude/` 配下で分�
 - 検証: 移行後に件数一致・embeddings次元一致・PGroonga/pgvector検索のサンプルクエリ実行、を移行スクリプト自体に組み込む
 - 実装言語は設計判断9（Bun/TypeScript）に合わせるか、移行専用スクリプトとして Python(uv) を使い切って捨てるかは Phase2 着手時に判断（一回きりのツールなので言語統一の優先度は低い）
 
-### Phase 2: memory-pg-daemon（Bun/TypeScript 常駐プロセス、設計判断9・10反映）
+### Phase 2: memory-pg-daemon（Bun/TypeScript 常駐プロセス、設計判断9・10反映）— 2026-07-15 着手
 - 既存 memory-mcp のツール面を契約通りに再実装（Rem `wave-exp` のアルゴリズムを TS へ移植。設計判断8）
 - Daemon 本体（Bun）+ 接続アダプタ（MCP stdio/HTTP・Skill 両対応）に分離実装
-- 埋め込み計算の TS 側代替手段を確定（設計判断9の課題）
+- ~~埋め込み計算の TS 側代替手段を確定~~ → **解決済み**（設計判断9参照）
 - 既存テストの移植 + 契約準拠テスト
 - ローカルで Daemon 運用に切り替えて実戦検証
+
+**垂直スライス検証（2026-07-15、`tmp/memory-pg-daemon-proto/`、gitignore対象）**: `remember`/`recall` 最小実装を実際に書いて end-to-end で動かした。
+
+- DB接続: `bun:sql`（Bunネイティブ、外部依存ゼロで Postgres に接続できる。`DATABASE_URL` 環境変数を自動で読む）
+- ハマった点: `text[]` 列に JS配列をそのままバインドすると `malformed array literal` エラー——`bun:sql` は素朴にカンマ区切り文字列化するだけで Postgres 配列リテラル（`{a,b,c}`形式、要素はダブルクォートでエスケープ）にはしてくれない。自前で `toTextArrayLiteral()` を書いて `::text[]` キャストする形で解決した
+- `remember`: `embedPassage()`（`passage: ` プレフィックス、multilingual-e5系の仕様）→ `memories` に INSERT →返ってきた `id` で `embeddings` に INSERT、の2段書き込み
+- `recall`: `embedQuery()`（`query: ` プレフィックス）→ pgvector の `<=>` 演算子でコサイン距離順に JOIN 検索
+- **意味検索が実際に機能することを確認**: クエリ「花見に行った」（本文に「花見」の文字なし）で「散歩の途中で桜を見た」記憶が距離0.15でトップヒット。埋め込み・pgvector・距離順ソートが全部繋がって意味的な想起になっている
+
+これで Phase2 最大の技術的リスク（TS移植での埋め込み計算・Postgres接続・pgvector検索）は実証済み。残る作業は契約14ツール全体への拡張・HTTP Daemon化・MCPアダプタ層・wave-expアルゴリズム移植。
 
 ### Phase 3: Web 経路（スキル・ファースト、Daemon 共通化の可能性を検討）
 - Supabase プロジェクト作成、PGroonga / pgvector 有効化（Phase 1 のスキーマをここに張る）
