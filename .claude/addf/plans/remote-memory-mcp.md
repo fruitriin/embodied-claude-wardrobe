@@ -218,6 +218,20 @@ wardrobe現行25ツール・upstream本家27ツール・Rem `wave-exp`（12ツ�
 
 現行 SQLite スキーマ（`.claude/mcps/memory-mcp/src/memory_mcp/store.py` の `_DDL` + `types.py`）を実読して棚卸しした上での設計。PGroonga・pgvector の索引構文は Web 検索で裏取り済み（出典は各所に記載）。
 
+**動作検証済み（2026-07-15）**: `tmp/postgres-schema-verify/`（gitignore対象・ローカルのみ）に `pgvector/pgvector:pg17` ベース + PGroonga + MeCabトークナイザを apt install したカスタム Dockerfile を用意し、Docker コンテナ上で下記 DDL 全文（本節 + flash_index の2層構造）を実際に流し込んで検証した。
+
+| 検証項目 | 結果 |
+|---|---|
+| DDL全文（`memories`/`embeddings`/`memory_links`/`coactivation`/`episodes`/`flash_index`関連）の実行 | 全文エラーなく成功 |
+| PGroonga正規化索引（かな揺れ吸収）: 「散歩」⇄「さんぽ」の双方向全文検索 | ヒット確認 |
+| PGroonga tags配列索引（`pgroonga_text_array_term_search_ops_v2`） | ヒット確認 |
+| pgvector HNSW索引: `EXPLAIN`で`Index Scan using idx_embeddings_hnsw`が実際に使われるか | 確認（Seq Scanにフォールバックしていない） |
+| `memory_links`統合edgeテーブル: 型付き(`related`)+自動類似(`similar_auto`双方向2行)の共存 | 動作確認 |
+| `coactivation`のUPSERT構文 | 動作確認 |
+| `flash_index`ビュー・`get_flash_index_recent(weeks_back)`関数: 週境界での絞り込み | `weeks_back=1`で4週間前の記憶が除外、`weeks_back=6`で含まれることを確認 |
+
+ハマった点: 検証用INSERTで `(SELECT random() FROM generate_series(1,768))` を非相関サブクエリとして書いたところ、PostgreSQL が `InitPlan` として1回だけ評価し**全行に同じベクトルが入る**バグを踏んだ（`EXPLAIN`の`InitPlan`表示で気づいた）。行ごとに独立させるには `DO $$ ... FOR r IN SELECT id FROM memories LOOP ... END LOOP; $$` のように行単位でクエリを分離する必要がある——スキーマ自体の問題ではなく検証スクリプト側の罠だが、Phase2でのシードデータ/テストコード作成時に踏みやすいので申し送りしておく。
+
 #### DDL（ペルソナ1名分。ペルソナ分離方針は後述）
 
 ```sql
