@@ -1,7 +1,7 @@
 ---
 title: 同期 lint の設計 — 検出はツール、解釈と修復はエージェント
 created: 2026-06-10
-last_verified: 2026-07-03
+last_verified: 2026-07-11
 depends_on:
   - .claude/addf/addfTools/lint-template-sync.py
   - .claude/addf/tests/tools/test-template-sync.sh
@@ -88,6 +88,15 @@ Plan 0022 で追加したペア5は、テキスト一致ではなく**参照の�
 
 **正規表現の罠**: 本文に `.claude/`（ルート単体）というバッククオート表記があると、`[^\s`]*`（0文字許容）の抽出ではこれがエントリ化し、ディレクトリ前方一致で**全参照がカバー扱い**になる。`+` で1文字以上を強制して解決した。カバレッジ検査は「広すぎるエントリ1つで全検査が無効化する」失敗モードを持つ — 疑わしいときはドリフトを注入して RED になることを先に確認する（TDD）。
 
+同型の罠はペア8（README スキルテーブル網羅性・Plan 0053）にもある: `check_pair8()` の掲載判定
+（`re.findall(r'\*\*(addf-[a-z0-9-]+)\*\*', text)`）はファイル全文を対象にしており、
+「テーブル行かどうか」を区別しない。太字マーカー `**addf-xxx**` が本文中のどこにあっても
+"掲載済み" とみなすため、将来 README のプロズ（説明文・利用例）でスキル名を太字言及した場合、
+実際にはテーブルから削除されていても false negative でドリフトを見逃す余地がある。現時点では
+該当する太字表記が全てテーブル行にしか存在しないため実害はないが、広すぎるマッチが検査を
+無効化しうる同じ失敗モードの実例として記録する。将来この余地が顕在化したら、テーブル行
+（`| **addf-xxx** |` 形式）に限定したマッチへ絞り込む改善余地がある。
+
 ### 列挙の陳腐化は「列挙を持たない」設計で構造的に排除できる
 
 addf-init の .gitignore マージ手順は、当初ブロック内容をハードコード列挙しており、本体 .gitignore の変更（`.claude/addf/Dashboard.md` 追加等）に追従できず腐っていた。リストの鮮度を lint で守る前に、**そもそも列挙を持たず「クローン元（`<tmp>/addf-source/.gitignore`）の同ブロックをそのままコピーする」と指示する**ことでドリフトの発生源自体を消せた。同期ペアを増やす（機械化）より、単一ソース化（構造的排除）が上策。lint は単一ソース化できない箇所にだけ張る。
@@ -108,10 +117,29 @@ grep -v '^15\. コミットする' ... / sed 's/^4\. /44. /' ... / rm -f "$box/A
 
 サンドボックスは git リポジトリ外になるため、git 呼び出しは `returncode != 0 → '不明'` のフォールバックが必要（`git log` はリポジトリ外でも例外を投げず exit 128 + 空出力になる）。副産物として、このテストがダウンストリーム環境（ADDF 固有ファイルなし）のシミュレーションにもなる。
 
+### 文字列一致 lint は「歴史を語る引用」と「現役の参照」を区別できない
+
+`lint-residual-paths.py`（Plan 0037 移行の完了ゲート。旧パス文字列の単純 grep）は、Progress 日記や
+knowhow で「以前この旧パスの残存バグを直した」と過去形で書いた瞬間にも ERROR を出す。lint 自身は
+文脈を読まないため、修正の顛末を記録した文章が次の ERROR 源になるという再帰的な罠がある（2026-07-10、
+Plan 0044 完了処理中に自分の Progress 日記が引き金になって発覚）。対処は「旧パス文字列そのものを
+書かず、意味だけを説明する」言い回しに倒すこと（旧 `docs/` 配下パスのような具体的な文字列そのものを
+本文に書かない）。lint 側を
+文脈判定に賢くする改修は複雑さに見合わないため、**書く側が気をつける**運用で足りる —
+ただし旧パスの実例を記録する knowhow・障害記録では毎回この罠に当たりうるので、該当箇所を書くときは
+本節を思い出すこと。
+
 ## 関連ノウハウ
 
 - [アップストリーム / ダウンストリーム分離パターン](upstream-downstream-separation.md) — `.addf.md` サフィックス等、本知見の SKIP 設計が前提とする分離規約
 - [スキル設計パターン（Anthropic 社内知見ベース）](skill-design-patterns.md) — スクリプトを `.claude/addf/addfTools/` に同梱する Progressive Disclosure 構成
 - [Plan 着手前の実態突合](plan-status-drift-check.md) — ペア5（Plan 0022）の発端となった残差分切り出しの経緯
 - [チェックリスト裏付け lint](checklist-backing-lint.md) — 本設計の直系。手順書の「確認」項目に実行チェック/human-judgment マーカーの裏付けを要求する
+- [cron 経由 /loop の並行実行競合](cron-loop-worktree-race.md) — 同じ Plan 0044 完了処理中に発見した別種の知見（working tree 競合）
+- [ドキュメントサイトの単一ソース同期](docs-site-single-source-sync.md) — 「欠如 = SKIP」設計の応用例（VitePress サイト用テストが node 不在のダウンストリームで誤 FAIL しないようにする）
 - [オプトイン式スキルの退避＋有効化コピー設計](optional-skill-optin.md) — SKIP 設計・列挙の陳腐化検査の応用先。gitignore 列挙との突き合わせで孤児コピーを検出する
+- [陳腐化しやすい knowhow 記述パターン](knowhow-obsolescence-patterns.md) — 「列挙を持たない単一ソース化」原則を knowhow 記述側に適用したメタパターン
+- [既存プロジェクトへの導入パターン](existing-project-install-pattern.md) — 「存在≠所有」の判定ロジックを本知見から引用する側
+- [Plan 起票時の詰め方](plan-refinement-pattern.md) — 引用突合・サンドボックステスト作法の供給元として本知見を引用する側
+- [投機統合の設計](speculative-integration-design.md) — exit 3値・欠如=SKIP・ドリフト注入テストの原則を本知見から引用する側
+- [worktree-dotdir-copy.md](worktree-dotdir-copy.md) — サンドボックス再現テストの作法を本知見から引用する側

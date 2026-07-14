@@ -150,6 +150,14 @@ python3 .claude/addf/addfTools/speculate-reconcile.py
 
 候補として浮かんだ概念ごとに、直交性に加えて「投機に向くか」を判定する:
 
+> **変更ルート判断との適用順序**: 本節（投機適性3区分）は「speculate 方式を選んだ後に投機で
+> できるか」を見る軸。その手前で「そもそも speculate 方式を選ぶべきか（dev 直行 or オーナー
+> 問い合わせ or speculate）」を変更の性質で判断する軸がある — 詳細は
+> [`.claude/addf/guides/speculative-development.md`](../addf/guides/speculative-development.md)
+> 「変更ルート判断」節。GUI 変更や「見せないと判断できないもの」は speculate 方式を選び、
+> 続いて本節の適性判定にかける。従来のアイドル時投機に加えて**判断待ち案件の隔離実行**の
+> 用途で speculative/ ブランチを使う場合も、選定はここに合流する。
+
 | 区分 | 特徴 | 例 |
 |---|---|---|
 | 投機向き | 直交・局所的・失敗を捨てられる・本流と衝突しにくい | 注記追加、独立スキルの試作、lint 1本 |
@@ -179,6 +187,10 @@ python3 .claude/addf/addfTools/speculate-reconcile.py
    TODO の状態注記にも「one-shot」を併記する（手順 1.8 の窓検出が TODO からも拾えるように）
 3. **silent に捨てない**: 「投機不適合のため Plan 化した（概念名・区分・理由の一行）」を
    Dashboard「気になった点」（unattended 時）と Progress.md の日記に記録する
+
+### 委譲時の禁止事項
+
+`Agent` tool でサブエージェント（worktree 実装等）に委譲するときは、共通禁止事項テンプレート [`@.claude/addf/templates/DelegationRules.md`](../addf/templates/DelegationRules.md) をプロンプトに含める。特に **Progress.md の境界**（タスク欄不可侵・運用ルール節は同期対象として更新可）は本ルールで単一ソース化されている — 委譲側で個別に指定しない。
 
 ### 3. worktree の起動
 

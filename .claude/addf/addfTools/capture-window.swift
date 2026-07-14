@@ -22,7 +22,7 @@ do {
         for line in contents.components(separatedBy: .newlines) {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
             if trimmed.hasPrefix("enable") && trimmed.contains("=") && trimmed.contains("false") {
-                fputs("{\"disabled\": true, \"reason\": \"gui-test.enable = false in addf-Behavior.toml\"}\n", stderr)
+                fputs("{\"disabled\": true, \"reason\": \"gui-test.enable = false in .claude/addf/Behavior.toml\"}\n", stderr)
                 exit(0)
             }
         }

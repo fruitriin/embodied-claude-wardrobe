@@ -36,7 +36,13 @@
        エージェントが TODO の状態表記を「信用ベース」で扱えるようにする機械検査
        （.claude/addf/knowhow/ADDF/plan-status-drift-check.md 参照）。
 
-ペア2〜6 は対象ファイルが存在しない場合 SKIP する（ADDF 本体固有ファイルは
+ペア8: README.md / README.en.md のスキルテーブル ⇔ .claude/commands/addf-*.md（WARNING）
+       ユーザー起動可能なスキル（`*.exp.md` を除く）が README の掲載から漏れていないかを
+       検査する。新設スキルが README のドキュメント公開から漏れる（Plan 0036 の
+       addf-plan-audit が未掲載のまま埋没した実例）を防ぐ。エージェント（.claude/agents/）は
+       命名規則が不均一なため対象外（Plan 0053）。ダウンストリームは独自 README のため SKIP。
+
+ペア2〜6・8 は対象ファイルが存在しない場合 SKIP する（ADDF 本体固有ファイルは
 ダウンストリームプロジェクトに存在しないため、欠如はドリフトではない）。
 
 upstream/downstream の判定はファイルの存在ではなく明示シグナルで行う（存在≠所有 —
@@ -123,9 +129,14 @@ def _repo_declaration_lines(path, depth=0):
     - @メンションは行全体が `@xxx.md` の形の場合のみ解決する（行中の @ 言及は対象外）
     - インラインコードスパン（単一バッククオート）内の言及は**除外されない**。
       宣言文言をドキュメント内で引用説明するときはコードフェンスで囲う運用とする
+    - パストラバーサル耐性（Plan 0043 項目4）: `..` を含むパス・絶対パスは silent に無視する。
+      同ディレクトリまたは配下のみ許可し、realpath で解決先がベースディレクトリ配下に
+      収まることも検査する（シンボリックリンク経由の脱出防止）。bash 版の verify-checksums.sh
+      detect_repo_kind() と同じガードを持つ契約（ペア7）
     """
     if depth > 1 or not os.path.exists(path):
         return []
+    base_dir = os.path.dirname(os.path.realpath(path)) or os.getcwd()
     with open(path) as f:
         lines = f.read().splitlines()
     out, fence = [], None
@@ -140,10 +151,40 @@ def _repo_declaration_lines(path, depth=0):
             continue
         m = re.match(r'@(\S+\.md)$', s)
         if m:
-            out.extend(_repo_declaration_lines(m.group(1), depth + 1))
+            inc = m.group(1)
+            resolved = _safe_resolve_mention(inc, base_dir)
+            if resolved is not None:
+                out.extend(_repo_declaration_lines(resolved, depth + 1))
             continue
         out.append(line)
     return out
+
+
+def _safe_resolve_mention(inc, base_dir):
+    """@メンションのパストラバーサル耐性ガード（Plan 0043 項目4）
+
+    受け入れ条件（全て満たすこと）:
+      1. 絶対パスでない（`/` 始まり不可）
+      2. パスコンポーネントに `..` を含まない
+      3. realpath 解決後が base_dir 配下に収まる（シンボリックリンク経由の脱出防止）
+      4. ファイルが実在する
+
+    受け入れ拒否時は None を返す（silent — 宣言なしと同じ扱い）。
+    """
+    if not inc or inc.startswith('/'):
+        return None
+    parts = inc.split('/')
+    if '..' in parts:
+        return None
+    candidate = os.path.join(base_dir, inc)
+    if not os.path.isfile(candidate):
+        return None
+    resolved = os.path.realpath(candidate)
+    base_real = os.path.realpath(base_dir)
+    # base_dir/ 配下（末尾セパレータを付与して境界一致を防ぐ）
+    if not (resolved == base_real or resolved.startswith(base_real + os.sep)):
+        return None
+    return resolved
 
 
 # 判定不能（repo_kind=None）時に ERROR を格下げした WARNING に添える促しメッセージ
@@ -191,6 +232,12 @@ def detect_repo_kind():
 
 def check_pair1(repo_kind):
     """テンプレートの運用ルールが Progress.md に全て含まれているか（ERROR）
+
+    **検査範囲の境界**（Plan 0046 明文化）: 検査対象は `## 運用ルール` セクション
+    （`## タスク` の直前まで）に限定する。`## タスク` 以降（現在のタスク・チェックリスト・
+    日記）は親エージェントが管理する進行中領域であり、テンプレートとの同期対象外。
+    委譲エージェントは運用ルール節をテンプレートに合わせて同一差分で更新してよい
+    （委譲プロンプトの禁止事項テンプレートは `.claude/addf/templates/DelegationRules.md`）。
 
     repo_kind=None（宣言なし・lock なし = 旧配布ダウンストリームの可能性）で
     `.addf.md` を比較対象にした場合の乖離は、誤検知の可能性があるため
@@ -563,6 +610,45 @@ def check_pair6():
             )
 
 
+def check_pair8(repo_kind):
+    """.claude/commands/addf-*.md（*.exp.md 除く）が README.md / README.en.md の
+    スキルテーブルに掲載されているかを検査する（WARNING）
+
+    新設スキルが README のドキュメント公開から漏れる（Plan 0036 の addf-plan-audit が
+    未掲載のまま埋没した実例）を防ぐ。対象はユーザー起動可能なスキルのみ:
+    - `.claude/agents/` のエージェント定義は対象外（`addf-implementer` が `-agent` 接尾辞を
+      持たない・`addf-ui-test-agent` は README にのみ存在するプレースホルダ等、命名規則が
+      不均一で自動判定の誤検知リスクが高いため。`checklist-backing-lint.md` の
+      「裏付けの弱いチェックは追加しない」方針に沿う判断）
+    - ダウンストリームは独自 README を持つため対象外（SKIP）
+    """
+    if repo_kind != 'upstream':
+        skips.append('[8] SKIP: repo_kind != upstream のため対象外（ダウンストリームは独自 README）')
+        return
+    commands_dir = '.claude/commands'
+    if not os.path.isdir(commands_dir):
+        skips.append(f'[8] SKIP: {commands_dir} が存在しない')
+        return
+    skill_names = sorted(
+        os.path.splitext(os.path.basename(p))[0]
+        for p in glob.glob(f'{commands_dir}/addf-*.md')
+        if not p.endswith('.exp.md')
+    )
+    for readme_path in ('README.md', 'README.en.md'):
+        if not os.path.exists(readme_path):
+            skips.append(f'[8] SKIP: {readme_path} が存在しない')
+            continue
+        with open(readme_path) as f:
+            text = f.read()
+        listed = set(re.findall(r'\*\*(addf-[a-z0-9-]+)\*\*', text))
+        missing = [s for s in skill_names if s not in listed]
+        if missing:
+            msg = [f'[8] WARNING: {readme_path} のスキルテーブルに未掲載のスキルがある'
+                   f'（{commands_dir} には存在するが README のドキュメント公開から漏れている）:']
+            msg += [f'    MISSING: {m}' for m in missing]
+            warnings.append('\n'.join(msg))
+
+
 repo_kind = detect_repo_kind()
 check_pair1(repo_kind)
 check_pair2(repo_kind)
@@ -581,6 +667,7 @@ check_boot_pair(4, 'CLAUDE.md', '## ブートシーケンス',
 check_pair5()
 check_pair6()
 check_pair7()
+check_pair8(repo_kind)
 
 for msg in errors + warnings + skips:
     print(msg)
@@ -589,4 +676,4 @@ if errors:
     sys.exit(1)
 if warnings:
     sys.exit(2)
-print('OK: 同期チェック通過 (1: Progress.md / 2: ProgressTemplate / 3: AGENTS.md / 4: development-process.md / 5: addf-init コピーリスト / 6: TODO⇔Plan 状態 / 7: verify-checksums.sh detect_repo_kind 同期契約)')
+print('OK: 同期チェック通過 (1: Progress.md / 2: ProgressTemplate / 3: AGENTS.md / 4: development-process.md / 5: addf-init コピーリスト / 6: TODO⇔Plan 状態 / 7: verify-checksums.sh detect_repo_kind 同期契約 / 8: README スキルテーブル網羅性)')
