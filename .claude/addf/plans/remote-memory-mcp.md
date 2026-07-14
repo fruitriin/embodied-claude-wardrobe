@@ -110,9 +110,42 @@ external-intake の Tier 3 候補「BM25+読み仮名ハイブリッド移植」
 
 ## フェーズ分割
 
-### Phase 0: Memory Tool Contract の確定（設計のみ）
-- 現行スキル・フックが叩いているツールを棚卸しして契約表を確定
-- Rem / 本家との差分表を作る
+### Phase 0: Memory Tool Contract の確定（設計のみ）— 棚卸し完了（2026-07-14）
+
+現行 memory-mcp（`.claude/mcps/memory-mcp/src/memory_mcp/server.py`）は全25ツールを実装。スキル・フック・CLAUDE.md/BOOT_SHUTDOWN.md を全数 grep して実呼び出しを突き合わせた結果、当初案の8種より多い**14ツール**が実運用で使われていた。
+
+**契約に含める（実運用で呼ばれている14ツール）:**
+
+| ツール | 依存元 |
+|---|---|
+| `remember` | /wd-remember |
+| `search_memories` | /wd-recall, /wd-rebuild-index, /wd-observe |
+| `recall` | /wd-great-recall（3圧縮器共通）, CLAUDE.md Heartbeat, recall-watcher.ts, /wd-observe |
+| `recall_with_associations` | /wd-great-recall（技術的圧縮器） |
+| `recall_divergent` | /wd-great-recall（感情的圧縮器） |
+| `get_causal_chain` | /wd-great-recall（因果的圧縮器） |
+| `list_recent_memories` | CLAUDE.md Heartbeat |
+| `get_memory_stats` | 身支度, /wd-rebuild-index |
+| `refresh_working_memory` | 身支度 |
+| `link_memories` | 日記, CLAUDE.md |
+| `create_episode` | 日記, CLAUDE.md |
+| `consolidate_memories` | 日記（3セッションに1回）, CLAUDE.md |
+| `save_visual_memory` | /wd-observe |
+| `recall_by_camera_position` | /wd-observe（定点カメラ時） |
+
+`search_memories` と `recall` は契約表では1行にまとめていたが、実装は別ツール（前者はdistance付き+フィルタあり、後者はシンプル版）で両方とも実呼び出しあり。**契約は2ツールとして分離する。**
+
+**契約に含めない（実装はあるが呼び出し元なし。11ツール）:**
+`get_association_diagnostics` / `get_memory_chain` / `search_episodes` / `get_episode_memories` / `save_audio_memory` / `get_working_memory` / `save_verb_chain` / `search_verb_chain` / `get_memory_calendar` / `reevaluate_importance` / `tom`
+
+Postgres移植では上記14ツールを優先実装し、未使用11ツールは「Phase 2 で契約準拠テストを書く段になったら個別に要否判断」とする（動詞チェーン系はRem由来のアルゴリズム資産で将来輸入予定のため完全に切り捨てない）。
+
+**設計上の注意点（移植時に踏むべき地雷）:**
+- `get_memory_chain`（`Memory.linked_ids` を辿る）と `get_causal_chain`（`Memory.links`/`MemoryLink` の `link_type` を辿る）は**別々のデータモデルで同じような役割を果たしている**。great-recall は `get_causal_chain` のみ使用。Postgres移植を機に統合するか、2系統を維持するかは設計判断が必要
+- 現行ツールの返り値は全て `list[TextContent]`（人間可読テキスト or `json.dumps` 文字列）。構造化レスポンス（JSON schema）にするかどうかは移植時の設計判断点
+- `Memory` 型（`types.py`）は SQLite 特有のフィールドが少なく、素直に Postgres の列/JSONB へ移せる形
+
+- Rem / 本家との差分表を作る（未着手 — Phase 0 残タスク）
 - **ここでリンのレビューを挟む**（互換性契約の改定は確定事項の変更なので）
 
 ### Phase 1: Postgres スキーマ + ストア層
@@ -121,18 +154,20 @@ external-intake の Tier 3 候補「BM25+読み仮名ハイブリッド移植」
 - SQLite → Postgres 移行スクリプト（既存記憶の全件移行、非破壊）
 - ペルソナ分離: DB or スキーマ単位（keyword-buffer のペルソナ分離と同じ思想）
 
-### Phase 2: memory-pg-mcp（stdio）
-- 既存 memory-mcp のツール面を契約通りに再実装（エンジンのアルゴリズムは流用/輸入）
+### Phase 2: memory-pg-daemon（Bun/TypeScript 常駐プロセス、設計判断9・10反映）
+- 既存 memory-mcp のツール面を契約通りに再実装（Rem `wave-exp` のアルゴリズムを TS へ移植。設計判断8）
+- Daemon 本体（Bun）+ 接続アダプタ（MCP stdio/HTTP・Skill 両対応）に分離実装
+- 埋め込み計算の TS 側代替手段を確定（設計判断9の課題）
 - 既存テストの移植 + 契約準拠テスト
-- ローカルで stdio 運用に切り替えて実戦検証
+- ローカルで Daemon 運用に切り替えて実戦検証
 
-### Phase 3: Web 経路（スキル・ファースト）
+### Phase 3: Web 経路（スキル・ファースト、Daemon 共通化の可能性を検討）
 - Supabase プロジェクト作成、PGroonga / pgvector 有効化（Phase 1 のスキーマをここに張る）
 - `/wd-remote-memory` 系スキルの実装（curl → PostgREST / RPC。remember / recall / stats / flash_index）
 - Edge Function: クエリ埋め込み（gte-small）と insert 時の自動埋め込み
 - 秘密鍵の扱いを確定（Web セッションへの鍵の渡し方、RLS 設計）
 - Claude Code Web で実接続テスト
-- リモート MCP サーバー（方式 C）は**ここでは作らない**。A+B で不足が見えたら追加
+- Phase 2 の Daemon を HTTP 経由で Web からも叩けるか検討（設計判断10）。不足が見えたらリモート MCP サーバー（方式 C）を追加
 
 ### Phase 4: オプトイン導線
 - wd-configure にバックエンド選択を実装、wd-setup から呼ぶ
@@ -205,10 +240,42 @@ A 案の形: Edge Function がメモリ API のゲートになり、コミット
 - **ツール定義は config（JSON）に外出しし、サーバーは汎用ディスパッチャにする**。最小契約11本 + 拡張契約のオン/オフが config の差し替え（+ MCP 再起動）で完結する。Python でも `FastMCP.add_tool()` を config ループで呼べば成立（デコレータ流儀が静的に見えるだけ）。TS なら listChanged 通知で再起動なしの増減も可能
 - 汎用パターンとしての詳細: `.claude/addf/knowhow/wardrobe/mcp-dynamic-tool-registry.md`
 
+## 設計判断 8 — 実装ベースは Rem の `wave-exp` ブランチ（2026-07-14、リン方針）
+
+**方針**: 「REM ベースのほうが筋がよい」＝コードベースの直接継承ではなく、**設計思想・アルゴリズムロジックの継承**。動詞チェーン（flow/delta 分離）・異方的距離に加え、`wave-exp` ブランチの波動位相モデル系拡張（specificity damping・echo reverb persistence・energy LTP・temporal sketch・bipartite wave recall）を実装の参照元にする。
+
+**`main` ではなく `wave-exp` を参照する理由（2026-07-14 調査で確定）**:
+- `tmp/repos/embodied-claude-rem` はローカル・リモートとも `main` は最新（`origin/main` と差分ゼロ）
+- ブランチ比較: `lite`（2026-03-07・main より16コミット遅れ、劣後版）／`main`（2026-04-14）／`wave-exp`（**2026-04-18・最新**、main を実質内包した上で独自24コミット）
+- `wave-exp` の中身は Kuramoto 振動子・Graph Wavelet NN（論文2505.20034）を参照した実験的拡張で、`external-intake-2026-07.md` が既に取り込み候補として挙げていた「wave-exp 副産物」の実体そのものと確認できた
+- README上は明示的に "experimental feature" 位置づけ。**安定性・採用範囲は Phase 1 のスキーマ設計時に個別評価する**（全部を輸入するのではなく、Postgres+PGroonga 化で不要になる部分〔自作 BM25・正規化など〕を除いて取捨選択）
+
+参照パス: `tmp/repos/embodied-claude-rem`（`git checkout wave-exp` または `git log origin/main..origin/wave-exp` で差分参照）
+
+## 設計判断 9 — 実装言語は Bun/TypeScript + Vite（HotReload 優先、2026-07-14 リン方針）
+
+現行 memory-mcp・Rem 実装は共に Python(uv)。本計画では **Bun/TypeScript + Vite ベースで書き直す**（Rem のアルゴリズムをそのまま流用せず移植）。
+
+理由: HotReload のしやすさ。emotion-mcp（既に Bun/TypeScript で計画中）とのランタイム統一。
+
+**移植時の課題（要検討・未確定）**:
+- chiVe（gensim word2vec, 300次元）・multilingual-e5-base 埋め込み計算の TS 側代替手段（ONNX Runtime 等での推論、または埋め込み計算だけ Python/Edge Function に残す分離案も検討余地）
+- numpy 依存の行列演算（異方的距離の主成分軸計算等）を TS でどう再現するか
+- PGroonga 採用でテキスト検索・正規化の相当部分は DB 側に移るため、TS 側が担う計算量は「動詞チェーンのベクトル計算」「波動位相モデル系の状態更新」に絞られる見込み——後述の Daemon 化と合わせて Phase 1 のスキーマ設計時に負荷を見積もる
+
+## 設計判断 10 — MCP ではなく常駐 Daemon 化、接続層は交換可能に（2026-07-14 リン方針）
+
+memory-mcp を stdio MCP サーバーとしてではなく、**常駐 Daemon プロセス**として実装する。Claude Code 側との接続方式（Skill 経由 or MCP 経由）は Daemon 本体から分離し、後から選べる/両方使えるようにする。
+
+- Daemon 本体: 記憶ストア・検索・consolidate 等のロジックを持つ常駐プロセス（HTTP or Unix ソケット等で待受）
+- 接続アダプタ: Skill（curl 的な手順書）または MCP（stdio/HTTP どちらも）のどちらでも Daemon を叩けるようにする。Phase 3 の Web 経路（スキル・ファースト方針）とも自然に合流する構造
+- ローカル・Web 両方から同じ Daemon を叩ける形にできれば、設計判断2で示した「ローカル stdio MCP／Web スキル+Edge Functions」の二重実装を避けられる可能性がある——**Phase 1–2 のアーキテクチャ設計で具体化する**
+
 ## リンに確認したいこと（残り）
 
 1. **秘密鍵の形**: A 案（能力トークン + Edge Function ゲート）でよいか。※Claude Code Web の Secret 対応有無は裏取り中——対応があればこの節ごと不要になる
-2. **感情MCP実装との順序**: TODO 最上段は感情MCP。リモートメモリーを先に割り込ませるか、感情MCP（Layer 1）→ 本計画の順か
+2. ~~感情MCP実装との順序~~ → **2026-07-14 確定: メモリMCP改修を優先**
+3. **Daemon 化の具体的な待受方式**: HTTP か Unix ソケットか（ローカル専用なら Unix ソケットが軽量だが、将来 Web 経路と共通化するなら HTTP に寄せる選択肢もある）— Phase 1–2 で検討
 
 ## 参照
 
@@ -216,3 +283,4 @@ A 案の形: Edge Function がメモリ API のゲートになり、コミット
 - `.claude/addf/plans/external-intake-2026-07.md` — エンジン層の輸入候補（specificity damping / echo / energy LTP は Postgres 化後も有効）
 - `.claude/addf/knowhow/wardrobe/speed-consciousness-framework.md` — 配置判断の基準
 - upstream auto-recall HTTP 同居パターン: `tmp/repos/embodied-claude/memory-mcp/src/memory_mcp/server.py`
+- Rem 波動位相モデル系拡張: `tmp/repos/embodied-claude-rem`（`wave-exp` ブランチ、2026-07-14時点で main+独自24コミット）
