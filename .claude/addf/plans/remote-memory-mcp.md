@@ -157,7 +157,9 @@ Postgres移植では上記14ツールを優先実装し、未使用11ツール�
 | メタデータ | なし | `created_at` / `note` |
 | 呼び出し元 | `get_memory_chain`（未使用ツール） | `get_causal_chain`（great-recall の因果的圧縮器が使用） |
 
-**推奨案（Phase1のスキーマ確定前にリン確認）**: ストレージは**単一の edge テーブルに統合**する（`memory_links(source_id, target_id, link_type, created_at, note)` 相当）。`linked_ids` の自動類似リンクは `link_type='similar_auto'`（または既存の `similar` を流用）として同テーブルに書き込む形に寄せれば、無向性は「両方向に1行ずつ挿入」で表現でき、`_add_bidirectional_link` のロジックはそのまま使える。トラバース側は `get_causal_chain` を汎用化した1関数に統合できる——`link_type` フィルタなし（全件）なら現行 `get_memory_chain` 相当、`{caused_by}`/`{leads_to}` フィルタなら現行 `get_causal_chain` 相当。**`get_memory_chain` 自体は契約14ツールに含まれていない（呼び出し元なし）ため、Postgres版で独立ツールとして残す必要はなく、トラバースロジックの共通化だけで足りる**。
+**推奨案（2026-07-14 リン確定）**: ストレージは**単一の edge テーブルに統合**する（`memory_links(source_id, target_id, link_type, created_at, note)` 相当）。`linked_ids` の自動類似リンクは `link_type='similar_auto'`（または既存の `similar` を流用）として同テーブルに書き込む形に寄せれば、無向性は「両方向に1行ずつ挿入」で表現でき、`_add_bidirectional_link` のロジックはそのまま使える。トラバース側は `get_causal_chain` を汎用化した1関数に統合できる——`link_type` フィルタなし（全件）なら現行 `get_memory_chain` 相当、`{caused_by}`/`{leads_to}` フィルタなら現行 `get_causal_chain` 相当。**`get_memory_chain` 自体は契約14ツールに含まれていない（呼び出し元なし）ため、Postgres版で独立ツールとして残す必要はなく、トラバースロジックの共通化だけで足りる**。
+
+**リンの確認質問「links のほうが柔軟そうに見えるけど、そういう理解であってる？」への回答**: その理解で合っている。`links`/`MemoryLink` は方向・型（`LinkType`）・メタデータ（`created_at`/`note`）を持つ表現力の高い構造で、`linked_ids`（無向・無型・メタデータなし）は「`links` の中の特殊ケース（`type='similar_auto'` を双方向2行で表現したもの）」として完全に包含できる。だから統合の向きは自然に「`links` の構造をベースに `linked_ids` を寄せる」になる——逆（`linked_ids` 側に `links` の情報を圧縮する）は型・方向・メタデータが失われるので選べない。
 
 ### Rem / 本家との差分表（2026-07-14 完了）
 
@@ -270,6 +272,10 @@ A 案の形: Edge Function がメモリ API のゲートになり、コミット
 - ローテーション手順を runbook 化（A 案なら数分で完了する）
 - GitHub の Push Protection / Secret Scanning が使えるプランなら有効化
 
+**新情報（2026-07-14、リン確認）**: Claude Code Web の「カスタムコネクタを追加」UI（リモート MCP サーバーを接続する設定画面）には OAuth Client ID / Client Secret の入力欄が存在する（任意設定）。これは方式 C（リモート MCP サーバー）を採る場合の標準認証経路——Web 側が OAuth フローでトークンを取得し、Daemon 側がそれを検証する形になる。リン評価: 「他の人と共有で使うリソースとしては微妙、自分用なら OK」。
+
+この事実は設計判断10（Daemon HTTP 待受確定、下記）と合わさると、Phase 3 の Web アダプタ選択（設計判断2「スキル・ファースト」）の前提を揺らす。Daemon が最初から HTTP で待受け、かつ OAuth で個人利用に閉じた認証が組めるなら、方式 A（スキル + Edge Function + 能力トークン）を経由せず**方式 C（リモート MCP サーバー直結）を本命にする**選択肢が現実的になった。ただし設計判断2の確定事項を覆すかどうかは Phase 3 設計時にリンと再確認する（下記「リンに確認したいこと」1番）。
+
 ## 設計判断 5 — 全文検索の索引設計（2026-07-06、リン承認済み）
 
 **出典**: リンの misskey PGroonga ブラッシュアップ計画（fruitriin/misskey、note 4500万行での実測込み）+ kou 氏 db-tech-showcase 2018 スライド。
@@ -321,13 +327,13 @@ A 案の形: Edge Function がメモリ API のゲートになり、コミット
 - numpy 依存の行列演算（異方的距離の主成分軸計算等）を TS でどう再現するか
 - PGroonga 採用でテキスト検索・正規化の相当部分は DB 側に移るため、TS 側が担う計算量は「動詞チェーンのベクトル計算」「波動位相モデル系の状態更新」に絞られる見込み——後述の Daemon 化と合わせて Phase 1 のスキーマ設計時に負荷を見積もる
 
-## 設計判断 10 — MCP ではなく常駐 Daemon 化、接続層は交換可能に（2026-07-14 リン方針）
+## 設計判断 10 — MCP ではなく常駐 Daemon 化、接続層は交換可能に（2026-07-14 リン方針、待受方式は同日確定）
 
 memory-mcp を stdio MCP サーバーとしてではなく、**常駐 Daemon プロセス**として実装する。Claude Code 側との接続方式（Skill 経由 or MCP 経由）は Daemon 本体から分離し、後から選べる/両方使えるようにする。
 
-- Daemon 本体: 記憶ストア・検索・consolidate 等のロジックを持つ常駐プロセス（HTTP or Unix ソケット等で待受）
-- 接続アダプタ: Skill（curl 的な手順書）または MCP（stdio/HTTP どちらも）のどちらでも Daemon を叩けるようにする。Phase 3 の Web 経路（スキル・ファースト方針）とも自然に合流する構造
-- ローカル・Web 両方から同じ Daemon を叩ける形にできれば、設計判断2で示した「ローカル stdio MCP／Web スキル+Edge Functions」の二重実装を避けられる可能性がある——**Phase 1–2 のアーキテクチャ設計で具体化する**
+- **Daemon 本体の待受方式は HTTP に確定**（2026-07-14 リン確定: 「Claude Code Web での運用を考えると HTTP 必須」）。Unix ソケット案は不採用——ローカル専用の軽量さより、Web 経路との共通化を優先する
+- 接続アダプタ: Skill（curl 的な手順書）または MCP（stdio/HTTP どちらも）のどちらでも Daemon を叩けるようにする。Phase 3 の Web 経路とも自然に合流する構造（設計判断4の新情報により、Web 経路自体が「スキル・ファースト」から「HTTP Daemon 直結」寄りに再検討中）
+- ローカル・Web 両方から同じ Daemon を叩ける形にできれば、設計判断2で示した「ローカル stdio MCP／Web スキル+Edge Functions」の二重実装を避けられる——HTTP 確定により、この統合の実現性が上がった
 
 ### wave_recall のメモリ展開方式 — 3択（2026-07-14、Pending）
 
@@ -341,10 +347,10 @@ Rem実装（`wave-exp`）の `wave_recall` は `lt_sentences`（長期記憶全�
 
 ## リンに確認したいこと（残り）
 
-1. **秘密鍵の形**: A 案（能力トークン + Edge Function ゲート）でよいか。※Claude Code Web の Secret 対応有無は裏取り中——対応があればこの節ごと不要になる
+1. **秘密鍵の形 / Web アダプタの本命**: 当初の A 案（能力トークン + Edge Function ゲート、スキル経由）のままでよいか、それとも Daemon HTTP 化確定（設計判断10）+ Claude Code Web のカスタムコネクタ OAuth 認証（設計判断4の新情報）を踏まえて **C 案（リモート MCP サーバー直結）を本命に切り替えるか**。個人利用限定なら OAuth コネクタ経由の C 案が有力に見えるが、設計判断2の確定事項（スキル・ファースト）を覆すことになるので Phase 3 設計時にあらためて確定させたい
 2. ~~感情MCP実装との順序~~ → **2026-07-14 確定: メモリMCP改修を優先**
-3. **Daemon 化の具体的な待受方式**: HTTP か Unix ソケットか（ローカル専用なら Unix ソケットが軽量だが、将来 Web 経路と共通化するなら HTTP に寄せる選択肢もある）— Phase 1–2 で検討
-4. **`linked_ids`/`links` の統合方針**: 上記「`linked_ids`/`links` 統合調査」節の推奨案（単一 edge テーブルへの統合、`get_memory_chain` は独立ツールとして残さない）でよいか — Phase 1 のスキーマ確定前に
+3. ~~Daemon 化の具体的な待受方式~~ → **2026-07-14 確定: HTTP**（Claude Code Web での運用を見据えて。上記設計判断10参照）
+4. ~~`linked_ids`/`links` の統合方針~~ → **2026-07-14 確定: 推奨案（単一 edge テーブル統合）で GO**（上記「`linked_ids`/`links` 統合調査」節参照）
 
 ## 参照
 
