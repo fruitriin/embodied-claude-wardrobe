@@ -345,6 +345,39 @@ ORDER BY week_start DESC, min(timestamp) DESC;
 
 **残る検討点**: `day_label` は曜日のみ自動導出（`to_char(timestamp, 'Dy')`）。現行 FLASH.md にある「(夜)」「(未明)」等の時間帯注記は機械的な閾値判断が難しいため自動化せず、必要なら `flash_keywords` 文字列側に含める運用を踏襲する（現行と同じ）。タイムゾーンは `timestamp-policy.md`（UTC統一）に従うため、`date_trunc('week', ...)` の週区切りが日本時間の体感と数時間ズレる可能性がある——Phase2実装時に実測確認する。
 
+**2層構造への拡張（2026-07-15、リン指摘「記憶が増えるととんでもない量になりそう」への対応）**: 上記ビューだけだと2つの問題が残る。(1) 絞り込みなしで呼べば記憶が増えるほどスキャン・集計コストが増える、(2) 現行 FLASH.md の「直近1週間は曜日単位、2週前はまとめて数行、3週前以前はさらに圧縮」という**圧縮運用**が単純な `GROUP BY` では再現できない（圧縮は要約というLLM判断であって機械的集計ではない）。
+
+対策として、速度×意識フレームワーク通りに2層へ分ける:
+
+```sql
+-- 層1（直近・高速・無意識）: 上記 flash_index ビューを関数化し、範囲指定を必須にする
+--   （ビューへの外側WHERE句のpushdownに頼らず、関数内で明示的に絞る）
+CREATE OR REPLACE FUNCTION get_flash_index_recent(weeks_back int DEFAULT 3)
+RETURNS TABLE(week_start date, day_label text, keywords text, memory_ids uuid[])
+LANGUAGE sql STABLE AS $$
+    SELECT date_trunc('week', timestamp)::date, to_char(timestamp, 'Dy'),
+           string_agg(flash_keywords, ' ' ORDER BY timestamp), array_agg(id ORDER BY timestamp)
+    FROM memories
+    WHERE flash_keywords IS NOT NULL AND flash_keywords <> ''
+      AND timestamp >= now() - (weeks_back || ' weeks')::interval
+    GROUP BY 1, 2
+    ORDER BY 1 DESC;
+$$;
+
+-- 層2（古い週・低速・無意識バッチ）: 圧縮済み要約を保存する実テーブル
+CREATE TABLE flash_index_archive (
+    id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    week_start        date NOT NULL UNIQUE,
+    summary           text NOT NULL,       -- LLMが圧縮した要約（現行「2週前はまとめて数行」相当）
+    compression_level smallint NOT NULL DEFAULT 1,  -- 1=軽い圧縮 2=月単位 など段階的に強める
+    memory_ids        uuid[] DEFAULT '{}',
+    updated_at        timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_flash_archive_week ON flash_index_archive(week_start);
+```
+
+`flash_index_archive` への書き込みは `remember` の都度ではなく、`/wd-rebuild-index` や `consolidate_memories` に相当する**稀にしか走らない別のバッチ処理**が担う（週替わりのタイミングで直近ウィンドウ外に出た週を要約してここに積む）。この圧縮ロジック自体（何行にどう要約するか）はLLM判断が要るため、Phase1では表の形だけ確定し、圧縮処理の実装はPhase2（Daemon実装）に送る。読み出し側は `get_flash_index_recent()` の結果と `flash_index_archive` の該当週より前の行を `UNION ALL` すれば、現行FLASH.mdと同じ「直近は詳細、古いほど圧縮」という体験を再現できる。
+
 **スコープ外（Phase1では設計しない）**: `verb_chains` / `verb_chain_embeddings` / `composite_members` / `composite_embeddings` / `composite_axes` / `boundary_layers` / `template_biases` / `composite_intersections` / `daily_digest` の9テーブルは棚卸しで存在を確認したが、対応ツール（`save_verb_chain`/`search_verb_chain`）は契約14ツールに含まれない（Phase0で「Phase2で契約準拠テストを書く段になったら個別に要否判断」と決定済み）。Postgres化もその判断を待つ——今回のスキーマには含めない。
 
 #### ペルソナ分離方針: スキーマ単位（2026-07-14 リン確定: 「良さそう、共有テーブルする意味もないし、Postgresらしさだねえ」）
