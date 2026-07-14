@@ -145,7 +145,48 @@ Postgres移植では上記14ツールを優先実装し、未使用11ツール�
 - 現行ツールの返り値は全て `list[TextContent]`（人間可読テキスト or `json.dumps` 文字列）。構造化レスポンス（JSON schema）にするかどうかは移植時の設計判断点
 - `Memory` 型（`types.py`）は SQLite 特有のフィールドが少なく、素直に Postgres の列/JSONB へ移せる形
 
-- Rem / 本家との差分表を作る（未着手 — Phase 0 残タスク）
+### Rem / 本家との差分表（2026-07-14 完了）
+
+wardrobe現行25ツール・upstream本家27ツール・Rem `wave-exp`（12ツール、ローカルクローン `origin/wave-exp` から新規checkout して調査）を突き合わせた。
+
+**A. 契約14ツール × upstream本家 × Rem wave-exp**
+
+| 契約ツール | upstream本家 | Rem wave-exp |
+|---|:---:|:---:|
+| `remember` | ○ 同名 | △ `diary` に統合（visual/audio/動詞チェーンも同時保存） |
+| `search_memories` | ○ 同名 | ✕ 廃止（`recall` に統合、とコメントにあり） |
+| `recall` | ○ 同名 | ○ 同名（`quadrant`/`freshness_min/max` 付きに拡張） |
+| `recall_with_associations` | ○ 同名 | ✕ 実体なし（コメントは「`recall`の`chain_depth`に統合」と主張するが、実装に`chain_depth`パラメータが存在しない。ドキュメントと実装の乖離、要検証） |
+| `recall_divergent` | ○ 同名 | ○ 同名（概ね同等） |
+| `get_causal_chain` | ○ 同名 | ✕ 実体なし（Remの`graph.py`は動詞/名詞ノードのグラフで、Memory↔Memoryリンクの概念自体が存在しない） |
+| `list_recent_memories` | ○ 同名 | ○ 同名 |
+| `get_memory_stats` | ○ 同名 | ✕ コメントアウトで無効化（"rarely used"） |
+| `refresh_working_memory` | ○ 同名 | ✕ 実体なし |
+| `link_memories` | ○ 同名 | ✕ 実体なし（上記と同じグラフモデルの違い） |
+| `create_episode` | ○ 同名 | ✕ デッドコード（`EpisodeManager`はimport・生成されるが呼び出し箇所なし） |
+| `consolidate_memories` | ○ 同名 | ○ 同名（`n_layers`等パラメータ拡張あり） |
+| `save_visual_memory` | ○ 同名 | △ `diary` に統合 |
+| `recall_by_camera_position` | ○ 同名 | ✕ 実体なし |
+
+**upstream本家は契約14ツール全て保有。Rem wave-expは同名一致4本・部分統合2本・実体なし8本**（うち1本はドキュメントと実装が食い違う要検証項目）。**設計判断8への重要な留保**: 「link_memories/get_causal_chain（記憶間リンク）」「create_episode（エピソード化）」は wave-exp の設計思想の外側にある機能——Remの動詞/名詞グラフモデルとwardrobeのMemory↔Memoryリンクモデルは別物。この2機能は wave-exp を参照できず、upstream本家またはwardrobe現行実装をそのまま踏襲するしかない。
+
+**B. upstream本家にあるがwardrobe現行にないツール**
+`delete_memory` / `update_memory` / `joint_attention` / `hypothesize` / `verify_hypothesis` / `get_metacognition`（メタ認知系。Postgres移植で契約に加えるか検討余地あり）
+
+**C. Rem wave-expにあるがwardrobe現行にない独自ツール（輸入候補）**
+
+| ツール | 用途 |
+|---|---|
+| `wave_recall` | 2パス波動伝播想起。specificity damping/echo/energy LTP/temporal sketch を内部で使う中核ツール |
+| `crystallize` | 感覚バッファ→動詞チェーン変換の自動化（wardrobeの`save_verb_chain`は手動） |
+| `update_diary` | 削除せず取り消し線+追記で記憶を訂正する非破壊UX。wardrobeに相当機能なし |
+| `create_category` / `list_categories` | 動詞/名詞ノードのグラフカテゴリ管理 |
+| `recall_experience` | `search_verb_chain`の発展版（time decay/emotion boost付き） |
+| `rebuild_recall_index` | recall用の事前計算インデックス再構築 |
+
+**D. 「diary系」の実体**: `diary`（remember+visual+audio+動詞チェーンの統合入口）・`update_diary`（非破壊訂正）・`diary-wave.py`フック（PostToolUseで波動位相グラフへ学習させる連携）。MCPツール2本＋hooks連携1本のセット。
+
+**結論（Phase 1設計への申し送り）**: wave-exp は「想起・統合（consolidate）・波動系の内部アルゴリズム」の参照元として有効。ただし「記憶リンク・エピソード化・カメラ位置検索・working memory」はupstream本家またはwardrobe現行実装をベースにする必要がある——**設計判断8は「全面的にwave-exp」ではなく「機能ごとに参照元を選ぶハイブリッド」に訂正する**。
 - **ここでリンのレビューを挟む**（互換性契約の改定は確定事項の変更なので）
 
 ### Phase 1: Postgres スキーマ + ストア層
@@ -240,17 +281,20 @@ A 案の形: Edge Function がメモリ API のゲートになり、コミット
 - **ツール定義は config（JSON）に外出しし、サーバーは汎用ディスパッチャにする**。最小契約11本 + 拡張契約のオン/オフが config の差し替え（+ MCP 再起動）で完結する。Python でも `FastMCP.add_tool()` を config ループで呼べば成立（デコレータ流儀が静的に見えるだけ）。TS なら listChanged 通知で再起動なしの増減も可能
 - 汎用パターンとしての詳細: `.claude/addf/knowhow/wardrobe/mcp-dynamic-tool-registry.md`
 
-## 設計判断 8 — 実装ベースは Rem の `wave-exp` ブランチ（2026-07-14、リン方針）
+## 設計判断 8 — 実装ベースは機能ごとのハイブリッド参照（2026-07-14、リン方針 → 差分表調査で訂正）
 
-**方針**: 「REM ベースのほうが筋がよい」＝コードベースの直接継承ではなく、**設計思想・アルゴリズムロジックの継承**。動詞チェーン（flow/delta 分離）・異方的距離に加え、`wave-exp` ブランチの波動位相モデル系拡張（specificity damping・echo reverb persistence・energy LTP・temporal sketch・bipartite wave recall）を実装の参照元にする。
+**方針**: 「REM ベースのほうが筋がよい」＝コードベースの直接継承ではなく、**設計思想・アルゴリズムロジックの継承**。ただし Phase 0 差分表調査（上記）の結果、**「全面的に wave-exp」ではなく「機能ごとに参照元を選ぶハイブリッド」に訂正する。**
 
-**`main` ではなく `wave-exp` を参照する理由（2026-07-14 調査で確定）**:
+- **wave-exp を参照**: 想起（recall・recall_divergent）・consolidate・波動系内部アルゴリズム（specificity damping・echo reverb persistence・energy LTP・temporal sketch・bipartite wave recall。`wave_recall`ツールに集約）・diary統合パターン・非破壊訂正（update_diary）
+- **upstream本家 or wardrobe現行を参照**（wave-expに実体なし）: 記憶間リンク（link_memories/get_causal_chain）・エピソード化（create_episode）・working memory（refresh_working_memory）・カメラ位置検索（recall_by_camera_position）。Remの動詞/名詞グラフモデルと wardrobe の Memory↔Memory リンクモデルは設計が別物のため、この4機能は wave-exp を土台にできない
+
+**`main` ではなく `wave-exp` を参照する理由（波動系機能に限る。2026-07-14 調査で確定）**:
 - `tmp/repos/embodied-claude-rem` はローカル・リモートとも `main` は最新（`origin/main` と差分ゼロ）
 - ブランチ比較: `lite`（2026-03-07・main より16コミット遅れ、劣後版）／`main`（2026-04-14）／`wave-exp`（**2026-04-18・最新**、main を実質内包した上で独自24コミット）
 - `wave-exp` の中身は Kuramoto 振動子・Graph Wavelet NN（論文2505.20034）を参照した実験的拡張で、`external-intake-2026-07.md` が既に取り込み候補として挙げていた「wave-exp 副産物」の実体そのものと確認できた
 - README上は明示的に "experimental feature" 位置づけ。**安定性・採用範囲は Phase 1 のスキーマ設計時に個別評価する**（全部を輸入するのではなく、Postgres+PGroonga 化で不要になる部分〔自作 BM25・正規化など〕を除いて取捨選択）
 
-参照パス: `tmp/repos/embodied-claude-rem`（`git checkout wave-exp` または `git log origin/main..origin/wave-exp` で差分参照）
+参照パス: `tmp/repos/embodied-claude-rem`（`git checkout wave-exp` または `git log origin/main..origin/wave-exp` で差分参照。upstream本家は `tmp/repos/embodied-claude/memory-mcp`）
 
 ## 設計判断 9 — 実装言語は Bun/TypeScript + Vite（HotReload 優先、2026-07-14 リン方針）
 
