@@ -337,7 +337,7 @@ CREATE INDEX idx_flash_index_week ON flash_index(week_start);
 
 **スコープ外（Phase1では設計しない）**: `verb_chains` / `verb_chain_embeddings` / `composite_members` / `composite_embeddings` / `composite_axes` / `boundary_layers` / `template_biases` / `composite_intersections` / `daily_digest` の9テーブルは棚卸しで存在を確認したが、対応ツール（`save_verb_chain`/`search_verb_chain`）は契約14ツールに含まれない（Phase0で「Phase2で契約準拠テストを書く段になったら個別に要否判断」と決定済み）。Postgres化もその判断を待つ——今回のスキーマには含めない。
 
-#### ペルソナ分離方針（提案）: スキーマ単位
+#### ペルソナ分離方針: スキーマ単位（2026-07-14 リン確定: 「良さそう、共有テーブルする意味もないし、Postgresらしさだねえ」）
 
 keyword-buffer の「ペルソナごとに `$PROJECT_DIR/.claude/` 配下で分離」という思想を Postgres に翻訳すると、**ペルソナごとに Postgres スキーマを分ける**（`CREATE SCHEMA saku;` のように、上記 DDL をペルソナ名スキーマの中で実行）のが最も近い。
 
