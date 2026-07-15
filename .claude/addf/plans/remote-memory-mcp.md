@@ -417,7 +417,7 @@ ORDER BY week_start DESC, min(timestamp) DESC;
 
 - **PR#1から採用**: `evidence_type`列（observed/inferred/remembered/heard/assumed、external-intake Tier3由来）／`created_at`/`updated_at`列+自動更新トリガー／`embeddings.model`列（埋め込みモデル変更時の識別用）／`memory_links`の独立`id`列+`weight`列／`episode_memories`ジャンクションテーブル（`memories.episode_id`単一FK+`episodes.memory_ids`配列の二重管理から、正規化された多対多関係に一本化。`order_index`でエピソード内の記憶順序も持てる）／`schema_versions`テーブル
 - **本計画（Phase0-2）を優先**: PGroonga索引設計（PR#1は`content`/`normalized_content`/`reading`の3カラムそれぞれに個別索引=トリプル索引案。本計画の「content 1カラム+設定違いの索引2本」という設計判断5は、PR#1より後の2026-07-06にmisskey実測を踏まえてリン承認されたもので、PR#1の設計より新しい知見のため）／契約ツール数（PR#1は2026-07-03時点の「最小契約11ツール」、本計画は2026-07-14にスキル・フック・CLAUDE.mdを実測してgrepした「契約14ツール」でより正確）／flash_index 2層構造・ペルソナ分離（スキーマ単位）・埋め込みモデル確定（multilingual-e5-base実測）・Bun/TypeScript実装方針（PR#1はPython実装を想定していたが、リンが後にBun/TypeScript方針に変更したため）はPR#1に存在しない・古いためそのまま採用
-- **`feature/postgres-memory`ブランチの今後の扱い**: 未確定（次の「リンに確認したいこと」参照）
+- **`feature/postgres-memory`ブランチの今後の扱い**: **2026-07-15 リン確定: 当面そのまま残す**（統合漏れの見返し用。マージ済みクローズはしない）
 
 **設計の訂正理由（2026-07-14、リン指摘）**: 当初 `flash_index` を独立テーブルとして設計したが、これだと `remember` 呼び出しのたびに「今週の該当曜日の行があれば追記、なければ新規行」という upsert 判断を**別のツール呼び出しとして LLM に強いる**ことになり、現行の Markdown 直接編集（Edit 1回で完結）より退化する。リンの要求は「複数一括の挿入・編集・削除が自由」「つながりの検出を LLM が意識しなくて済む」の2点——これを満たすには**テーブルではなくビュー**にして、書き込みを `memories.flash_keywords` 列への1回の書き込み（`remember` 呼び出しに乗せる）に一本化し、週・曜日・`memory_ids` の集約は全て `GROUP BY`/`array_agg` に任せるのが筋が良い。`memories` への通常の UPDATE/DELETE がそのままビューに反映されるため、`flash_index` 側の整合性維持コードも不要になる。
 
