@@ -16,3 +16,4 @@
 | wardrobe/speed-consciousness-framework.md | 速度×意識フレームワーク — 実装判断の共通基準（速度4分類×意識2分類×経路分離） | 速度, 意識, 経路分離, 高圧縮高速, 高圧縮中速, 無意識, 意識的, 一時留保, 共鳴と採点 |
 | wardrobe/timestamp-policy.md | タイムスタンプ方針 — 演算系は UTC 統一、台帳系はローカル TZ 付き ISO の使い分け | タイムスタンプ, UTC, タイムゾーン, naive, aware, memory-mcp, journal, TypeError, decay |
 | wardrobe/postgres-persona-schema-separation.md | マルチペルソナで Postgres を共有するときはスキーマ単位で分離する | Postgres, ペルソナ分離, スキーマ, CREATE SCHEMA, persona_id, PGroonga, pgvector, マルチエージェント, keyword-buffer |
+| wardrobe/docker-verify-db-test-isolation.md | 検証用Dockerコンテナを使い回すテストのDB分離 — beforeAllでのTRUNCATE + 本番URL誤爆防止ガード | Docker, テスト分離, TRUNCATE, beforeAll, DATABASE_URL, 意味検索, 非決定性, memory-pg-daemon |
