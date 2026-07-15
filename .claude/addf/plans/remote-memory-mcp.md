@@ -496,6 +496,8 @@ keyword-buffer の「ペルソナごとに `$PROJECT_DIR/.claude/` 配下で分�
 
 **接続情報（次セッション用メモ）**: DATABASE_URLは環境変数として都度setする必要がある（`.env`ファイルは存在しない、bun:sqlが自動で`DATABASE_URL`を読む）。検証コンテナの接続文字列: `postgres://postgres:verify@localhost:15432/postgres`（`docker ps`で`memory-pg-verify-run`コンテナ、ポート15432→5432を確認）。
 
+**HTTP Daemon化完了（2026-07-15、dfad440）**: `src/daemon.ts`で契約ツール10本を`Bun.serve`のPOST `/{toolName}`として公開。ツール名→zodスキーマ→ハンドラのディスパッチテーブル形式（`mcp-dynamic-tool-registry.md`のconfig駆動思想を踏襲、後日MCP stdioアダプタ実装時にこのディスパッチテーブルをそのまま流用できる設計）。認証層はPhase3待ちのため無く、`HOST`未指定時は`127.0.0.1`のみ待受してLAN露出を防止。wd-code-reviewで「型キャストの無検証」「エラーメッセージ生返却」の2点を指摘され、zod入力検証(400+詳細)とサーバー側ログ＋汎用エラーメッセージ返却(500)に修正して反映。実プロセス起動でのcurl動作確認・E2Eテスト(port 0自動割当)とも実施済み。
+
 **recall_divergent着手前のスコープ調査（2026-07-15）**: wave-expブランチの`wave_recall`実装規模を確認した。`.claude/hooks/session-wave-v2.py`（826行）と`wave-phase-core/src/wave_phase_core/cli.py`の`_two_phase_recall`（742行のファイル中の一関数）の計1568行超、Kuramoto振動子・波動位相モデルベースの実装で、読み込み・アルゴリズム理解・TS移植を1セッションで完了させるのは非現実的と判断した。現行wardrobe SQLite版の`recall_divergent`（`store.py:1432-`）も`_association_engine.spread`・`calculate_prediction_error`・`calculate_novelty_score`・`calculate_emotion_boost`・`calculate_boundary_score`・`adaptive_search_params`など複数の補助関数に依存する拡散活性化アルゴリズムで、こちらも単体で相応の規模がある。**次セッションへの申し送り**: (1) まず現行wardrobe版の依存関数群だけを1つずつ読み、疑似コードレベルでアルゴリズムを抽出する（wave-exp移植は別途Phase2後半のタスクとして切り出す） (2) 「現行版の忠実なTS移植」と「wave_recallベースの新規設計」のどちらを採るかはこの読み込みが終わってからリンと確認する（設計判断8は"wave-expを参照"と方針決定済みだが、実装コストと機能差分を見てから最終判断したい）。
 
 ### Phase 3: Web 経路（スキル・ファースト、Daemon 共通化の可能性を検討）
