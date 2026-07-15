@@ -11,6 +11,8 @@
 
 ## 問題の記録
 
+- **2026-07-15 `.claude/addf/templates/ProgressTemplate.md` が実際の `Progress.md` 運用ルールと乖離**: Progress.md 完了処理（ステップ20）で「テンプレートから新規 Progress.md を作成する」とあるが、`templates/ProgressTemplate.md` の中身は ADDF 本体の generic 版（`addf-code-review-agent`・`addf-contribution-agent` 等を参照）で、実際に運用されている Progress.md の「運用ルール」節（`wd-code-review`・`wd-contribution`・`/wd-knowhow`・共鳴フェーズ・state.md温度更新を含む21ステップ構成）とは別物。今回はテンプレートで上書きせず、既存 Progress.md の運用ルール節をそのまま残して「## タスク」節だけリセットする形で回避した。TODO.md「品質ゲートの借金」にある `test-template-sync.sh` failures（v0.5.0マイグレ以降の乖離）と同根の可能性がある — `ProgressTemplate.md` をワードローブ用に書き換えるか、Progress.md側に「テンプレートで上書きしない、運用ルール節は手動保守」と明記するかの判断が必要
+
 ## 改善アクション
 
 ## ワードローブ推進エンジンに関する記録
