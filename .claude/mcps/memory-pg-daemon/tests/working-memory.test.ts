@@ -1,8 +1,11 @@
-import { describe, expect, test } from "bun:test";
+import { beforeAll, describe, expect, test } from "bun:test";
 import { remember } from "../src/store";
 import { WorkingMemoryBuffer } from "../src/working-memory";
+import { resetDb } from "./helpers";
 
 describe("WorkingMemoryBuffer", () => {
+  beforeAll(resetDb);
+
   test("add / getRecent が新しい順で返る", () => {
     const wm = new WorkingMemoryBuffer(20);
     const now = new Date().toISOString();

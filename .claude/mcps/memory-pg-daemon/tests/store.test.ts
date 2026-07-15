@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { beforeAll, describe, expect, test } from "bun:test";
 import {
   createEpisode,
   getCausalChain,
@@ -9,11 +9,16 @@ import {
   remember,
   searchMemories,
 } from "../src/store";
+import { resetDb } from "./helpers";
 
 // 前提: DATABASE_URL が Phase1 統合DDL適用済みの Postgres を指していること
 // (tmp/postgres-schema-verify/ の検証コンテナ、または同等のスキーマ)
+// 各テストファイルの beforeAll で resetDb() し、過去の bun test 実行で蓄積した
+// データによる意味検索の非決定性を防ぐ（ファイル内のテスト間ではデータを共有する設計）。
 
 describe("memory-pg-daemon store", () => {
+  beforeAll(resetDb);
+
   test("remember → recall が意味検索として機能する", async () => {
     await remember("Bunでmemory-pg-daemonを実装した。テストがちゃんと通って嬉しい。", {
       emotion: "excited",

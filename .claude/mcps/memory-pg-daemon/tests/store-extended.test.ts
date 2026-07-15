@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { beforeAll, describe, expect, test } from "bun:test";
 import {
   linkMemories,
   recallByCameraPosition,
@@ -6,6 +6,9 @@ import {
   remember,
   saveVisualMemory,
 } from "../src/store";
+import { resetDb } from "./helpers";
+
+beforeAll(resetDb);
 
 describe("recallWithAssociations", () => {
   test("mainの結果 + memory_links で繋がった記憶を返す", async () => {

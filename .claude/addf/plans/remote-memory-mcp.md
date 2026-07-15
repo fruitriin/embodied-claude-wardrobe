@@ -490,6 +490,14 @@ keyword-buffer の「ペルソナごとに `$PROJECT_DIR/.claude/` 配下で分�
 
 これで Phase2 最大の技術的リスク（TS移植での埋め込み計算・Postgres接続・pgvector検索）は実証済み。残る作業は契約14ツール全体への拡張・HTTP Daemon化・MCPアダプタ層・wave-expアルゴリズム移植。
 
+**契約ツール10/14実装完了（2026-07-15、062e8f2）**: remember/recall/searchMemories/listRecentMemories/getMemoryStats/linkMemories/getCausalChain/createEpisode/recallWithAssociations/saveVisualMemory/recallByCameraPosition/WorkingMemoryBufferを実装、`tmp/postgres-schema-verify/`検証コンテナに対して`bun test`全パス確認。
+
+**テスト分離バグの発見・修正（2026-07-15）**: 前セッションの「全テストパス」確認後、別セッションで再度`bun test`を実行したところ意味検索テストが非決定的に失敗した。原因は`tmp/postgres-schema-verify/`の検証コンテナが複数セッション・複数回のテスト実行にわたって永続化されており（DockerコンテナはPCを再起動しない限り生き続ける）、記憶データが蓄積して`recall`の意味検索結果が「そのテストが期待する記憶」以外を拾うようになっていたこと。`tests/helpers.ts`に`resetDb()`（`TRUNCATE memories, episodes CASCADE`）を追加し、各テストファイルの最初の`describe`に`beforeAll(resetDb)`を1回だけ置く形で修正——同一ファイル内のテスト間でのデータ使い回し設計は壊さず、複数回の`bun test`実行にまたがる汚染だけを断つ。**教訓: 検証用Dockerコンテナを使い回す設計では、テスト側に明示的なリセットがないと「前回パスしたはずのテストが次回失敗する」形の非決定性が起きる。次にPhase2の新規ツール（recall_divergent等）のテストを書くときもこの前提を踏襲すること**。
+
+**接続情報（次セッション用メモ）**: DATABASE_URLは環境変数として都度setする必要がある（`.env`ファイルは存在しない、bun:sqlが自動で`DATABASE_URL`を読む）。検証コンテナの接続文字列: `postgres://postgres:verify@localhost:15432/postgres`（`docker ps`で`memory-pg-verify-run`コンテナ、ポート15432→5432を確認）。
+
+**recall_divergent着手前のスコープ調査（2026-07-15）**: wave-expブランチの`wave_recall`実装規模を確認した。`.claude/hooks/session-wave-v2.py`（826行）と`wave-phase-core/src/wave_phase_core/cli.py`の`_two_phase_recall`（742行のファイル中の一関数）の計1568行超、Kuramoto振動子・波動位相モデルベースの実装で、読み込み・アルゴリズム理解・TS移植を1セッションで完了させるのは非現実的と判断した。現行wardrobe SQLite版の`recall_divergent`（`store.py:1432-`）も`_association_engine.spread`・`calculate_prediction_error`・`calculate_novelty_score`・`calculate_emotion_boost`・`calculate_boundary_score`・`adaptive_search_params`など複数の補助関数に依存する拡散活性化アルゴリズムで、こちらも単体で相応の規模がある。**次セッションへの申し送り**: (1) まず現行wardrobe版の依存関数群だけを1つずつ読み、疑似コードレベルでアルゴリズムを抽出する（wave-exp移植は別途Phase2後半のタスクとして切り出す） (2) 「現行版の忠実なTS移植」と「wave_recallベースの新規設計」のどちらを採るかはこの読み込みが終わってからリンと確認する（設計判断8は"wave-expを参照"と方針決定済みだが、実装コストと機能差分を見てから最終判断したい）。
+
 ### Phase 3: Web 経路（スキル・ファースト、Daemon 共通化の可能性を検討）
 - Supabase プロジェクト作成、PGroonga / pgvector 有効化（Phase 1 のスキーマをここに張る）
 - `/wd-remote-memory` 系スキルの実装（curl → PostgREST / RPC。remember / recall / stats / flash_index）
