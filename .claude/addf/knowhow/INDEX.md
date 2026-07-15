@@ -17,3 +17,4 @@
 | wardrobe/timestamp-policy.md | タイムスタンプ方針 — 演算系は UTC 統一、台帳系はローカル TZ 付き ISO の使い分け | タイムスタンプ, UTC, タイムゾーン, naive, aware, memory-mcp, journal, TypeError, decay |
 | wardrobe/postgres-persona-schema-separation.md | マルチペルソナで Postgres を共有するときはスキーマ単位で分離する | Postgres, ペルソナ分離, スキーマ, CREATE SCHEMA, persona_id, PGroonga, pgvector, マルチエージェント, keyword-buffer |
 | wardrobe/docker-verify-db-test-isolation.md | 検証用Dockerコンテナを使い回すテストのDB分離 — beforeAllでのTRUNCATE + 本番URL誤爆防止ガード | Docker, テスト分離, TRUNCATE, beforeAll, DATABASE_URL, 意味検索, 非決定性, memory-pg-daemon |
+| wardrobe/bun-http-daemon-tool-dispatch.md | Bun.serve + zod でMCPツール契約をHTTP Daemon化する — 型安全なディスパッチテーブルとエラー非露出 | Bun.serve, zod, ディスパッチテーブル, 型安全, HTTP Daemon, エラー非露出, 127.0.0.1, maxRequestBodySize, memory-pg-daemon |
