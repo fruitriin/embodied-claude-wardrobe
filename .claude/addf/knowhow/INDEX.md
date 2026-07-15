@@ -18,4 +18,4 @@
 | wardrobe/postgres-persona-schema-separation.md | マルチペルソナで Postgres を共有するときはスキーマ単位で分離する | Postgres, ペルソナ分離, スキーマ, CREATE SCHEMA, persona_id, PGroonga, pgvector, マルチエージェント, keyword-buffer |
 | wardrobe/docker-verify-db-test-isolation.md | 検証用Dockerコンテナを使い回すテストのDB分離 — beforeAllでのTRUNCATE + 本番URL誤爆防止ガード | Docker, テスト分離, TRUNCATE, beforeAll, DATABASE_URL, 意味検索, 非決定性, memory-pg-daemon |
 | wardrobe/bun-http-daemon-tool-dispatch.md | Bun.serve + zod でMCPツール契約をHTTP Daemon化する — 型安全なディスパッチテーブルとエラー非露出 | Bun.serve, zod, ディスパッチテーブル, 型安全, HTTP Daemon, エラー非露出, 127.0.0.1, maxRequestBodySize, memory-pg-daemon |
-| wardrobe/mcp-sdk-zero-arg-tool-trap.md | MCP SDKで引数無しツールにz.object({})を渡すと落とし穴 — inputSchema省略で回避 | MCP SDK, McpServer, registerTool, inputSchema, validateToolInput, z.object, 引数無しツール, InMemoryTransport, memory-pg-daemon |
+| wardrobe/mcp-sdk-zero-arg-tool-trap.md | MCP SDKで引数無し/全optionalなツールにshapeを渡すと落とし穴 — 空shape省略・z.preprocess使い分け | MCP SDK, McpServer, registerTool, inputSchema, validateToolInput, z.object, z.preprocess, 引数無しツール, 全optional, InMemoryTransport, memory-pg-daemon |
