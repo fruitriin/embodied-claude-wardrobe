@@ -79,6 +79,13 @@ describe("memory-pg-daemon HTTP", () => {
     expect(body.error).toBe("internal error");
   });
 
+  test("POST /consolidate_memories は空bodyでも動く", async () => {
+    const res = await fetch(`${baseUrl}/consolidate_memories`, { method: "POST", body: "" });
+    expect(res.status).toBe(200);
+    const { result } = (await res.json()) as { result: { freshnessDecayed: boolean } };
+    expect(result.freshnessDecayed).toBe(true);
+  });
+
   test("GET以外・不明パスへのGETは405", async () => {
     const res = await fetch(`${baseUrl}/remember`, { method: "GET" });
     expect(res.status).toBe(405);

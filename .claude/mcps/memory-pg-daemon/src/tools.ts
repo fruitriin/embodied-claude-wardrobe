@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  consolidateMemories,
   createEpisode,
   getCausalChain,
   getMemoryStats,
@@ -87,6 +88,11 @@ export const schemas = {
     tiltAngle: z.number(),
     tolerance: z.number().optional(),
   }),
+  consolidate_memories: z.object({
+    windowHours: z.number().optional(),
+    maxReplayEvents: z.number().optional(),
+    linkUpdateStrength: z.number().optional(),
+  }),
 } as const;
 
 export type ToolName = keyof typeof schemas;
@@ -105,6 +111,8 @@ export const handlers: Handlers = {
   recall_with_associations: (b) => recallWithAssociations(b.context, b.nResults ?? 3, b.chainDepth ?? 1),
   save_visual_memory: (b) => saveVisualMemory(b.content, b.imagePath, b.cameraPosition, b.opts ?? {}),
   recall_by_camera_position: (b) => recallByCameraPosition(b.panAngle, b.tiltAngle, b.tolerance ?? 15),
+  consolidate_memories: (b) =>
+    consolidateMemories(b.windowHours ?? 24, b.maxReplayEvents ?? 200, b.linkUpdateStrength ?? 0.2),
 };
 
 // ツール名はASCII必須(API規約)だが説明は日本語で完全に動く(設計判断7)。
@@ -121,6 +129,9 @@ export const descriptions: Record<ToolName, string> = {
   recall_with_associations: "意味検索の結果に、各結果からリンクを辿った関連記憶を加えて返す",
   save_visual_memory: "カメラで見た内容を画像パス・カメラ位置とともに記憶として保存する",
   recall_by_camera_position: "指定したカメラ位置(パン・チルト角)の許容誤差内で記憶を検索する",
+  consolidate_memories:
+    "直近の記憶をリプレイして共活性化・関連リンクを強化し、新鮮度減衰と重要度の自然な昇格/降格を行う" +
+    "(合成記憶生成等の高度な統合フェーズは専用テーブル未実装のため対象外)",
 };
 
 export function isToolName(name: string): name is ToolName {

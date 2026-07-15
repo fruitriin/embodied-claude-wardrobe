@@ -19,11 +19,12 @@ describe("memory-pg-daemon MCP stdio", () => {
     await client.close();
   });
 
-  test("契約ツール11本がlistToolsに現れる", async () => {
+  test("契約ツール12本がlistToolsに現れる", async () => {
     const { tools } = await client.listTools();
     const names = tools.map((t) => t.name).sort();
     expect(names).toEqual(
       [
+        "consolidate_memories",
         "create_episode",
         "get_causal_chain",
         "get_memory_stats",
@@ -72,6 +73,22 @@ describe("memory-pg-daemon MCP stdio", () => {
     const content = result.content as { type: string; text: string }[];
     const stats = JSON.parse(content[0]!.text);
     expect(stats.totalCount).toBeGreaterThanOrEqual(0);
+  });
+
+  test("全フィールドoptionalなツール(consolidate_memories)はargumentsキー省略でも失敗せず、明示的な値も反映される", async () => {
+    // z.preprocessでundefined→{}に変換するパターン(空shapeとは別扱い)の回帰テスト。
+    // 省略時デフォルト動作と、値を渡したときにちゃんと届くかの両方を確認する
+    const omitted = await client.callTool({ name: "consolidate_memories" });
+    expect(omitted.isError).toBeFalsy();
+    const omittedContent = omitted.content as { type: string; text: string }[];
+    const omittedStats = JSON.parse(omittedContent[0]!.text);
+    expect(omittedStats.freshnessDecayed).toBe(true);
+
+    const explicit = await client.callTool({
+      name: "consolidate_memories",
+      arguments: { windowHours: 1, maxReplayEvents: 5 },
+    });
+    expect(explicit.isError).toBeFalsy();
   });
 
   test("ハンドラ内エラーはisError=trueかつ汎用メッセージを返す", async () => {

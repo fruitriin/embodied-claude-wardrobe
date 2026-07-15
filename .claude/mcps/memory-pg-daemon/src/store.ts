@@ -360,3 +360,146 @@ export async function searchImportantMemories(
   `;
   return rows.map(rowToMemory);
 }
+
+// ── consolidate_memories（旧Python版のPhase1「基本リプレイ」+ Phase2「freshness減衰」+
+// Phase6「importance drift」のみ移植。合成記憶生成・boundary_layers・overlap検出・
+// orphan救済・intersection検出・daily_digest生成は composite_* 等の専用テーブルが
+// Phase1スキーマのスコープ外（remote-memory-mcp.md「スコープ外」節）のため、
+// テーブル追加とセットで別途判断する ──
+
+// 直近の記憶をペアで辿り、共活性化(coactivation)を強化しつつ、活性化回数と
+// 予測誤差を更新する。閾値を超えたペアには自動でrelatedリンクを張る
+async function bumpCoactivation(sourceId: string, targetId: string, delta = 0.1): Promise<void> {
+  const clampedDelta = Math.max(0, Math.min(1, delta));
+  for (const [s, t] of [
+    [sourceId, targetId],
+    [targetId, sourceId],
+  ] as const) {
+    await sql`
+      INSERT INTO coactivation (source_id, target_id, weight)
+      VALUES (${s}, ${t}, ${clampedDelta})
+      ON CONFLICT (source_id, target_id)
+      DO UPDATE SET weight = LEAST(1.0, GREATEST(0.0, coactivation.weight + ${clampedDelta}))
+    `;
+  }
+}
+
+async function recordActivation(memoryId: string, predictionError?: number): Promise<void> {
+  const clamped = predictionError === undefined ? null : Math.max(0, Math.min(1, predictionError));
+  await sql`
+    UPDATE memories
+    SET activation_count = activation_count + 1,
+        last_activated = now(),
+        prediction_error = COALESCE(${clamped}::real, prediction_error)
+    WHERE id = ${memoryId}
+  `;
+}
+
+async function maybeAddRelatedLink(sourceId: string, targetId: string, threshold = 0.6): Promise<boolean> {
+  const [row] = await sql`
+    SELECT weight FROM coactivation WHERE source_id = ${sourceId} AND target_id = ${targetId}
+  `;
+  if (!row || Number(row.weight) < threshold) return false;
+  await linkMemories(sourceId, targetId, "related", "auto-linked by consolidation replay");
+  return true;
+}
+
+async function consolidateFreshness(factor = 0.92): Promise<void> {
+  await sql`UPDATE memories SET freshness = GREATEST(0.01, freshness * ${factor})`;
+}
+
+async function driftImportance(): Promise<{ promoted: number; demoted: number }> {
+  const all = await listRecentMemories(10000);
+  let promoted = 0;
+  let demoted = 0;
+
+  for (const mem of all) {
+    let newImportance = mem.importance;
+
+    if (mem.activationCount >= 15 && mem.importance < 5) newImportance = mem.importance + 1;
+    else if (mem.activationCount >= 5 && mem.importance < 4) newImportance = mem.importance + 1;
+    else if (mem.accessCount >= 10 && mem.importance < 4) newImportance = mem.importance + 1;
+
+    if (
+      newImportance === mem.importance &&
+      mem.freshness < 0.05 &&
+      mem.accessCount === 0 &&
+      mem.activationCount === 0 &&
+      mem.importance > 1 &&
+      mem.importance < 5 // importance 5 は降格保護
+    ) {
+      newImportance = mem.importance - 1;
+    }
+
+    if (newImportance !== mem.importance) {
+      await sql`UPDATE memories SET importance = ${newImportance} WHERE id = ${mem.id}`;
+      if (newImportance > mem.importance) promoted++;
+      else demoted++;
+    }
+  }
+
+  return { promoted, demoted };
+}
+
+export interface ConsolidationStats {
+  replayEvents: number;
+  coactivationUpdates: number;
+  linkUpdates: number;
+  refreshedMemories: number;
+  freshnessDecayed: boolean;
+  importancePromoted: number;
+  importanceDemoted: number;
+}
+
+export async function consolidateMemories(
+  windowHours = 24,
+  maxReplayEvents = 200,
+  linkUpdateStrength = 0.2
+): Promise<ConsolidationStats> {
+  // 旧Python版のmax(1, window_hours)を踏襲。0以下を渡すとcutoffが現在時刻以降になり
+  // リプレイが常に0件でサイレントに無効化されるため下限を1時間にクランプする
+  const cutoff = new Date(Date.now() - Math.max(1, windowHours) * 3600_000);
+  const candidates = await listRecentMemories(Math.max(maxReplayEvents * 2, 50));
+  const recent = candidates.filter((m) => new Date(m.timestamp) >= cutoff);
+
+  let replayEvents = 0;
+  let coactivationUpdates = 0;
+  let linkUpdates = 0;
+  const refreshedIds = new Set<string>();
+
+  if (recent.length >= 2) {
+    for (let idx = 0; idx < recent.length - 1 && replayEvents < maxReplayEvents; idx++) {
+      const left = recent[idx]!;
+      const right = recent[idx + 1]!;
+      const delta = Math.max(0.05, Math.min(1.0, linkUpdateStrength));
+
+      // ペア内の更新は互いに独立なので並列化してDB往復回数の影響を抑える
+      // (wd-code-review指摘: 逐次awaitは件数が増えると往復回数がボトルネックになりうる)
+      await Promise.all([
+        bumpCoactivation(left.id, right.id, delta),
+        recordActivation(left.id, Math.max(0, left.predictionError * 0.9)),
+        recordActivation(right.id, Math.max(0, right.predictionError * 0.9)),
+      ]);
+      coactivationUpdates += 2;
+      refreshedIds.add(left.id);
+      refreshedIds.add(right.id);
+
+      if (await maybeAddRelatedLink(left.id, right.id, 0.6)) linkUpdates++;
+
+      replayEvents++;
+    }
+  }
+
+  await consolidateFreshness();
+  const drift = await driftImportance();
+
+  return {
+    replayEvents,
+    coactivationUpdates,
+    linkUpdates,
+    refreshedMemories: refreshedIds.size,
+    freshnessDecayed: true,
+    importancePromoted: drift.promoted,
+    importanceDemoted: drift.demoted,
+  };
+}
