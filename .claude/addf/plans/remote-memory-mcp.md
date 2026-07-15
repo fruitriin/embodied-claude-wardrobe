@@ -230,27 +230,51 @@ wardrobe現行25ツール・upstream本家27ツール・Rem `wave-exp`（12ツ�
 | `coactivation`のUPSERT構文 | 動作確認 |
 | `flash_index`ビュー・`get_flash_index_recent(weeks_back)`関数: 週境界での絞り込み | `weeks_back=1`で4週間前の記憶が除外、`weeks_back=6`で含まれることを確認 |
 
+**PR#1統合後の再検証（2026-07-15）**: 検証コンテナの`public`スキーマをリセットし、PR#1統合版DDL全文を再度流し込んで確認。
+
+| 検証項目 | 結果 |
+|---|---|
+| 統合DDL全文（`evidence_type`/`updated_at`トリガー/`memory_links`独立id+weight/`episode_memories`/`schema_versions`含む）の実行 | 全文エラーなく成功 |
+| `updated_at`自動更新トリガー | `UPDATE`後に`updated_at > created_at`を確認 |
+| `evidence_type`のCHECK制約 | 不正な値（`invalid_value`）を`check_violation`で正しく拒否 |
+| `episode_memories`ジャンクションテーブル | `episodes`⇄`memories`のJOINで正しく紐付け確認 |
+| `memory_links`の独立`id`+`weight`列 | INSERT時に`id`が自動採番され`weight`も保存されることを確認 |
+
 ハマった点: 検証用INSERTで `(SELECT random() FROM generate_series(1,768))` を非相関サブクエリとして書いたところ、PostgreSQL が `InitPlan` として1回だけ評価し**全行に同じベクトルが入る**バグを踏んだ（`EXPLAIN`の`InitPlan`表示で気づいた）。行ごとに独立させるには `DO $$ ... FOR r IN SELECT id FROM memories LOOP ... END LOOP; $$` のように行単位でクエリを分離する必要がある——スキーマ自体の問題ではなく検証スクリプト側の罠だが、Phase2でのシードデータ/テストコード作成時に踏みやすいので申し送りしておく。
 
-#### DDL（ペルソナ1名分。ペルソナ分離方針は後述）
+#### DDL（ペルソナ1名分。ペルソナ分離方針は後述）— PR#1統合版
+
+**2026-07-15 統合**: `feature/postgres-memory`ブランチ（PR#1、2026-07-06、Claude Code Web上での投機的実装）の`sql/schema/001_init.sql`と付き合わせて、良い部分をいいとこ取りした。詳細は本節末尾「PR#1との統合」を参照。
 
 ```sql
 CREATE EXTENSION IF NOT EXISTS pgroonga;
 CREATE EXTENSION IF NOT EXISTS vector;
+
+CREATE OR REPLACE FUNCTION set_updated_at() RETURNS trigger AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+-- PR#1由来。updated_at自動更新トリガの共通関数
 
 CREATE TABLE episodes (
     id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     title            text NOT NULL,
     start_time       timestamptz NOT NULL,
     end_time         timestamptz,
-    memory_ids       uuid[] NOT NULL DEFAULT '{}',
     participants     text[] NOT NULL DEFAULT '{}',
     location_context text,
     summary          text NOT NULL DEFAULT '',
     emotion          text NOT NULL DEFAULT 'neutral',
-    importance       smallint NOT NULL DEFAULT 3 CHECK (importance BETWEEN 1 AND 5)
+    importance       smallint NOT NULL DEFAULT 3 CHECK (importance BETWEEN 1 AND 5),
+    created_at       timestamptz NOT NULL DEFAULT now(),
+    updated_at       timestamptz NOT NULL DEFAULT now()
 );
--- memory_ids は memories.episode_id との二重管理（SQLite版から踏襲、双方向の非正規化）
+-- memory_ids列(配列)は廃止。episode_memoriesジャンクションテーブルに一本化（PR#1由来、後述）
+
+CREATE TRIGGER episodes_set_updated_at BEFORE UPDATE ON episodes
+    FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 CREATE TABLE memories (
     id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -259,9 +283,10 @@ CREATE TABLE memories (
     emotion          text NOT NULL DEFAULT 'neutral',
     importance       smallint NOT NULL DEFAULT 3 CHECK (importance BETWEEN 1 AND 5),
     category         text NOT NULL DEFAULT 'daily',
+    evidence_type    text CHECK (evidence_type IS NULL OR evidence_type IN
+                       ('observed', 'inferred', 'remembered', 'heard', 'assumed')),
     access_count     integer NOT NULL DEFAULT 0,
     last_accessed    timestamptz,
-    episode_id       uuid REFERENCES episodes(id) ON DELETE SET NULL,
     sensory_data     jsonb NOT NULL DEFAULT '[]'::jsonb,
     camera_position  jsonb,
     tags             text[] NOT NULL DEFAULT '{}',
@@ -270,20 +295,28 @@ CREATE TABLE memories (
     activation_count integer NOT NULL DEFAULT 0,
     last_activated   timestamptz,
     freshness        real NOT NULL DEFAULT 1.0,
-    flash_keywords   text
+    flash_keywords   text,
+    created_at       timestamptz NOT NULL DEFAULT now(),
+    updated_at       timestamptz NOT NULL DEFAULT now()
 );
 -- SQLite版からの変更点:
---   normalized_content 列を削除 → PGroonga索引が正規化を肩代わり（設計判断5）
---   reading 列を削除 → PGroonga索引2本目（TokenMecab use_reading）が肩代わり（設計判断5）
+--   normalized_content / reading 列を削除 → PGroonga索引2本（正規化+読み仮名）が肩代わり（設計判断5、PR#1のトリプル索引案より新しい知見）
 --   linked_ids / links 列を削除 → memory_links テーブルに統合（下記、統合調査でリンGO済み）
+--   episode_id 列を削除 → episode_memories ジャンクションテーブルに一本化（PR#1由来）
 --   カンマ区切りTEXT（tags）→ text[] に正規化
---   flash_keywords 列を新設 → FLASH.md 相当の逆引きキーワード（下記 flash_index ビュー参照）。
---     remember ツール呼び出し時に任意パラメータとして一緒に渡す想定（別ツール呼び出し不要）
+--   flash_keywords 列を新設 → FLASH.md 相当の逆引きキーワード（下記 flash_index ビュー参照）
+-- PR#1からの取り込み:
+--   evidence_type列（observed/inferred/remembered/heard/assumed） — external-intake Tier3由来、「観察と推論の混同防止」
+--   created_at/updated_at列 + 自動更新トリガー
 
-CREATE INDEX idx_memories_emotion    ON memories(emotion);
-CREATE INDEX idx_memories_category   ON memories(category);
-CREATE INDEX idx_memories_timestamp  ON memories(timestamp);
-CREATE INDEX idx_memories_importance ON memories(importance);
+CREATE TRIGGER memories_set_updated_at BEFORE UPDATE ON memories
+    FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE INDEX idx_memories_emotion       ON memories(emotion);
+CREATE INDEX idx_memories_category      ON memories(category);
+CREATE INDEX idx_memories_timestamp     ON memories(timestamp);
+CREATE INDEX idx_memories_importance    ON memories(importance);
+CREATE INDEX idx_memories_evidence_type ON memories(evidence_type) WHERE evidence_type IS NOT NULL;
 
 -- PGroonga 全文検索: content 1カラム + 設定違いの索引2本（設計判断5の結論そのまま）
 CREATE INDEX idx_memories_content_normalized ON memories
@@ -302,8 +335,10 @@ CREATE INDEX idx_memories_tags ON memories
 -- 出典: https://github.com/pgroonga/pgroonga/issues/19
 
 CREATE TABLE embeddings (
-    memory_id uuid PRIMARY KEY REFERENCES memories(id) ON DELETE CASCADE,
-    embedding vector(768) NOT NULL  -- multilingual-e5-base 768次元（設計判断6。PR#2で最終確定待ち、確定したらここを変更）
+    memory_id  uuid PRIMARY KEY REFERENCES memories(id) ON DELETE CASCADE,
+    embedding  vector(768) NOT NULL,  -- multilingual-e5-base 768次元（設計判断6、TS実装で実測済み）
+    model      text NOT NULL DEFAULT 'Xenova/multilingual-e5-base',  -- PR#1由来: 埋め込みモデル変更時の識別用
+    created_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE INDEX idx_embeddings_hnsw ON embeddings
@@ -312,14 +347,16 @@ CREATE INDEX idx_embeddings_hnsw ON embeddings
 -- 出典: https://supabase.com/docs/guides/ai/vector-indexes/hnsw-indexes
 
 -- linked_ids（自動類似・無向・型なし）+ links（明示的因果・有向・型付き）を統合
--- （linked_ids/links統合調査、2026-07-14 リンGO）
+-- （linked_ids/links統合調査、2026-07-14 リンGO。独立id/weight列はPR#1由来）
 CREATE TABLE memory_links (
+    id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     source_id  uuid NOT NULL REFERENCES memories(id) ON DELETE CASCADE,
     target_id  uuid NOT NULL REFERENCES memories(id) ON DELETE CASCADE,
-    link_type  text NOT NULL,  -- 'caused_by' | 'leads_to' | 'related' | 'similar' | 'similar_auto'
+    link_type  text NOT NULL DEFAULT 'related',  -- 'caused_by' | 'leads_to' | 'related' | 'similar' | 'similar_auto'
+    weight     real NOT NULL DEFAULT 1.0,
     created_at timestamptz NOT NULL DEFAULT now(),
     note       text,
-    PRIMARY KEY (source_id, target_id, link_type),
+    UNIQUE (source_id, target_id, link_type),
     CHECK (source_id <> target_id)
 );
 CREATE INDEX idx_memory_links_source ON memory_links(source_id);
@@ -340,6 +377,27 @@ CREATE INDEX idx_coactivation_target ON coactivation(target_id);
 -- SQLite版と同じUPSERT構文がそのまま使える:
 --   INSERT ... ON CONFLICT (source_id, target_id) DO UPDATE SET weight = EXCLUDED.weight
 
+-- episode_memories（PR#1由来）: memories.episode_id(単一FK)+episodes.memory_ids(配列)の
+-- 二重管理をやめ、正規化されたジャンクションテーブルに一本化。order_indexでエピソード内の順序も持てる
+CREATE TABLE episode_memories (
+    episode_id  uuid    NOT NULL REFERENCES episodes(id) ON DELETE CASCADE,
+    memory_id   uuid    NOT NULL REFERENCES memories(id) ON DELETE CASCADE,
+    order_index integer NOT NULL DEFAULT 0,
+    PRIMARY KEY (episode_id, memory_id)
+);
+CREATE INDEX idx_episode_memories_memory ON episode_memories(memory_id);
+CREATE INDEX idx_episode_memories_order  ON episode_memories(episode_id, order_index);
+
+-- schema_versions（PR#1由来）: マイグレーション履歴をDB内で持つ
+CREATE TABLE schema_versions (
+    version    text PRIMARY KEY,
+    applied_at timestamptz NOT NULL DEFAULT now(),
+    note       text
+);
+INSERT INTO schema_versions (version, note)
+VALUES ('001_init', 'memories/embeddings/memory_links/coactivation/episodes/episode_memories/schema_versions')
+ON CONFLICT (version) DO NOTHING;
+
 -- FLASH.md の具現化元（2026-07-14 テーブル案からビュー案に訂正、リン指摘反映）
 -- memories.flash_keywords から動的に集約する。書き込みは remember 呼び出し1回で完結し、
 -- 「つながり(memory_ids)」の集約は LLM が意識せず GROUP BY が肩代わりする
@@ -354,6 +412,12 @@ WHERE flash_keywords IS NOT NULL AND flash_keywords <> ''
 GROUP BY week_start, day_label
 ORDER BY week_start DESC, min(timestamp) DESC;
 ```
+
+**PR#1との統合（2026-07-15）**: `feature/postgres-memory`ブランチ（PR#1）で Claude Code Web 上で投機的に進められていた実装（`.claude/mcps/postgres-memory/`、mainには未マージ）と、本計画のPhase0-2作業が独立に並行して同じ問題に取り組んでいたことが判明。リン確認の上「投機的実行はよくあるフロー、いいとこ取りしよう」で統合方針が決定。
+
+- **PR#1から採用**: `evidence_type`列（observed/inferred/remembered/heard/assumed、external-intake Tier3由来）／`created_at`/`updated_at`列+自動更新トリガー／`embeddings.model`列（埋め込みモデル変更時の識別用）／`memory_links`の独立`id`列+`weight`列／`episode_memories`ジャンクションテーブル（`memories.episode_id`単一FK+`episodes.memory_ids`配列の二重管理から、正規化された多対多関係に一本化。`order_index`でエピソード内の記憶順序も持てる）／`schema_versions`テーブル
+- **本計画（Phase0-2）を優先**: PGroonga索引設計（PR#1は`content`/`normalized_content`/`reading`の3カラムそれぞれに個別索引=トリプル索引案。本計画の「content 1カラム+設定違いの索引2本」という設計判断5は、PR#1より後の2026-07-06にmisskey実測を踏まえてリン承認されたもので、PR#1の設計より新しい知見のため）／契約ツール数（PR#1は2026-07-03時点の「最小契約11ツール」、本計画は2026-07-14にスキル・フック・CLAUDE.mdを実測してgrepした「契約14ツール」でより正確）／flash_index 2層構造・ペルソナ分離（スキーマ単位）・埋め込みモデル確定（multilingual-e5-base実測）・Bun/TypeScript実装方針（PR#1はPython実装を想定していたが、リンが後にBun/TypeScript方針に変更したため）はPR#1に存在しない・古いためそのまま採用
+- **`feature/postgres-memory`ブランチの今後の扱い**: 未確定（次の「リンに確認したいこと」参照）
 
 **設計の訂正理由（2026-07-14、リン指摘）**: 当初 `flash_index` を独立テーブルとして設計したが、これだと `remember` 呼び出しのたびに「今週の該当曜日の行があれば追記、なければ新規行」という upsert 判断を**別のツール呼び出しとして LLM に強いる**ことになり、現行の Markdown 直接編集（Edit 1回で完結）より退化する。リンの要求は「複数一括の挿入・編集・削除が自由」「つながりの検出を LLM が意識しなくて済む」の2点——これを満たすには**テーブルではなくビュー**にして、書き込みを `memories.flash_keywords` 列への1回の書き込み（`remember` 呼び出しに乗せる）に一本化し、週・曜日・`memory_ids` の集約は全て `GROUP BY`/`array_agg` に任せるのが筋が良い。`memories` への通常の UPDATE/DELETE がそのままビューに反映されるため、`flash_index` 側の整合性維持コードも不要になる。
 
