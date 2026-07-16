@@ -1,0 +1,23 @@
+{
+  "name": "memory-pg-daemon",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "bun run --watch src/daemon.ts",
+    "start": "bun run src/daemon.ts",
+    "mcp": "bun run src/mcp-stdio.ts",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^4.2.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^4.4.3"
+  }
+}

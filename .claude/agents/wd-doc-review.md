@@ -74,9 +74,9 @@ LLM に対する指示文中で「誰を指しているか」の表記が揺れ�
 | 設計書 | `CLAUDE.md` |
 | スキル | `.claude/commands/*.md`（`*.exp.md` を除く） |
 | エージェント | `.claude/agents/*.md` |
-| テンプレート | `.claude/templates/*.md` |
+| テンプレート | `.claude/addf/templates/*.md` |
 | 設定 | `prompts.toml`, `autonomous-action.sh`（プロンプト文言部分） |
-| ドキュメント | `docs/project-overview/*.md`, `docs/guides/*.md`, `docs/test-scenarios.md` |
+| ドキュメント | `.claude/addf/project-overview/*.md`, `.claude/addf/guides/*.md`, `docs/test-scenarios.md` |
 | README | `README.md` |
 
 ### ダウンストリーム固有（検査しない）
@@ -87,7 +87,7 @@ LLM に対する指示文中で「誰を指しているか」の表記が揺れ�
 - `desires.conf`, `schedule.conf`
 - `.claude/commands/*.exp.md`
 - `.mcp.json`, `.env`, `autonomous-mcp.json`
-- `docs/plans/`, `docs/knowhow/`（知見は蓄積物であり統一より鮮度を優先）
+- `.claude/addf/plans/`, `.claude/addf/knowhow/`（知見は蓄積物であり統一より鮮度を優先）
 
 ## 出力形式
 

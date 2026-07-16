@@ -23,7 +23,7 @@ Claude Code の最新 changelog を読み、ワードローブの運用に影響
 
 ### Step 1: 既存 knowhow の読み込み
 
-`docs/knowhow/claude-code/` 配下の全ファイルを読む。各ファイルの「出典」行から前回の取得日を確認する。
+`.claude/addf/knowhow/claude-code/` 配下の全ファイルを読む。各ファイルの「出典」行から前回の取得日を確認する。
 
 ### Step 2: changelog の取得
 

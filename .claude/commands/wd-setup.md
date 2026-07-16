@@ -93,7 +93,7 @@ AskUserQuestion **1回** で聞く（2問）:
 
 ### 初回モード
 
-1. `.claude/templates/SOUL.template.md` をプロジェクトルートに `SOUL.md` としてコピー
+1. `.claude/wardrobeTemplates/SOUL.template.md` をプロジェクトルートに `SOUL.md` としてコピー
 2. 名前・一人称を埋める
 3. 他のセクション（Core Truths, Expertise, Values 等）はテンプレートのコメントを残す
 
@@ -108,12 +108,12 @@ AskUserQuestion **1回** で聞く（2問）:
 
 | ファイル | テンプレート |
 |---|---|
-| state.md | `.claude/templates/STATE.template.md` |
+| state.md | `.claude/wardrobeTemplates/STATE.template.md` |
 | BOOT_SHUTDOWN.md | アップストリーム追跡済み（コピー不要） |
-| ROUTINES.md | `.claude/templates/ROUTINES.template.md` |
-| FLASH.md | `.claude/templates/FLASH.template.md` |
-| desires.conf | `.claude/templates/desires.template.conf` |
-| schedule.conf | `.claude/templates/schedule.template.conf` |
+| ROUTINES.md | `.claude/wardrobeTemplates/ROUTINES.template.md` |
+| FLASH.md | `.claude/wardrobeTemplates/FLASH.template.md` |
+| desires.conf | `.claude/wardrobeTemplates/desires.template.conf` |
+| schedule.conf | `.claude/wardrobeTemplates/schedule.template.conf` |
 
 ---
 

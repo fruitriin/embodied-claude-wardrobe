@@ -10,7 +10,7 @@ CLAUDE.md を起点に、スキル・フック・スクリプト・ドキュメ�
 
 ## 事前準備
 
-`docs/project-overview/INDEX.md` と `docs/project-overview/interactions.md` を読み、システム全体の依存関係を把握する。
+`.claude/addf/project-overview/INDEX.md` と `.claude/addf/project-overview/interactions.md` を読み、システム全体の依存関係を把握する。
 
 ## 検査対象
 
@@ -59,7 +59,7 @@ CLAUDE.md を全文読み、以下を抽出・検証する:
 
 ### 6. テンプレートの整合性とドリフト検出
 
-`.claude/templates/` 内のテンプレートを読み、以下を検証する:
+`.claude/addf/templates/` 内のテンプレートを読み、以下を検証する:
 
 - テンプレート内の `/wd-*` スキル参照 → 存在するか
 - テンプレートから生成されるファイルとの **構造ドリフト** を検出する:
@@ -81,9 +81,9 @@ CLAUDE.md を全文読み、以下を抽出・検証する:
 - **スキル参照の不一致**: テンプレート内のスキル名とインスタンス内のスキル名が異なる（リネーム漏れ）
 - **スキルが期待する構造との乖離**: `/wd-setup` がテンプレートから生成する際に前提としている構造（セクション名、フィールド名）が、実際のテンプレートと一致するか
 
-### 7. docs/project-overview の鮮度
+### 7. .claude/addf/project-overview の鮮度
 
-`docs/project-overview/` 内のドキュメントを読み、以下を検証する:
+`.claude/addf/project-overview/` 内のドキュメントを読み、以下を検証する:
 
 - 参照されているスキルファイルパス → 現在のファイル名と一致するか（リネーム漏れの検出）
 - system-*.md 内のコンポーネント一覧 → 実在するか
@@ -106,7 +106,7 @@ CLAUDE.md を全文読み、以下を抽出・検証する:
 
 | 参照元 | 参照先 | 問題 |
 |---|---|---|
-| docs/project-overview/system-soul.md:18 | .claude/commands/wardrobe-setup.md | 旧ファイル名。wd-setup.md にリネーム済み |
+| .claude/addf/project-overview/system-soul.md:18 | .claude/commands/wardrobe-setup.md | 旧ファイル名。wd-setup.md にリネーム済み |
 
 ### Drift（テンプレートドリフト）
 テンプレートとインスタンスの構造が乖離している。

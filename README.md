@@ -47,9 +47,9 @@ memory-mcp を使いこなすためのスキル群とフック。記憶を「刻
 cron による定期的な自律行動。欲望システムと連携して内発的動機で動く。
 
 - `autonomous-action.sh` — 完成版の自律行動スクリプト
-- `.claude/templates/desires.template.conf` — 欲望の種類と発火間隔の設定
-- `.claude/templates/schedule.template.conf` — 曜日・時間帯による間引き制御
-- `.claude/templates/ROUTINES.template.md` — 定期巡回タスクの定義テンプレート
+- `.claude/wardrobeTemplates/desires.template.conf` — 欲望の種類と発火間隔の設定
+- `.claude/wardrobeTemplates/schedule.template.conf` — 曜日・時間帯による間引き制御
+- `.claude/wardrobeTemplates/ROUTINES.template.md` — 定期巡回タスクの定義テンプレート
 - `/sleep`, `/awake` — 活動頻度の抑制・復帰（オプショナル: `.claude/wardrobeOptions/skills/` 参照）
 
 ### アイデンティティテンプレート
@@ -57,11 +57,11 @@ cron による定期的な自律行動。欲望システムと連携して内発
 
 | テンプレート | 用途 |
 |---|---|
-| `.claude/templates/SOUL.template.md` | 人格定義（Identity / Values / Style / Evolution） |
+| `.claude/wardrobeTemplates/SOUL.template.md` | 人格定義（Identity / Values / Style / Evolution） |
 | `BOOT_SHUTDOWN.md` | 身支度 / 日記の手順 |
-| `.claude/templates/ROUTINES.template.md` | 定期巡回タスクの定義 |
-| `.claude/templates/FLASH.template.md` | 記憶インデックスの初期テンプレート |
-| `.claude/templates/PERSONA.template.md` | マルチペルソナ拡張用（任意） |
+| `.claude/wardrobeTemplates/ROUTINES.template.md` | 定期巡回タスクの定義 |
+| `.claude/wardrobeTemplates/FLASH.template.md` | 記憶インデックスの初期テンプレート |
+| `.claude/wardrobeTemplates/PERSONA.template.md` | マルチペルソナ拡張用（任意） |
 
 ### 読書・観測スキル
 外部コンテンツを安全に取り込む。
@@ -132,10 +132,10 @@ cd embodied-claude-wardrobe
 cd .claude/mcps/memory-mcp && uv sync && cd ../../..
 
 # テンプレートをコピーしてカスタマイズ
-cp .claude/templates/SOUL.template.md SOUL.md
+cp .claude/wardrobeTemplates/SOUL.template.md SOUL.md
 # BOOT_SHUTDOWN.md はアップストリーム追跡。カスタマイズは BOOT_SHUTDOWN.exp.md に書く
-cp .claude/templates/ROUTINES.template.md ROUTINES.md
-cp .claude/templates/FLASH.template.md FLASH.md
+cp .claude/wardrobeTemplates/ROUTINES.template.md ROUTINES.md
+cp .claude/wardrobeTemplates/FLASH.template.md FLASH.md
 ```
 
 `SOUL.md` を編集してエージェントの人格を定義し、Claude Code を起動：
@@ -151,11 +151,11 @@ claude
 
 | ガイド | 内容 |
 |---|---|
-| [セットアップ](docs/guides/setup.md) | 詳細なインストール手順と MCP 設定 |
-| [SOUL の書き方](docs/guides/soul-writing.md) | 人格定義テンプレートの使い方 |
-| [カスタマイズ](docs/guides/customization.md) | スキル・フックの変更と追加 |
-| [マルチペルソナ](docs/guides/multi-persona.md) | 複数ペルソナの追加方法 |
-| [自律行動](docs/guides/autonomous-action.md) | cron 自律行動の設定 |
+| [セットアップ](.claude/addf/guides/setup.md) | 詳細なインストール手順と MCP 設定 |
+| [SOUL の書き方](.claude/wardrobeGuides/soul-writing.md) | 人格定義テンプレートの使い方 |
+| [カスタマイズ](.claude/wardrobeGuides/customization.md) | スキル・フックの変更と追加 |
+| [マルチペルソナ](.claude/wardrobeGuides/multi-persona.md) | 複数ペルソナの追加方法 |
+| [自律行動](.claude/wardrobeGuides/autonomous-action.md) | cron 自律行動の設定 |
 
 ---
 

@@ -18,9 +18,9 @@ model: sonnet
 
 ## 事前準備
 
-分析を始める前に `docs/project-overview/` を読み、ワードローブのシステム全体像を把握すること。
-- `docs/project-overview/INDEX.md` — 各概念システムの構成
-- `docs/project-overview/interactions.md` — スキル・フック・MCP 間の依存関係
+分析を始める前に `.claude/addf/project-overview/` を読み、ワードローブのシステム全体像を把握すること。
+- `.claude/addf/project-overview/INDEX.md` — 各概念システムの構成
+- `.claude/addf/project-overview/interactions.md` — スキル・フック・MCP 間の依存関係
 
 ## アップストリーム/ダウンストリーム分離モデル
 
@@ -53,7 +53,7 @@ model: sonnet
 | エージェント | `.claude/agents/*.md` |
 | フック | `.claude/hooks/` |
 | スクリプト | `.claude/scripts/` |
-| テンプレート | `.claude/templates/` |
+| テンプレート | `.claude/addf/templates/` |
 | ツール | `.claude/commands/*/tools/` |
 | オプション | `.claude/wardrobeOptions/` |
 | 設計書 | `CLAUDE.md`, `AGENTS.md` |
@@ -79,7 +79,7 @@ model: sonnet
   - 例: 汎用的なスキル改善が `*.exp.md` にだけ記録されている
   - 例: フックのバグ修正がローカルで当てられているがアップストリームに未反映
 - テンプレートとインスタンスの乖離
-  - 例: `BOOT_SHUTDOWN.md` の改善がテンプレート（`.claude/templates/`）に反映されていない
+  - 例: `BOOT_SHUTDOWN.md` の改善がテンプレート（`.claude/addf/templates/`）に反映されていない
 
 ## 手順
 

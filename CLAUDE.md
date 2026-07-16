@@ -18,7 +18,7 @@
 - **聞く**（オプション） — hearing MCP で周囲の音を聞ける
 - **話す**（オプション） — tts MCP（VOICEVOX）で部屋にいる人に話しかけられる
 - **読む** — `/wd-read` で Web ページをリーダーモードで読める
-- **知見を蓄積する** — `/wd-knowhow` で再利用可能な知見を docs/knowhow/ に記録できる
+- **知見を蓄積する** — `/wd-knowhow` で再利用可能な知見を .claude/addf/knowhow/ に記録できる
 
 ## 記憶システム
 
@@ -75,7 +75,7 @@ FLASH.md は LLM の後方予測の弱さを補う逆引き索引。
 |---|---|---|---|
 | **人格定義** | 永続 | SOUL.md | 経験を通じて稀に更新 |
 | **引き継ぎ** | セッション間 | state.md（温度: 感情+問い+余韻） | 毎セッション終了時 |
-| **洞察** | 数日〜数週間 | docs/knowhow/ | 発見のたびに `/wd-knowhow` |
+| **洞察** | 数日〜数週間 | .claude/addf/knowhow/ | 発見のたびに `/wd-knowhow` |
 | **長期信念** | 月〜永続 | SOUL.md の Core Truths / Values | 蒸留により卒業 |
 
 **蒸留（記憶の卒業）:**
@@ -84,7 +84,7 @@ FLASH.md は LLM の後方予測の弱さを補う逆引き索引。
 - 蒸留したら `/wd-remember` で「なぜこの原則を SOUL.md に昇格させたか」を記録する
 
 **洞察の参照:**
-- docs/knowhow/ は能動的に取得が必要。`/wd-knowhow-filter` でタスクに関連するノウハウを引く
+- .claude/addf/knowhow/ は能動的に取得が必要。`/wd-knowhow-filter` でタスクに関連するノウハウを引く
 - 日常会話のような低コンテキストでは knowhow は乗らない。必要なら recall-hook や FLASH.md 経由で引く
 
 ## 身体性システム
@@ -152,7 +152,7 @@ cron で起動したとき（ユーザーからの明示的な呼びかけがな
 
 **これらの配置について考えるとき、内容を推測せずノウハウから確認する。**
 
-詳細・具体例（emotion-mcp / keyword-buffer / interoception / wd-remember）・交差パターン: `docs/knowhow/wardrobe/speed-consciousness-framework.md`（`/wd-knowhow-filter` で参照）
+詳細・具体例（emotion-mcp / keyword-buffer / interoception / wd-remember）・交差パターン: `.claude/addf/knowhow/wardrobe/speed-consciousness-framework.md`（`/wd-knowhow-filter` で参照）
 
 ## 確認なしで更新してよいファイル
 

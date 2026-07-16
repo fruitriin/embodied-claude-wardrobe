@@ -1,14 +1,14 @@
 ---
 name: wd-knowhow-filter
 description: |
-  計画やタスクの内容を受け取り、docs/knowhow/ から関連するノウハウのパスと要約だけを返す。
+  計画やタスクの内容を受け取り、.claude/addf/knowhow/ から関連するノウハウのパスと要約だけを返す。
   タスク開始時に関連ノウハウを把握したいとき、実装中に参考になる知見を探したいときに使う。
 user_invocable: true
 ---
 
 # /wd-knowhow-filter — 知見フィルタリング
 
-計画やタスクの内容に基づいて、`docs/knowhow/` 内のノウハウから関連するものだけを選別して返す。
+計画やタスクの内容に基づいて、`.claude/addf/knowhow/` 内のノウハウから関連するものだけを選別して返す。
 `wardrobe/` 配下（アップストリーム知見）と個人知識の両方を横断検索する。
 
 ## 引数
@@ -17,7 +17,7 @@ user_invocable: true
 ## 手順
 
 1. `$ARGUMENTS` の内容を読む（ファイルパスならファイルを Read、テキストならそのまま使用）
-2. `docs/knowhow/INDEX.md` を読み、キーワードで候補を絞り込む
+2. `.claude/addf/knowhow/INDEX.md` を読み、キーワードで候補を絞り込む
 3. 候補のノウハウファイルを読み、実際に関連があるか判定する
 4. 以下の形式で結果を返す:
 
@@ -26,13 +26,13 @@ user_invocable: true
 
 ### Wardrobe（フレームワーク知見）
 
-#### docs/knowhow/wardrobe/xxx.md
+#### .claude/addf/knowhow/wardrobe/xxx.md
 要約: （1〜2文で内容を要約）
 関連理由: （タスクのどの部分に関係するか）
 
 ### Personal（個人知識）
 
-#### docs/knowhow/yyy.md
+#### .claude/addf/knowhow/yyy.md
 要約: ...
 関連理由: ...
 ```

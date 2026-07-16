@@ -14,7 +14,7 @@ user_invocable: true
 ## 手順
 
 ### 1. ノウハウ読み込み
-`docs/knowhow/ADDF/permission-settings-pattern.md` を読み、以下を把握する:
+`.claude/addf/knowhow/ADDF/permission-settings-pattern.md` を読み、以下を把握する:
 - 3パターン × 2プロジェクト種別の分類ルール
 - 権限フォーマットの技術仕様（評価順序、ワイルドカード構文、`:*` 非推奨など）
 
@@ -24,8 +24,9 @@ user_invocable: true
 - **ADDF 利用プロジェクト**: 上記がない（デフォルト）
 
 ### 3. 現在の権限設定を読み込み
-- `.claude/settings.json` の `permissions.allow` / `permissions.ask`
-- `.claude/settings.local.json` の `permissions.allow`（存在すれば）
+- `.claude/settings.json` の `permissions.allow` / `permissions.ask` / `permissions.deny`
+- `.claude/settings.local.json` の `permissions.allow` / `permissions.ask` / `permissions.deny`（存在すれば）
+- `permissions.deny` の過不足（Plan 0043 の事後観測方式で段階調整する対象）も監査対象に含める
 
 ### 4. セッション中の権限要求を収集
 セッションのトランスクリプトまたは直近の操作ログから、ユーザーが承認した権限要求を収集する。

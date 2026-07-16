@@ -70,7 +70,7 @@ lock の commit と一致する場合:
 | `.claude/agents/wd-*.md` | `wd-` プレフィックスのみ |
 | `.claude/hooks/` | 全ファイル |
 | `.claude/scripts/` | 全ファイル |
-| `.claude/templates/` | 全ファイル |
+| `.claude/addf/templates/` | 全ファイル |
 | `.claude/commands/*/tools/` | 画像処理ツール実体（annotate-grid, clip-image） |
 | `.claude/wardrobeOptions/` | 全ファイル |
 | `CLAUDE.md` | マージ注意（後述） |
