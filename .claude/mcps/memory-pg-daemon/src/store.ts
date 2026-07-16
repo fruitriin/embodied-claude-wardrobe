@@ -1,6 +1,13 @@
+import { spreadAssociations, adaptiveSearchParams } from "./association";
 import { sql, toTextArrayLiteral } from "./db";
 import { embedPassage, embedQuery, toVectorLiteral } from "./embedding";
 import { rowToEpisode, rowToMemory, rowToMemoryLink } from "./mapping";
+import {
+  calculateContextRelevance,
+  calculateEmotionBoost,
+  calculateNoveltyScore,
+  calculatePredictionError,
+} from "./predictive";
 import type {
   Episode,
   LinkType,
@@ -9,6 +16,7 @@ import type {
   MemorySearchResult,
   RememberOptions,
 } from "./types";
+import { calculateBoundaryScore, diversityScore, selectWorkspaceCandidates, type WorkspaceCandidate } from "./workspace";
 
 // ── remember ─────────────────────────────────────────────
 export async function remember(content: string, opts: RememberOptions = {}): Promise<Memory> {
@@ -78,6 +86,12 @@ export async function recall(context: string, nResults = 5): Promise<MemorySearc
     memory: rowToMemory(r),
     distance: Number(r.distance),
   }));
+}
+
+export async function getMemoriesByIds(ids: string[]): Promise<Memory[]> {
+  if (ids.length === 0) return [];
+  const rows = await sql`SELECT * FROM memories WHERE id = ANY(${toTextArrayLiteral(ids)}::uuid[])`;
+  return rows.map(rowToMemory);
 }
 
 export interface SearchMemoriesFilter {
@@ -501,5 +515,126 @@ export async function consolidateMemories(
     freshnessDecayed: true,
     importancePromoted: drift.promoted,
     importanceDemoted: drift.demoted,
+  };
+}
+
+// ── recall_divergent ─────────────────────────────────────
+// 旧Python版store.py:1432-の移植。意味検索でシードを取り、連想グラフを拡張し、
+// グローバルワークスペース風の勝者総取り競合で多様な記憶を選び出す「拡散的想起」。
+// calculateBoundaryScore用にmemory_linksの発リンク型一覧を取得する
+async function getOutgoingLinkTypes(memoryId: string): Promise<LinkType[]> {
+  const rows = await sql`SELECT link_type FROM memory_links WHERE source_id = ${memoryId}`;
+  return rows.map((r: Record<string, unknown>) => r.link_type as LinkType);
+}
+
+export interface RecallDivergentOptions {
+  nResults?: number;
+  maxBranches?: number;
+  maxDepth?: number;
+  temperature?: number;
+  includeDiagnostics?: boolean;
+  recordActivation?: boolean;
+}
+
+export interface RecallDivergentDiagnostics {
+  avgPredictionError: number;
+  avgNovelty: number;
+  diversity: number;
+  branchesUsed: number;
+  depthUsed: number;
+  association: import("./association").AssociationDiagnostics;
+}
+
+export async function recallDivergent(
+  context: string,
+  opts: RecallDivergentOptions = {}
+): Promise<{ results: MemorySearchResult[]; diagnostics: RecallDivergentDiagnostics | Record<string, never> }> {
+  const nResults = Math.max(1, Math.min(20, opts.nResults ?? 5));
+  const seedSize = Math.max(3, Math.min(25, nResults * 3));
+  const seeds = await recall(context, seedSize);
+  if (seeds.length === 0) return { results: [], diagnostics: {} };
+
+  const { branches: branchLimit, depth: depthLimit } = adaptiveSearchParams(
+    context,
+    opts.maxBranches ?? 3,
+    opts.maxDepth ?? 3,
+    seeds.length
+  );
+
+  const seedMemories = seeds.map((s) => s.memory);
+  const { expanded, diagnostics: assocDiag } = await spreadAssociations(
+    seedMemories,
+    branchLimit,
+    depthLimit,
+    getMemoriesByIds
+  );
+
+  const distanceMap = new Map(seeds.map((s) => [s.memory.id, s.distance]));
+  const allCandidates = new Map<string, Memory>();
+  for (const m of [...seedMemories, ...expanded]) allCandidates.set(m.id, m);
+
+  const workspaceCandidates: WorkspaceCandidate[] = [];
+  const predictionErrors: number[] = [];
+  const noveltyScores: number[] = [];
+
+  for (const memory of allCandidates.values()) {
+    const semanticDistance = distanceMap.get(memory.id);
+    const relevance =
+      semanticDistance === undefined
+        ? calculateContextRelevance(context, memory)
+        : 1 / (1 + Math.max(0, semanticDistance));
+
+    const predictionError = calculatePredictionError(context, memory);
+    const novelty = calculateNoveltyScore(memory, predictionError);
+    const emotionBoost = calculateEmotionBoost(memory.emotion);
+    const normalizedEmotion = Math.max(0, Math.min(1, emotionBoost / 0.4));
+
+    const linkTypes = await getOutgoingLinkTypes(memory.id);
+    const boundary = calculateBoundaryScore(linkTypes, linkTypes.length);
+
+    predictionErrors.push(predictionError);
+    noveltyScores.push(novelty);
+    workspaceCandidates.push({
+      memory,
+      relevance,
+      novelty,
+      predictionError,
+      emotionBoost: normalizedEmotion,
+      boundaryScore: boundary,
+    });
+  }
+
+  const selected = selectWorkspaceCandidates(workspaceCandidates, nResults, opts.temperature ?? 0.7);
+
+  const results: MemorySearchResult[] = [];
+  const selectedMemories: Memory[] = [];
+  const shouldRecordActivation = opts.recordActivation ?? true;
+
+  for (const { candidate, score } of selected) {
+    selectedMemories.push(candidate.memory);
+    if (shouldRecordActivation) {
+      await recordActivation(candidate.memory.id, candidate.predictionError);
+      await sql`UPDATE memories SET novelty_score = ${candidate.novelty} WHERE id = ${candidate.memory.id}`;
+    }
+    const scoreDistance = Math.max(0, 1 - score);
+    results.push({ memory: candidate.memory, distance: scoreDistance });
+  }
+
+  if (!(opts.includeDiagnostics ?? false)) return { results, diagnostics: {} };
+
+  const avgPredictionError =
+    predictionErrors.length > 0 ? predictionErrors.reduce((a, b) => a + b, 0) / predictionErrors.length : 0;
+  const avgNovelty = noveltyScores.length > 0 ? noveltyScores.reduce((a, b) => a + b, 0) / noveltyScores.length : 0;
+
+  return {
+    results,
+    diagnostics: {
+      avgPredictionError,
+      avgNovelty,
+      diversity: diversityScore(selectedMemories),
+      branchesUsed: branchLimit,
+      depthUsed: depthLimit,
+      association: assocDiag,
+    },
   };
 }

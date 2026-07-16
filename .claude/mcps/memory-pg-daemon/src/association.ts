@@ -1,11 +1,9 @@
+import { sql } from "./db";
 import { queryAmbiguityScore } from "./predictive";
+import type { Memory } from "./types";
 
 // recall_divergentの連想的グラフ拡張。
 // 旧wardrobe SQLite版(.claude/mcps/memory-mcp/src/memory_mcp/association.py)の移植。
-// 現時点ではDBに依存しない純粋関数(adaptiveSearchParams)のみ。
-// グラフ拡張本体(AssociationEngine.spread相当、memory_links/coactivationテーブルを
-// 辿るDB依存部分)はrecallDivergentのオーケストレーション実装と合わせて別途行う
-// (スコープ調査: .claude/addf/plans/remote-memory-mcp.md 参照)。
 
 export interface AssociationDiagnostics {
   branchesUsed: number;
@@ -13,6 +11,92 @@ export interface AssociationDiagnostics {
   traversedEdges: number;
   expandedNodes: number;
   avgBranchingFactor: number;
+}
+
+// ある記憶から辿れる近傍記憶IDを重み降順で返す。旧Python版はSQLite版Memoryに埋め込まれた
+// linked_ids/links/coactivation_weightsをメモリ上で結合していたが、Postgres版はmemory_links
+// (発リンク、weight列を実値として保持)とcoactivationの2テーブルを都度問い合わせる形になる
+// (旧版と違い呼び出しごとにDB往復が発生する。呼び出し元でmaxBranchesに絞ってから使うこと)
+async function getNeighborCandidates(memoryId: string): Promise<string[]> {
+  const rows = await sql`
+    SELECT target_id, weight FROM (
+      SELECT target_id, weight FROM memory_links WHERE source_id = ${memoryId}
+      UNION ALL
+      SELECT target_id, weight FROM coactivation WHERE source_id = ${memoryId}
+    ) combined
+  `;
+  const dedup = new Map<string, number>();
+  for (const row of rows) {
+    const id = row.target_id as string;
+    const weight = Number(row.weight);
+    if (!dedup.has(id) || dedup.get(id)! < weight) dedup.set(id, weight);
+  }
+  return [...dedup.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id);
+}
+
+export interface AssociationSpreadResult {
+  expanded: Memory[];
+  diagnostics: AssociationDiagnostics;
+}
+
+// シード記憶群からmaxDepth段階、各段max branches本まで近傍を辿って拡張する
+// (旧AssociationEngine.spread相当)。深さ1レベル分をバッチで一括取得しN+1を避ける設計は
+// 踏襲するが、近傍ID自体の取得(getNeighborCandidates)はメモリ単位のDB問い合わせになる
+export async function spreadAssociations(
+  seeds: Memory[],
+  maxBranches: number,
+  maxDepth: number,
+  fetchMemoriesByIds: (ids: string[]) => Promise<Memory[]>
+): Promise<AssociationSpreadResult> {
+  if (seeds.length === 0) {
+    return {
+      expanded: [],
+      diagnostics: { branchesUsed: maxBranches, depthUsed: maxDepth, traversedEdges: 0, expandedNodes: 0, avgBranchingFactor: 0 },
+    };
+  }
+
+  const visited = new Set(seeds.map((m) => m.id));
+  let currentLevel = seeds;
+  const expanded: Memory[] = [];
+  let traversedEdges = 0;
+  const branchingCounts: number[] = [];
+
+  for (let depth = 0; depth < maxDepth; depth++) {
+    if (currentLevel.length === 0) break;
+
+    const frontierIds: string[] = [];
+    for (const memory of currentLevel) {
+      const neighbors = (await getNeighborCandidates(memory.id)).slice(0, maxBranches);
+      branchingCounts.push(neighbors.length);
+      for (const neighborId of neighbors) {
+        traversedEdges++;
+        if (!visited.has(neighborId)) {
+          frontierIds.push(neighborId);
+          visited.add(neighborId);
+        }
+      }
+    }
+
+    if (frontierIds.length === 0) break;
+
+    const fetched = await fetchMemoriesByIds(frontierIds);
+    expanded.push(...fetched);
+    currentLevel = fetched;
+  }
+
+  const avgBranchingFactor =
+    branchingCounts.length > 0 ? branchingCounts.reduce((a, b) => a + b, 0) / branchingCounts.length : 0;
+
+  return {
+    expanded,
+    diagnostics: {
+      branchesUsed: maxBranches,
+      depthUsed: maxDepth,
+      traversedEdges,
+      expandedNodes: expanded.length,
+      avgBranchingFactor,
+    },
+  };
 }
 
 // クエリの曖昧さ・シード件数の少なさに応じてbranch/depthを調整する。

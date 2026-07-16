@@ -86,6 +86,20 @@ describe("memory-pg-daemon HTTP", () => {
     expect(result.freshnessDecayed).toBe(true);
   });
 
+  test("POST /recall_divergent が結果を返す", async () => {
+    await fetch(`${baseUrl}/remember`, {
+      method: "POST",
+      body: JSON.stringify({ content: "拡散的想起HTTP確認用の記憶。" }),
+    });
+    const res = await fetch(`${baseUrl}/recall_divergent`, {
+      method: "POST",
+      body: JSON.stringify({ context: "拡散的想起HTTP確認", nResults: 3 }),
+    });
+    expect(res.status).toBe(200);
+    const { result } = (await res.json()) as { result: { results: unknown[] } };
+    expect(result.results.length).toBeGreaterThan(0);
+  });
+
   test("GET以外・不明パスへのGETは405", async () => {
     const res = await fetch(`${baseUrl}/remember`, { method: "GET" });
     expect(res.status).toBe(405);

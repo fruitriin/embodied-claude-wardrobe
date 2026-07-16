@@ -8,6 +8,7 @@ import {
   listRecentMemories,
   recall,
   recallByCameraPosition,
+  recallDivergent,
   recallWithAssociations,
   remember,
   saveVisualMemory,
@@ -93,6 +94,15 @@ export const schemas = {
     maxReplayEvents: z.number().optional(),
     linkUpdateStrength: z.number().optional(),
   }),
+  recall_divergent: z.object({
+    context: z.string(),
+    nResults: z.number().optional(),
+    maxBranches: z.number().optional(),
+    maxDepth: z.number().optional(),
+    temperature: z.number().optional(),
+    includeDiagnostics: z.boolean().optional(),
+    recordActivation: z.boolean().optional(),
+  }),
 } as const;
 
 export type ToolName = keyof typeof schemas;
@@ -113,6 +123,15 @@ export const handlers: Handlers = {
   recall_by_camera_position: (b) => recallByCameraPosition(b.panAngle, b.tiltAngle, b.tolerance ?? 15),
   consolidate_memories: (b) =>
     consolidateMemories(b.windowHours ?? 24, b.maxReplayEvents ?? 200, b.linkUpdateStrength ?? 0.2),
+  recall_divergent: (b) =>
+    recallDivergent(b.context, {
+      nResults: b.nResults,
+      maxBranches: b.maxBranches,
+      maxDepth: b.maxDepth,
+      temperature: b.temperature,
+      includeDiagnostics: b.includeDiagnostics,
+      recordActivation: b.recordActivation,
+    }),
 };
 
 // ツール名はASCII必須(API規約)だが説明は日本語で完全に動く(設計判断7)。
@@ -132,6 +151,9 @@ export const descriptions: Record<ToolName, string> = {
   consolidate_memories:
     "直近の記憶をリプレイして共活性化・関連リンクを強化し、新鮮度減衰と重要度の自然な昇格/降格を行う" +
     "(合成記憶生成等の高度な統合フェーズは専用テーブル未実装のため対象外)",
+  recall_divergent:
+    "拡散的想起。意味検索のシードから連想リンク・共活性化を辿って候補を広げ、" +
+    "関連性・新奇性・感情・多様性を加味した競合選択で通常のrecallより幅の広い記憶群を返す",
 };
 
 export function isToolName(name: string): name is ToolName {

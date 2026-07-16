@@ -19,7 +19,7 @@ describe("memory-pg-daemon MCP stdio", () => {
     await client.close();
   });
 
-  test("契約ツール12本がlistToolsに現れる", async () => {
+  test("契約ツール13本がlistToolsに現れる", async () => {
     const { tools } = await client.listTools();
     const names = tools.map((t) => t.name).sort();
     expect(names).toEqual(
@@ -32,6 +32,7 @@ describe("memory-pg-daemon MCP stdio", () => {
         "list_recent_memories",
         "recall",
         "recall_by_camera_position",
+        "recall_divergent",
         "recall_with_associations",
         "save_visual_memory",
         "search_memories",
@@ -62,6 +63,18 @@ describe("memory-pg-daemon MCP stdio", () => {
     const results = JSON.parse(recallContent[0]!.text);
     expect(results.length).toBeGreaterThan(0);
     expect(results[0].memory.id).toBe(memory.id);
+  });
+
+  test("recall_divergentがMCP経由で結果を返す", async () => {
+    await client.callTool({ name: "remember", arguments: { content: "拡散的想起MCP確認用の記憶。" } });
+    const result = await client.callTool({
+      name: "recall_divergent",
+      arguments: { context: "拡散的想起MCP確認", nResults: 3 },
+    });
+    expect(result.isError).toBeFalsy();
+    const content = result.content as { type: string; text: string }[];
+    const { results } = JSON.parse(content[0]!.text);
+    expect(results.length).toBeGreaterThan(0);
   });
 
   test("引数無しツール(get_memory_stats)はargumentsキー省略でも失敗しない", async () => {
