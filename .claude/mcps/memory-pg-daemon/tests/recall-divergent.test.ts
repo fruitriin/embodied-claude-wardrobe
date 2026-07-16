@@ -76,18 +76,17 @@ describe("recallDivergent", () => {
     expect(diagnostics).toEqual({});
   });
 
-  test("通常のrecallより広い候補集合から選ばれるため、結果がrecallの上位と完全一致しないことがある", async () => {
+  test("通常のrecallでは拾えない記憶が、recall_divergentのリンク拡散では含まれる", async () => {
     await resetDb();
     const anchor = await remember("桜並木を歩いた特別な思い出。", { importance: 5, autoLink: false });
-    const distractor1 = await remember("桜並木のベンチで休んだ話。", { autoLink: false });
-    const distractor2 = await remember("桜並木近くのカフェの話。", { autoLink: false });
-    await linkMemories(anchor.id, distractor1.id, "related");
-    await linkMemories(anchor.id, distractor2.id, "related");
+    const unrelated = await remember("確定申告の書類を整理した。", { autoLink: false });
+    await linkMemories(anchor.id, unrelated.id, "related");
 
-    const plain = await recall("桜並木", 5);
+    // 意味的に無関係なunrelatedは、素のrecallの上位1件には出てこない想定
+    const plain = await recall("桜並木", 1);
+    expect(plain.map((r) => r.memory.id)).not.toContain(unrelated.id);
+
     const { results: divergentResults } = await recallDivergent("桜並木", { nResults: 5, maxBranches: 5, maxDepth: 2 });
-
-    expect(plain.length).toBeGreaterThan(0);
-    expect(divergentResults.length).toBeGreaterThan(0);
+    expect(divergentResults.map((r) => r.memory.id)).toContain(unrelated.id);
   });
 });

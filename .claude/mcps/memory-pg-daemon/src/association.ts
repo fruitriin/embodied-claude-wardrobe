@@ -1,4 +1,4 @@
-import { sql } from "./db";
+import { sql, toTextArrayLiteral } from "./db";
 import { queryAmbiguityScore } from "./predictive";
 import type { Memory } from "./types";
 
@@ -13,25 +13,43 @@ export interface AssociationDiagnostics {
   avgBranchingFactor: number;
 }
 
-// ある記憶から辿れる近傍記憶IDを重み降順で返す。旧Python版はSQLite版Memoryに埋め込まれた
-// linked_ids/links/coactivation_weightsをメモリ上で結合していたが、Postgres版はmemory_links
-// (発リンク、weight列を実値として保持)とcoactivationの2テーブルを都度問い合わせる形になる
-// (旧版と違い呼び出しごとにDB往復が発生する。呼び出し元でmaxBranchesに絞ってから使うこと)
-async function getNeighborCandidates(memoryId: string): Promise<string[]> {
+// 複数の記憶から辿れる近傍記憶IDを、記憶ごとに重み降順で返す。旧Python版はSQLite版Memory
+// に埋め込まれたlinked_ids/links/coactivation_weightsをメモリ上で結合していたが、
+// Postgres版はmemory_links(発リンク、weight列を実値として保持)とcoactivationの2テーブル
+// を問い合わせる形になる。spreadAssociationsの深さ1レベル分の全記憶IDをまとめて
+// 1クエリで引く(wd-code-review指摘: 記憶ごとの逐次問い合わせはN+1になる)
+async function getNeighborCandidatesBatch(memoryIds: string[]): Promise<Map<string, string[]>> {
+  if (memoryIds.length === 0) return new Map();
+  const idsLiteral = toTextArrayLiteral(memoryIds);
   const rows = await sql`
-    SELECT target_id, weight FROM (
-      SELECT target_id, weight FROM memory_links WHERE source_id = ${memoryId}
+    SELECT source_id, target_id, weight FROM (
+      SELECT source_id, target_id, weight FROM memory_links WHERE source_id = ANY(${idsLiteral}::uuid[])
       UNION ALL
-      SELECT target_id, weight FROM coactivation WHERE source_id = ${memoryId}
+      SELECT source_id, target_id, weight FROM coactivation WHERE source_id = ANY(${idsLiteral}::uuid[])
     ) combined
   `;
-  const dedup = new Map<string, number>();
+
+  const dedupBySource = new Map<string, Map<string, number>>();
   for (const row of rows) {
-    const id = row.target_id as string;
+    const sourceId = row.source_id as string;
+    const targetId = row.target_id as string;
     const weight = Number(row.weight);
-    if (!dedup.has(id) || dedup.get(id)! < weight) dedup.set(id, weight);
+    let dedup = dedupBySource.get(sourceId);
+    if (!dedup) {
+      dedup = new Map();
+      dedupBySource.set(sourceId, dedup);
+    }
+    if (!dedup.has(targetId) || dedup.get(targetId)! < weight) dedup.set(targetId, weight);
   }
-  return [...dedup.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id);
+
+  const result = new Map<string, string[]>();
+  for (const [sourceId, dedup] of dedupBySource) {
+    result.set(
+      sourceId,
+      [...dedup.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id)
+    );
+  }
+  return result;
 }
 
 export interface AssociationSpreadResult {
@@ -40,8 +58,8 @@ export interface AssociationSpreadResult {
 }
 
 // シード記憶群からmaxDepth段階、各段max branches本まで近傍を辿って拡張する
-// (旧AssociationEngine.spread相当)。深さ1レベル分をバッチで一括取得しN+1を避ける設計は
-// 踏襲するが、近傍ID自体の取得(getNeighborCandidates)はメモリ単位のDB問い合わせになる
+// (旧AssociationEngine.spread相当)。近傍ID取得(getNeighborCandidatesBatch)・記憶本体の
+// 取得(fetchMemoriesByIds)とも、深さ1レベル分の全IDをまとめて1クエリで引く(N+1回避)
 export async function spreadAssociations(
   seeds: Memory[],
   maxBranches: number,
@@ -64,9 +82,11 @@ export async function spreadAssociations(
   for (let depth = 0; depth < maxDepth; depth++) {
     if (currentLevel.length === 0) break;
 
+    const neighborsBySource = await getNeighborCandidatesBatch(currentLevel.map((m) => m.id));
+
     const frontierIds: string[] = [];
     for (const memory of currentLevel) {
-      const neighbors = (await getNeighborCandidates(memory.id)).slice(0, maxBranches);
+      const neighbors = (neighborsBySource.get(memory.id) ?? []).slice(0, maxBranches);
       branchingCounts.push(neighbors.length);
       for (const neighborId of neighbors) {
         traversedEdges++;

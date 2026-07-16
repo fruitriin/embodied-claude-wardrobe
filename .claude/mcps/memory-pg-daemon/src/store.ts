@@ -1,4 +1,4 @@
-import { spreadAssociations, adaptiveSearchParams } from "./association";
+import { spreadAssociations, adaptiveSearchParams, type AssociationDiagnostics } from "./association";
 import { sql, toTextArrayLiteral } from "./db";
 import { embedPassage, embedQuery, toVectorLiteral } from "./embedding";
 import { rowToEpisode, rowToMemory, rowToMemoryLink } from "./mapping";
@@ -521,10 +521,22 @@ export async function consolidateMemories(
 // ── recall_divergent ─────────────────────────────────────
 // 旧Python版store.py:1432-の移植。意味検索でシードを取り、連想グラフを拡張し、
 // グローバルワークスペース風の勝者総取り競合で多様な記憶を選び出す「拡散的想起」。
-// calculateBoundaryScore用にmemory_linksの発リンク型一覧を取得する
-async function getOutgoingLinkTypes(memoryId: string): Promise<LinkType[]> {
-  const rows = await sql`SELECT link_type FROM memory_links WHERE source_id = ${memoryId}`;
-  return rows.map((r: Record<string, unknown>) => r.link_type as LinkType);
+// calculateBoundaryScore用に、複数の記憶の発リンク型一覧をまとめて取得する
+// (wd-code-review指摘: 候補ごとの逐次問い合わせはN+1になるため一括取得に変更)
+async function getOutgoingLinkTypesBatch(memoryIds: string[]): Promise<Map<string, LinkType[]>> {
+  if (memoryIds.length === 0) return new Map();
+  const rows = await sql`
+    SELECT source_id, link_type FROM memory_links WHERE source_id = ANY(${toTextArrayLiteral(memoryIds)}::uuid[])
+  `;
+  const result = new Map<string, LinkType[]>();
+  for (const row of rows as Record<string, unknown>[]) {
+    const sourceId = row.source_id as string;
+    const linkType = row.link_type as LinkType;
+    const list = result.get(sourceId);
+    if (list) list.push(linkType);
+    else result.set(sourceId, [linkType]);
+  }
+  return result;
 }
 
 export interface RecallDivergentOptions {
@@ -542,7 +554,7 @@ export interface RecallDivergentDiagnostics {
   diversity: number;
   branchesUsed: number;
   depthUsed: number;
-  association: import("./association").AssociationDiagnostics;
+  association: AssociationDiagnostics;
 }
 
 export async function recallDivergent(
@@ -573,6 +585,8 @@ export async function recallDivergent(
   const allCandidates = new Map<string, Memory>();
   for (const m of [...seedMemories, ...expanded]) allCandidates.set(m.id, m);
 
+  const linkTypesBySource = await getOutgoingLinkTypesBatch([...allCandidates.keys()]);
+
   const workspaceCandidates: WorkspaceCandidate[] = [];
   const predictionErrors: number[] = [];
   const noveltyScores: number[] = [];
@@ -589,7 +603,7 @@ export async function recallDivergent(
     const emotionBoost = calculateEmotionBoost(memory.emotion);
     const normalizedEmotion = Math.max(0, Math.min(1, emotionBoost / 0.4));
 
-    const linkTypes = await getOutgoingLinkTypes(memory.id);
+    const linkTypes = linkTypesBySource.get(memory.id) ?? [];
     const boundary = calculateBoundaryScore(linkTypes, linkTypes.length);
 
     predictionErrors.push(predictionError);
